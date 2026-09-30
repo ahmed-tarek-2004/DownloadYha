@@ -1,8 +1,10 @@
 # Downloadyha
 
-A fast, standalone YouTube downloader CLI. No Python, FFmpeg, Deno, or yt-dlp installation required.
+A fast, beautiful, and standalone YouTube downloader CLI for **Videos**, **Audio (MP3)**, and **Full Playlists**. No Python, FFmpeg, Deno, or yt-dlp setup required.
 
-## Quick Start
+---
+
+## ⚡ Quick Start
 
 ### Windows
 
@@ -12,7 +14,7 @@ Open PowerShell and run:
 irm https://raw.githubusercontent.com/ahmed-tarek-2004/DownloadYha/master/install.ps1 | iex
 ```
 
-Then:
+Then run:
 
 ```powershell
 downloadyha
@@ -20,208 +22,139 @@ downloadyha
 
 ### Linux
 
-Open terminal and run:
+Open your terminal and run:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/ahmed-tarek-2004/DownloadYha/master/install.sh | bash
 ```
 
-Then:
+Then run:
 
 ```bash
 downloadyha
 ```
 
-That's it. No other installation steps required.
+---
+
+## 🌟 Features
+
+- 🎬 **Single Video Downloads**: Custom resolutions up to 4K (2160p, 1440p, 1080p, 720p, 480p, 360p) with merged audio in MP4.
+- 🎵 **High Quality Audio Extraction**: Convert audio directly to MP3 (Best VBR ~245k, 320 kbps, 192 kbps, 128 kbps).
+- 📑 **Full Playlist Downloads**: Download entire video or audio playlists in batch.
+  - Automatically organizes tracks into a clean subfolder named after the playlist.
+  - Indexes track filenames (`01 - Title.mp4`, `02 - Title.mp4`).
+  - Error-resilient: private or restricted videos are skipped without failing the entire batch.
+- ✨ **Modern & Pretty Terminal UI**:
+  - Beautiful box-framed banners and cards.
+  - Visual step-by-step indicator pills (`[1/3]`, `[2/3]`, `[3/3]`).
+  - High-resolution dynamic progress bar with speed, ETA, and playlist counter `[3/15]`.
+- 🪟 **True Cross-Platform**: Native ANSI and Windows Virtual Terminal Processing (`cmd`, `PowerShell`, `Windows Terminal`, `Linux`).
+- 🔄 **Self-Updating & Repairing**: Built-in `downloadyha update` and `downloadyha repair`.
+- 🗑️ **One-Command Uninstaller**: Built-in `downloadyha uninstall`.
+- 📦 **Completely Standalone**: All dependencies (FFmpeg, Deno, yt-dlp) are self-contained.
 
 ---
 
-## Features
-
-- **Download YouTube videos** in available qualities (144p to 4K+)
-- **Download audio as MP3** (Best, 128, 192, or 320 kbps)
-- **Dynamic quality selection** based on what's actually available
-- **Custom download directory** or use Downloads folder by default
-- **Progress tracking** with speed and ETA
-- **Self-updating** - update with a single command
-- **Self-repairing** - fix corrupted installations automatically
-- **Completely standalone** - all dependencies bundled
-
----
-
-## Requirements
+## 💻 Requirements
 
 **None.**
 
-Downloadyha is a standalone application. You don't need to install:
-
+Downloadyha is fully self-contained. You do **not** need to install:
 - ❌ Python
 - ❌ pip
-- ❌ FFmpeg
+- ❌ FFmpeg / FFprobe
 - ❌ Deno
 - ❌ yt-dlp
-- ❌ Any other runtime or dependency
-
-Everything is bundled and managed automatically.
 
 ---
 
-## Supported Platforms
+## 🖥️ Supported Platforms
 
-- ✅ Windows 10 (64-bit)
-- ✅ Windows 11 (64-bit)
-- ✅ Linux x64 (glibc 2.31+)
+- ✅ Windows 10 / 11 (64-bit)
+- ✅ Linux x86_64 (glibc 2.31+)
 - ✅ Linux ARM64 (glibc 2.31+)
 
 ---
 
-## Usage
+## 🚀 Usage
 
-### Download a Video or Audio
-
-Simply run:
+Simply launch the interactive CLI:
 
 ```bash
 downloadyha
 ```
 
-You'll be prompted for:
+### Interactive Workflow
 
-1. **YouTube URL** - paste the video link
-2. **Download folder** - press Enter for Downloads, or specify a custom path
-3. **Download type** - choose Audio or Video
-4. **Quality** - select from available options
+```text
+╭────────────────────────────────────────────────────────╮
+│                       D O W N L O A D Y H A                        │
+│                Fast & Beautiful YouTube Downloader                 │
+│                       By Ahmed Tarek Zaher  •  v1.0.0                       │
+╰────────────────────────────────────────────────────────╯
 
-Example session:
+[1/3] Enter YouTube URL
+➜ Paste Video or Playlist URL
+╰─> https://www.youtube.com/playlist?list=PLrAXtmErZgOdP_8GzKt...
 
-```
-=======================================================
-                  Downloadyha
-=======================================================
-              YouTube Downloader
-=======================================================
+[2/3] Select Destination Folder
+➜ Enter destination folder (default: C:\Users\Ahmed\Downloads)
+╰─> 
 
-Enter YouTube URL: https://www.youtube.com/watch?v=dQw4w9WgXcQ
+[3/3] Analyzing Media & Selecting Quality
+⏳ Fetching media metadata from YouTube...
 
-Enter download folder (leave empty for Downloads): 
+╭─ 📑 Playlist Detected ─────────────────────────────────────────╮
+│  Title           :  Synthwave & Cyberpunk Mix 2026             │
+│  Channel         :  RetroWave Records                          │
+│  Total Items     :  15 videos                                  │
+│  Type            :  YouTube Playlist                           │
+│  Destination     :  C:\Users\Ahmed\Downloads                   │
+╰────────────────────────────────────────────────────────────────╯
 
-Getting video information...
+Select Playlist Download Type:
+  [1] Video Playlist (MP4) • Download all videos in playlist
+  [2] Audio Playlist (MP3) • Extract all songs/audio to MP3
 
-Title: Rick Astley - Never Gonna Give You Up (Official Video)
+╰─> Enter choice [1-2]: 1
 
-Choose download type:
-1. Audio
-2. Video
+Select Maximum Video Quality for Playlist:
+  [1] Best Available • Maximum resolution per video
+  [2] 1080p (Full HD) • 1920x1080 maximum
+  [3] 720p (HD) • 1280x720 standard HD
+  [4] 480p (SD) • Standard Definition
 
-Enter your choice: 2
+╰─> Enter choice [1-4]: 2
 
-Available video qualities:
-1. 144p
-2. 240p
-3. 360p
-4. 480p
-5. 720p
-6. 1080p
+ℹ Starting Video Playlist Download: Synthwave & Cyberpunk Mix 2026
+⬇ [1/15] [████████████████░░░░░░░░]  65.4% │ 18.2MiB/s │ ETA 00:04 │ 85.0/130.0MB
 
-Choose quality: 6
-
-Downloading video...
-
-Downloading 45.2% | Speed: 2.3 MB/s | ETA: 00:15
-```
-
----
-
-## Commands
-
-### Main Command
-
-```bash
-downloadyha
-```
-
-Launch the interactive downloader.
-
-### Update Downloadyha
-
-```bash
-downloadyha update
-```
-
-Check for and install the latest version of Downloadyha.
-
-Example output:
-
-```
-Current version: 1.0.0
-Latest version: 1.1.0
-
-A new version is available.
-
-Updating Downloadyha...
-
-✓ Downloaded downloadyha-linux-x64
-✓ Verified checksum
-✓ Installed successfully
-
-Downloadyha updated to 1.1.0
-
-Restart your terminal or run 'downloadyha' to use the new version.
-```
-
-### Repair Installation
-
-```bash
-downloadyha repair
-```
-
-If Downloadyha isn't working correctly, repair will:
-
-- Re-download and verify all bundled dependencies
-- Fix file permissions (Linux)
-- Restore corrupted binaries
-- Verify installation integrity
-
-Example output:
-
-```
-Repairing Downloadyha installation...
-
-✓ Verified downloadyha executable
-✓ Verified FFmpeg (version 7.0.2)
-✓ Verified FFprobe
-✓ Verified Deno (version 2.0.0)
-✓ Verified yt-dlp (version 2026.09.01)
-
-Installation is healthy.
+╭─ ✔ Playlist Download Complete ────────────────────────────────╮
+│  Playlist          :  Synthwave & Cyberpunk Mix 2026
+│  Type              :  VIDEO
+│  Saved To          :  C:\Users\Ahmed\Downloads\Synthwave & Cyberpunk Mix 2026
+╰───────────────────────────────────────────────────────────────╯
 ```
 
 ---
 
-## Update Policy
+## 🛠️ Commands
 
-Downloadyha checks for updates automatically (at most once per 24 hours) and notifies you when a new version is available. It will **never** update automatically without your permission.
-
-When a new version is available, you'll see:
-
-```
-A new version of Downloadyha is available.
-
-Current: 1.0.0
-Latest: 1.1.0
-
-Run:
-
-    downloadyha update
-```
-
-To disable update checks, edit your configuration file (see Configuration below).
+| Command | Description |
+|---|---|
+| `downloadyha` | Start the interactive downloader (Single Video / Audio / Playlist) |
+| `downloadyha update` | Check GitHub Releases and update to the newest version |
+| `downloadyha repair` | Re-verify and restore bundled dependencies |
+| `downloadyha uninstall` | Cleanly remove Downloadyha and all configuration/cache |
+| `downloadyha --verify` | Check system dependencies status |
+| `downloadyha --version` | Display version information |
+| `downloadyha --help` | Show command usage and options |
 
 ---
 
-## Configuration
+## ⚙️ Configuration
 
-Downloadyha stores user settings in:
+Downloadyha automatically creates and manages a configuration file:
 
 - **Windows**: `%LOCALAPPDATA%\Downloadyha\config.json`
 - **Linux**: `~/.local/share/downloadyha/config.json`
@@ -230,232 +163,45 @@ Example configuration:
 
 ```json
 {
-  "download_directory": "C:\\Users\\YourName\\Videos",
-  "check_updates": true,
-  "last_update_check": "2026-09-30T12:00:00Z"
+  "download_directory": "C:\\Users\\Ahmed\\Downloads",
+  "check_updates": true
 }
 ```
 
-### Configuration Options
-
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `download_directory` | string | `~/Downloads` | Default download folder |
-| `check_updates` | boolean | `true` | Enable automatic update checks |
-
-Updating Downloadyha preserves your configuration.
-
 ---
 
-## Application Data Locations
+## 🗑️ Uninstallation
 
-Downloadyha stores its managed dependencies and data in platform-specific directories:
-
-### Windows
-
-```
-%LOCALAPPDATA%\Downloadyha\
-├── bin\              # FFmpeg, Deno binaries
-├── logs\             # Application logs
-├── cache\            # Temporary download cache
-└── config.json       # User configuration
-```
-
-### Linux
-
-```
-~/.local/share/downloadyha/
-├── bin/              # FFmpeg, Deno binaries
-├── logs/             # Application logs
-├── cache/            # Temporary download cache
-└── config.json       # User configuration
-```
-
-The executable itself is installed in:
-
-- **Windows**: `%LOCALAPPDATA%\Programs\Downloadyha\downloadyha.exe`
-- **Linux**: `~/.local/bin/downloadyha`
-
----
-
-## Troubleshooting
-
-### "downloadyha: command not found" (Linux)
-
-The installer adds `~/.local/bin` to your PATH. If the command isn't found:
-
-1. Close and reopen your terminal
-2. If still not working, add this to your `~/.bashrc` or `~/.zshrc`:
+You can uninstall Downloadyha at any time using the built-in command:
 
 ```bash
-export PATH="$HOME/.local/bin:$PATH"
+downloadyha uninstall
 ```
 
-Then run:
+Or manually:
 
-```bash
-source ~/.bashrc  # or source ~/.zshrc
-```
-
-### "Cannot be loaded because running scripts is disabled" (Windows)
-
-If you see a PowerShell execution policy error:
-
-1. Open PowerShell as Administrator
-2. Run:
-
-```powershell
-Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
-```
-
-3. Try the installation again
-
-### Download fails with "Video unavailable"
-
-- Verify the YouTube URL is correct and the video is publicly accessible
-- The video may be region-locked or age-restricted
-- Try updating Downloadyha: `downloadyha update`
-
-### Download fails with dependency errors
-
-Run the repair command:
-
-```bash
-downloadyha repair
-```
-
-This will re-download and verify all bundled dependencies.
-
-### Slow download speeds
-
-- Your network connection speed limits the download
-- YouTube may throttle download speeds during peak hours
-- Try downloading at a different time
-- Check your internet connection
-
-### "Permission denied" (Linux)
-
-If you get permission errors:
-
-```bash
-chmod +x ~/.local/bin/downloadyha
-```
-
-Or run:
-
-```bash
-downloadyha repair
-```
-
-### Application crashes or hangs
-
-1. Check the logs:
-   - **Windows**: `%LOCALAPPDATA%\Downloadyha\logs\`
-   - **Linux**: `~/.local/share/downloadyha/logs/`
-
-2. Try repairing:
-
-```bash
-downloadyha repair
-```
-
-3. If the issue persists, please [open an issue](https://github.com/<USER>/<REPO>/issues) with:
-   - Your operating system and version
-   - The YouTube URL (if applicable)
-   - Log files from the logs directory
-   - The exact error message
-
----
-
-## Uninstallation
-
-### Windows
-
-Run in PowerShell:
-
+### Windows (PowerShell)
 ```powershell
 Remove-Item -Recurse -Force "$env:LOCALAPPDATA\Downloadyha"
 Remove-Item -Recurse -Force "$env:LOCALAPPDATA\Programs\Downloadyha"
 ```
 
-Then remove `%LOCALAPPDATA%\Programs\Downloadyha` from your PATH (optional).
-
 ### Linux
-
-Run in terminal:
-
 ```bash
 rm -rf ~/.local/share/downloadyha
-rm ~/.local/bin/downloadyha
+rm -f ~/.local/bin/downloadyha
 ```
 
 ---
 
-## Privacy
+## 🔒 Privacy
 
-Downloadyha:
-
-- Does **not** collect or transmit any personal data
-- Does **not** track your downloads
-- Does **not** send analytics
-- Only communicates with:
-  - **YouTube** (to download videos you request)
-  - **GitHub** (to check for updates when you run `downloadyha update` or during automatic update checks)
-
-All downloads are stored locally on your machine. No data is sent to any third-party service.
+- 🚫 **Zero Tracking**: Downloadyha does not collect, log, or transmit personal telemetry or usage statistics.
+- 🔒 **Direct Connection**: Downloads stream directly from YouTube to your local machine.
+- 🛡️ **Integrity Verification**: Updates and components are checked against SHA-256 digests.
 
 ---
 
-## How It Works
+## 📄 License
 
-Downloadyha is a self-contained application that bundles all its dependencies:
-
-1. **Python runtime** - bundled and managed internally
-2. **FFmpeg** - bundled for audio/video processing
-3. **Deno** - bundled for JavaScript extraction (required by yt-dlp for some videos)
-4. **yt-dlp** - bundled for YouTube downloading
-
-When you run `downloadyha`:
-
-1. It verifies all bundled dependencies are present and valid
-2. Extracts video metadata from YouTube using yt-dlp
-3. Downloads the requested quality using yt-dlp
-4. Processes audio/video using FFmpeg
-5. Saves the final file to your chosen directory
-
-All dependencies are verified with SHA-256 checksums before execution.
-
----
-
-## Building from Source
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for developer documentation.
-
----
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-## Acknowledgments
-
-Downloadyha is built on top of excellent open-source projects:
-
-- [yt-dlp](https://github.com/yt-dlp/yt-dlp) - YouTube downloader
-- [FFmpeg](https://ffmpeg.org/) - Media processing
-- [Deno](https://deno.land/) - JavaScript runtime
-
----
-
-## Support
-
-- **Issues**: [GitHub Issues](https://github.com/<USER>/<REPO>/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/<USER>/<REPO>/discussions)
-
----
-
-## Changelog
-
-See [CHANGELOG.md](CHANGELOG.md) for version history and release notes.
+Distributed under the MIT License. See [LICENSE](LICENSE) for details.
