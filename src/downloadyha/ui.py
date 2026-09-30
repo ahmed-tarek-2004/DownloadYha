@@ -79,6 +79,10 @@ def enable_virtual_terminal() -> bool:
     return True
 
 
+# Backward compatibility alias
+init_terminal = enable_virtual_terminal
+
+
 def is_color_supported() -> bool:
     """
     Check if the current terminal environment supports ANSI colors.
@@ -198,6 +202,7 @@ class Symbols:
     AUDIO = "🎵"
     VIDEO = "🎬"
     FOLDER = "📁"
+    PLAYLIST = "📑"
     ROCKET = "🚀"
     SPARKLE = "✨"
     GEAR = "⚙"
@@ -483,16 +488,16 @@ def format_speed(bytes_per_sec: Union[int, float, None]) -> str:
 
 def format_duration(seconds: Union[int, float, str, None]) -> str:
     """
-    Format seconds into HH:MM:SS or MM:SS format with human friendly label.
+    Format seconds into HH:MM:SS or MM:SS format.
 
     Args:
-        seconds: Duration in seconds or formatted string.
+        seconds: Duration in seconds.
 
     Returns:
-        Formatted duration string (e.g. '03:45 (3m 45s)').
+        Formatted duration string (e.g. '01:05', '01:01:05', or 'Unknown').
     """
     if seconds is None:
-        return "N/A"
+        return "Unknown"
 
     if isinstance(seconds, str):
         if ":" in seconds:
@@ -504,8 +509,8 @@ def format_duration(seconds: Union[int, float, str, None]) -> str:
     else:
         sec_val = float(seconds)
 
-    if sec_val < 0:
-        return "N/A"
+    if sec_val <= 0:
+        return "Unknown"
 
     total_secs = int(sec_val)
     hours = total_secs // 3600
@@ -513,13 +518,9 @@ def format_duration(seconds: Union[int, float, str, None]) -> str:
     rem_secs = total_secs % 60
 
     if hours > 0:
-        timestamp = f"{hours:02d}:{minutes:02d}:{rem_secs:02d}"
-        label = f" ({hours}h {minutes}m)"
+        return f"{hours:02d}:{minutes:02d}:{rem_secs:02d}"
     else:
-        timestamp = f"{minutes:02d}:{rem_secs:02d}"
-        label = f" ({minutes}m {rem_secs}s)"
-
-    return f"{timestamp}{label}"
+        return f"{minutes:02d}:{rem_secs:02d}"
 
 
 def format_number(num: Union[int, float, str, None]) -> str:
@@ -648,7 +649,7 @@ def print_divider(
     color: Optional[str] = None
 ) -> None:
     """
-    Print a decorative horizontal divider with an optional centered or left title.
+    Print a decorative horizontal divider with an optional title.
 
     Args:
         title: Optional section title.
@@ -737,17 +738,21 @@ def print_step(
 def render_card(
     title: Optional[str] = None,
     lines: Optional[List[str]] = None,
+    items: Optional[Union[Dict[str, Any], Sequence[Tuple[str, Any]]]] = None,
+    icon: Optional[str] = None,
     style: str = "rounded",
     width: Optional[int] = None,
     border_color: Optional[str] = None,
     title_color: Optional[str] = None
 ) -> str:
     """
-    Render a generic boxed card with border styling and custom contents.
+    Render a generic boxed card with border styling, custom lines, or key-value items.
 
     Args:
         title: Optional title at top border.
-        lines: List of string lines to place inside the card.
+        lines: Optional list of string lines inside the card.
+        items: Optional list/dict of (key, value) pairs.
+        icon: Optional icon prefix for title.
         style: Box style key from BOX_STYLES ('rounded', 'double', 'single', etc.).
         width: Card width.
         border_color: ANSI color for border.
@@ -759,14 +764,15 @@ def render_card(
     b = BOX_STYLES.get(style, BOX_STYLES["rounded"])
     b_color = border_color or Colors.PRIMARY
     t_color = title_color or Colors.HIGHLIGHT
-    box_w = max(width or get_terminal_width(), 44)
+    box_w = max(width or get_terminal_width(default=74, max_width=78), 44)
     inner_w = box_w - 4
 
     out: List[str] = []
 
-    # Top border with title
+    # Format header title with icon
     if title:
-        title_str = f" {title.strip()} "
+        header_title = f"{icon} {title.strip()}" if icon else title.strip()
+        title_str = f" {header_title} "
         title_vis = get_visible_length(title_str)
         dashes = max(0, box_w - 3 - title_vis)
         top = (
@@ -778,7 +784,33 @@ def render_card(
         top = colorize(b["tl"] + b["h"] * (box_w - 2) + b["tr"], b_color)
     out.append(top)
 
-    # Content lines
+    def add_row(label: str, val_text: str, val_color: str = Colors.HIGHLIGHT) -> None:
+        lbl_vis = get_visible_length(label)
+        val_max_w = max(10, inner_w - lbl_vis - 1)
+        wrapped_vals = wrap_text(val_text, val_max_w)
+
+        for i, val_line in enumerate(wrapped_vals):
+            if i == 0:
+                line_content = f"{label} {colorize(val_line, val_color)}"
+            else:
+                line_content = f"{' ' * lbl_vis} {colorize(val_line, val_color)}"
+            pad = inner_w - get_visible_length(line_content)
+            out.append(
+                f"{colorize(b['v'], b_color)} "
+                f"{line_content}"
+                f"{' ' * max(0, pad)} "
+                f"{colorize(b['v'], b_color)}"
+            )
+
+    # Key-value items mode
+    if items:
+        item_list = list(items.items()) if isinstance(items, dict) else list(items)
+        bullet = colorize(f"{Symbols.BULLET}", Colors.ACCENT)
+        for k, v in item_list:
+            lbl = f"{bullet} {colorize(f'{k}:', Colors.ACCENT, Colors.BOLD)}"
+            add_row(lbl, str(v), Colors.HIGHLIGHT)
+
+    # Lines mode
     if lines:
         for line in lines:
             wrapped = wrap_text(line, inner_w)
@@ -801,20 +833,26 @@ def render_card(
 def print_card(
     title: Optional[str] = None,
     lines: Optional[List[str]] = None,
+    items: Optional[Union[Dict[str, Any], Sequence[Tuple[str, Any]]]] = None,
+    icon: Optional[str] = None,
     style: str = "rounded",
     width: Optional[int] = None,
     border_color: Optional[str] = None,
     title_color: Optional[str] = None
 ) -> None:
     """Print a generic boxed card."""
+    print()
     print(render_card(
         title=title,
         lines=lines,
+        items=items,
+        icon=icon,
         style=style,
         width=width,
         border_color=border_color,
         title_color=title_color
     ))
+    print()
 
 
 def render_media_card(
@@ -857,7 +895,7 @@ def render_media_card(
     out: List[str] = []
 
     # Card header
-    header_type = f"{Symbols.FOLDER} PLAYLIST INFORMATION" if is_playlist else f"{Symbols.VIDEO} MEDIA INFORMATION"
+    header_type = f"{Symbols.PLAYLIST} PLAYLIST INFORMATION" if is_playlist else f"{Symbols.VIDEO} MEDIA INFORMATION"
     header_title = f" {header_type} "
     hdr_vis = get_visible_length(header_title)
     dashes = max(0, box_w - 3 - hdr_vis)
@@ -1224,6 +1262,10 @@ def render_progress_bar(
     return combined
 
 
+# Backward compatibility alias
+format_progress_bar = render_progress_bar
+
+
 def print_progress(
     percent: float,
     width: int = 24,
@@ -1365,6 +1407,36 @@ class DownloadProgressBar:
             print_wait("Processing media & merging streams...")
 
 
+_global_progress_handler = DownloadProgressBar()
+
+
+def render_progress(
+    data: Dict[str, Any],
+    prefix: str = "",
+    playlist_index: Optional[int] = None,
+    playlist_total: Optional[int] = None
+) -> None:
+    """
+    Direct progress rendering function for yt-dlp hooks.
+
+    Args:
+        data: Progress dictionary from yt-dlp.
+        prefix: Optional prefix string.
+        playlist_index: Current item index in playlist.
+        playlist_total: Total items in playlist.
+    """
+    global _global_progress_handler
+    if playlist_index is not None or playlist_total is not None:
+        handler = DownloadProgressBar(
+            is_playlist=True,
+            playlist_index=playlist_index,
+            playlist_count=playlist_total
+        )
+        handler(data)
+    else:
+        _global_progress_handler(data)
+
+
 def create_yt_dlp_progress_hook(
     title: Optional[str] = None,
     is_playlist: bool = False,
@@ -1457,6 +1529,14 @@ def print_video(message: str, details: Optional[str] = None) -> None:
 def print_folder(message: str, details: Optional[str] = None) -> None:
     """Print a folder/storage path status message."""
     _print_status_message("PATH", Symbols.FOLDER, Colors.WARNING, message, details)
+
+
+# Backward compatibility aliases
+success = print_success
+info = print_info
+warning = print_warning
+error = print_error
+wait = print_wait
 
 
 def print_alert(
@@ -1591,6 +1671,7 @@ def prompt_choice(
         Sequence[str]
     ],
     default: Optional[str] = None,
+    default_index: Optional[int] = None,
     allow_quit: bool = False,
     width: Optional[int] = None
 ) -> Optional[str]:
@@ -1601,61 +1682,115 @@ def prompt_choice(
         title: Menu title.
         options: Choices dictionary, list of tuples, or list of strings.
         default: Default choice key.
+        default_index: Optional 0-based default option index.
         allow_quit: Whether to add a quit option [q].
         width: Menu width.
 
     Returns:
         The selected key string, or None if user quits.
     """
-    # Normalize options to dict of {key: label}
+    # Normalize options to dict of {key: label} and preserve index mapping
     valid_keys: List[str] = []
-    opt_dict: Dict[str, str] = {}
+    display_options: List[Tuple[str, str, str]] = []
+    index_to_key: Dict[str, str] = {}
 
     if isinstance(options, dict):
-        for k, v in options.items():
+        for idx, (k, v) in enumerate(options.items(), start=1):
             valid_keys.append(str(k))
-            opt_dict[str(k)] = str(v)
+            display_options.append((str(k), str(v), ""))
+            index_to_key[str(idx)] = str(k)
     elif isinstance(options, (list, tuple)):
         for idx, opt in enumerate(options, start=1):
             if isinstance(opt, tuple):
                 key = str(opt[0])
                 label = str(opt[1])
+                desc = str(opt[2]) if len(opt) > 2 else ""
                 valid_keys.append(key)
-                opt_dict[key] = label
+                display_options.append((str(idx), f"{label}", desc))
+                index_to_key[str(idx)] = key
             else:
                 key = str(idx)
                 label = str(opt)
                 valid_keys.append(key)
-                opt_dict[key] = label
+                display_options.append((key, label, ""))
+                index_to_key[key] = key
 
-    menu_opts = dict(opt_dict)
-    if allow_quit and "q" not in valid_keys:
-        menu_opts["q"] = "Quit / Exit"
-        valid_keys.append("q")
+    # Determine default choice
+    resolved_default = default
+    if resolved_default is None and default_index is not None and 0 <= default_index < len(valid_keys):
+        resolved_default = valid_keys[default_index]
 
     # Render menu
-    print_menu(title=title, options=menu_opts, default=default, width=width)
+    print_menu(
+        title=title,
+        options=display_options,
+        default=str(default_index + 1) if default_index is not None else (resolved_default if resolved_default in index_to_key else None),
+        width=width
+    )
 
-    # Prompt user
-    range_hint = f"[{valid_keys[0]}-{valid_keys[-1]}]" if len(valid_keys) > 1 else ""
-    prompt_label = f"Select an option {range_hint}".strip()
+    range_max = len(display_options)
+    prompt_label = f"Select an option [1-{range_max}]" if range_max > 1 else "Select an option"
+    default_input_val = str(default_index + 1) if default_index is not None else resolved_default
 
     while True:
         choice = prompt_input(
             label=prompt_label,
-            default=default,
+            default=default_input_val,
             allow_empty=False
         ).strip().lower()
 
-        # Check exact key match
+        if choice == "q" and allow_quit:
+            return None
+
+        # Check numerical 1-based index match
+        if choice in index_to_key:
+            return index_to_key[choice]
+
+        # Check direct key match
         for k in valid_keys:
-            if choice.lower() == k.lower():
-                if choice.lower() == "q" and allow_quit:
-                    return None
+            if choice == k.lower():
                 return k
 
-        valid_list_str = ", ".join(valid_keys)
-        print_warning(f"Invalid selection '{choice}'. Please choose from: {valid_list_str}")
+        valid_hints = f"1 to {range_max}" if range_max > 1 else "1"
+        print_warning(f"Invalid selection '{choice}'. Please choose {valid_hints}.")
+
+
+def prompt_confirm(message: str, default: bool = True) -> bool:
+    """
+    Prompt user for a yes/no confirmation with styled prompt.
+
+    Args:
+        message: Question string to prompt.
+        default: Default answer if Enter is pressed (True for Yes, False for No).
+
+    Returns:
+        True if user confirmed, False otherwise.
+    """
+    b = BOX_STYLES["rounded"]
+    p_color = Colors.PRIMARY
+    suffix = "[Y/n]" if default else "[y/N]"
+
+    header = f"{colorize(b['tl'] + b['h'], p_color)} {colorize(message, Colors.BOLD, Colors.HIGHLIGHT)} {colorize(suffix, Colors.MUTED)}"
+    print()
+    print(header)
+    prompt_arrow = f"{colorize(b['bl'] + b['h'] + Symbols.ARROW_RIGHT, p_color)} "
+
+    while True:
+        try:
+            val = input(prompt_arrow).strip().lower()
+        except (KeyboardInterrupt, EOFError):
+            print()
+            return False
+
+        if not val:
+            return default
+
+        if val in ("y", "yes"):
+            return True
+        if val in ("n", "no"):
+            return False
+
+        print_warning("Please enter 'y' for yes or 'n' for no.")
 
 
 # ---------------------------------------------------------------------------
