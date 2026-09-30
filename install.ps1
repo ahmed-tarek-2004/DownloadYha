@@ -13,7 +13,7 @@
     - Verifies the installation works after install
 
 .NOTES
-    Repository: https://github.com/<USER>/<REPO>
+    Repository: https://github.com/ahmed-tarek-2004/DownloadYha
 #>
 
 [CmdletBinding()]
@@ -26,7 +26,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 # ── Configuration ────────────────────────────────────────────────────────────
-$REPO       = "<USER>/<REPO>"
+$REPO       = "ahmed-tarek-2004/DownloadYha"
 $APP_NAME   = "downloadyha"
 $INSTALL_DIR = Join-Path $env:LOCALAPPDATA "Programs\Downloadyha"
 $API_BASE   = "https://api.github.com/repos/$REPO"

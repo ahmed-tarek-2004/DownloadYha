@@ -10,12 +10,12 @@
 # - Sets executable permissions
 # - Verifies the installation works
 #
-# Repository: https://github.com/<USER>/<REPO>
+# Repository: https://github.com/ahmed-tarek-2004/DownloadYha
 
 set -euo pipefail
 
 # ── Configuration ────────────────────────────────────────────────────────────
-REPO="<USER>/<REPO>"
+REPO="ahmed-tarek-2004/DownloadYha"
 APP_NAME="downloadyha"
 INSTALL_DIR="${HOME}/.local/bin"
 API_BASE="https://api.github.com/repos/${REPO}"

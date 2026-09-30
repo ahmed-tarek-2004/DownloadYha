@@ -89,7 +89,8 @@ class TestUpdater(unittest.TestCase):
 
     def test_compute_sha256(self):
         test_file = Path(self.test_dir) / "test.txt"
-        test_file.write_text("hello world\n", encoding="utf-8")
+        # Use write_bytes to avoid line ending conversion on Windows
+        test_file.write_bytes(b"hello world\n")
         # SHA256 of "hello world\n"
         import hashlib
         expected = hashlib.sha256(b"hello world\n").hexdigest()

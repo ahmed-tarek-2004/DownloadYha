@@ -138,7 +138,6 @@ Write-Host ""
 Write-Host "Executable: $exePath" -ForegroundColor White
 Write-Host ""
 Write-Host "Notes:" -ForegroundColor White
-Write-Host "  - The executable is standalone and does not require Python." -ForegroundColor Gray
-Write-Host "  - FFmpeg and Deno must be installed separately on the target system." -ForegroundColor Gray
+Write-Host "  - The executable is standalone and manages its own dependencies." -ForegroundColor Gray
 Write-Host "  - Test the executable: .\$exePath" -ForegroundColor Gray
 Write-Host ""

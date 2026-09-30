@@ -19,15 +19,15 @@ jobs:
           - target: windows-x64
             os: windows-latest
             python-arch: x64
-            executable: downloadyha-windows-x64.exe
+            executable: downloadyha-windows-x86_64.zip
           - target: linux-x64
             os: ubuntu-latest
             python-arch: x64
-            executable: downloadyha-linux-x64
+            executable: downloadyha-linux-x86_64.tar.gz
           - target: linux-arm64
             os: ubuntu-latest
             python-arch: x64  # Cross-compilation setup
-            executable: downloadyha-linux-arm64
+            executable: downloadyha-linux-arm64.tar.gz
             cross-compile: true
 
     steps:
@@ -58,33 +58,22 @@ jobs:
       - name: Build executable (Windows)
         if: runner.os == 'Windows'
         run: |
-          pyinstaller --onefile --name downloadyha-windows-x64 `
-            --add-data "src/downloadyha;downloadyha" `
-            src/downloadyha/cli.py
-          Move-Item -Path dist/downloadyha-windows-x64.exe -Destination downloadyha-windows-x64.exe
+          pyinstaller downloadyha.spec
+          Compress-Archive -Path "dist\downloadyha.exe" -DestinationPath "${{ matrix.executable }}"
 
       - name: Build executable (Linux x64)
         if: runner.os == 'Linux' && matrix.cross-compile != true
         run: |
-          pyinstaller --onefile --name downloadyha-linux-x64 \
-            --add-data "src/downloadyha:downloadyha" \
-            src/downloadyha/cli.py
-          mv dist/downloadyha-linux-x64 downloadyha-linux-x64
+          pyinstaller downloadyha.spec
+          tar -czvf ${{ matrix.executable }} -C dist downloadyha
 
       - name: Build executable (Linux ARM64 cross-compile)
         if: matrix.cross-compile == true
         run: |
           # Note: PyInstaller cross-compilation for ARM64 requires special handling
-          # This creates a standalone executable targeting ARM64
-          pyinstaller --onefile --name downloadyha-linux-arm64 \
-            --add-data "src/downloadyha:downloadyha" \
-            --target-architecture aarch64 \
-            src/downloadyha/cli.py || \
-          # Fallback: Build with standard config (may require testing on actual ARM64)
-          pyinstaller --onefile --name downloadyha-linux-arm64 \
-            --add-data "src/downloadyha:downloadyha" \
-            src/downloadyha/cli.py
-          mv dist/downloadyha-linux-arm64 downloadyha-linux-arm64
+          pyinstaller downloadyha.spec || \
+          pyinstaller downloadyha.spec
+          tar -czvf ${{ matrix.executable }} -C dist downloadyha
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -111,7 +100,7 @@ jobs:
       - name: Prepare release assets
         run: |
           mkdir -p release-assets
-          find artifacts -type f \( -name "*.exe" -o -name "downloadyha-linux-*" \) -exec mv {} release-assets/ \;
+          find artifacts -type f \( -name "*.zip" -o -name "*.tar.gz" \) -exec mv {} release-assets/ \;
 
       - name: Generate SHA256SUMS
         run: |

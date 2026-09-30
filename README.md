@@ -9,7 +9,7 @@ A fast, standalone YouTube downloader CLI. No Python, FFmpeg, Deno, or yt-dlp in
 Open PowerShell and run:
 
 ```powershell
-irm https://raw.githubusercontent.com/<USER>/<REPO>/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/ahmed-tarek-2004/DownloadYha/main/install.ps1 | iex
 ```
 
 Then:
@@ -23,7 +23,7 @@ downloadyha
 Open terminal and run:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/<USER>/<REPO>/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/ahmed-tarek-2004/DownloadYha/main/install.sh | bash
 ```
 
 Then:
