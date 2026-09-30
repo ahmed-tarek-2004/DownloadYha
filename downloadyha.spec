@@ -11,6 +11,7 @@
 #   Linux:    ./build-linux.sh
 
 import sys
+from PyInstaller.utils.hooks import collect_data_files
 
 block_cipher = None
 
@@ -28,7 +29,7 @@ a = Analysis(
     # Also include the dependency versions manifest.
     datas=[
         ("src/downloadyha/versions.json", "downloadyha"),
-    ],
+    ] + collect_data_files("yt_dlp"),
 
     hiddenimports=[
         # yt-dlp dynamically loads its extractor plug-ins at runtime via
@@ -78,10 +79,6 @@ a = Analysis(
     cipher=block_cipher,
     noarchive=False,
 )
-
-# Collect yt-dlp's package data (extractor JS, version files, etc.)
-from PyInstaller.utils.hooks import collect_data_files
-a.datas += collect_data_files("yt_dlp")
 
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
