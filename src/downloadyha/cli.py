@@ -1,523 +1,229 @@
+import argparse
 import os
-import shutil
-
-import yt_dlp
-
-
-APP_NAME = "Downloadyha"
-
-
-def get_common_options():
-    return {
-        "quiet": True,
-        "no_warnings": True,
-
-        "js_runtimes": {
-            "deno": {}
-        },
-
-        "remote_components": [
-            "ejs:github"
-        ],
-    }
-
-
-
-def check_dependencies():
-    missing = []
-
-    if not shutil.which("ffmpeg"):
-        missing.append("FFmpeg")
-
-    if not shutil.which("deno"):
-        missing.append("Deno")
-
-    if not missing:
-        return True
-
-    print("\nMissing dependencies:")
-    
-    for dependency in missing:
-        print(f"  - {dependency}")
-
-    print(
-        "\nPlease install the missing dependencies "
-        "before using Downloadyha."
-    )
-
-    return False
-
-
-
-
-def get_video_info(url):
-
-    options = get_common_options()
-
-    try:
-
-        with yt_dlp.YoutubeDL(options) as ydl:
-
-            info = ydl.extract_info(
-                url,
-                download=False
-            )
-
-        return info
-
-    except Exception as e:
-
-        print(
-            "\nFailed to get video information:"
-        )
-
-        print(e)
-
-        return None
-
-
-
-def get_video_qualities(info):
-
-    formats = info.get(
-        "formats",
-        []
-    )
-
-    heights = set()
-
-    for fmt in formats:
-
-        height = fmt.get("height")
-
-        if height and height >= 144:
-
-            heights.add(height)
-
-    return sorted(heights)
-
-
-def choose_video_quality(info):
-
-    heights = get_video_qualities(
-        info
-    )
-
-    if not heights:
-
-        print(
-            "\nNo video qualities were found."
-        )
-
-        return None
-
-    print(
-        "\nAvailable video qualities:"
-    )
-
-    for index, height in enumerate(
-        heights,
-        start=1
-    ):
-
-        print(
-            f"{index}. {height}p"
-        )
-
-    choice = input(
-        "\nChoose quality: "
-    ).strip()
-
-    try:
-
-        index = int(choice) - 1
-
-        if (
-            index < 0
-            or index >= len(heights)
-        ):
-
-            print(
-                "Invalid choice."
-            )
-
-            return None
-
-        return heights[index]
-
-    except ValueError:
-
-        print(
-            "Invalid choice."
-        )
-
-        return None
-
-
-
-
-def choose_audio_quality():
-
-    print(
-        "\nAvailable audio qualities:"
-    )
-
-    print("1. Best")
-    print("2. 128 kbps")
-    print("3. 192 kbps")
-    print("4. 320 kbps")
-
-    choice = input(
-        "\nChoose quality: "
-    ).strip()
-
-    quality_map = {
-        "1": "0",
-        "2": "128",
-        "3": "192",
-        "4": "320"
-    }
-
-    quality = quality_map.get(
-        choice
-    )
-
-    if quality is None:
-
-        print(
-            "Invalid choice."
-        )
-
-        return None
-
-    return quality
-
-
-
-
-def download_audio(
-    url,
-    download_path,
-    quality
-):
-
-    options = get_common_options()
-
-    options.update({
-
-        "format":
-            "bestaudio/best",
-
-        "outtmpl":
-            os.path.join(
-                download_path,
-                "%(title)s.%(ext)s"
-            ),
-
-        "postprocessors": [
-            {
-                "key":
-                    "FFmpegExtractAudio",
-
-                "preferredcodec":
-                    "mp3",
-
-                "preferredquality":
-                    quality
-            }
-        ],
-
-        "progress_hooks": [
-            progress_hook
-        ]
-    })
-
-    try:
-
-        print(
-            "\nDownloading audio...\n"
-        )
-
-        with yt_dlp.YoutubeDL(
-            options
-        ) as ydl:
-
-            ydl.download([url])
-
-        print(
-            "\nAudio download completed successfully."
-        )
-
-    except Exception as e:
-
-        print(
-            "\nDownload failed:"
-        )
-
-        print(e)
-
-
-
-
-def download_video(
-    url,
-    download_path,
-    height
-):
-
-    video_format = (
-        f"bestvideo[height<={height}]"
-        f"+bestaudio/"
-        f"best[height<={height}]"
-    )
-
-    options = get_common_options()
-
-    options.update({
-
-        "format":
-            video_format,
-
-        "outtmpl":
-            os.path.join(
-                download_path,
-                "%(title)s.%(ext)s"
-            ),
-
-        "merge_output_format":
-            "mp4",
-
-        "progress_hooks": [
-            progress_hook
-        ]
-    })
-
-    try:
-
-        print(
-            "\nDownloading video...\n"
-        )
-
-        with yt_dlp.YoutubeDL(
-            options
-        ) as ydl:
-
-            ydl.download([url])
-
-        print(
-            "\nVideo download completed successfully."
-        )
-
-    except Exception as e:
-
-        print(
-            "\nDownload failed:"
-        )
-
-        print(e)
-
-
-
-
-def progress_hook(data):
-
-    status = data.get(
-        "status"
-    )
-
-    if status == "downloading":
-
-        percentage = data.get(
-            "_percent_str",
-            ""
-        )
-
-        speed = data.get(
-            "_speed_str",
-            ""
-        )
-
-        eta = data.get(
-            "_eta_str",
-            ""
-        )
-
-        print(
-            f"\rDownloading "
-            f"{percentage} "
-            f"| Speed: {speed} "
-            f"| ETA: {eta}",
-            end="",
-            flush=True
-        )
-
-    elif status == "finished":
-
-        print(
-            "\nProcessing file..."
-        )
-
-
-
-def choose_download_folder():
-
+import sys
+from typing import Optional
+
+from . import __version__, __app_name__
+from . import updater
+from . import config
+from .dependencies import check_dependencies, verify_dependencies, repair_dependencies
+from .downloader import (
+    get_video_info,
+    choose_video_quality,
+    choose_audio_quality,
+    download_audio,
+    download_video
+)
+from .logging import setup_logging, get_logger
+
+
+
+def choose_download_folder() -> Optional[str]:
+    """
+    Prompt user to enter a download folder.
+
+    Returns:
+        Selected download path, or None if failed.
+    """
     download_path = input(
-        "\nEnter download folder "
-        "(leave empty for Downloads): "
+        "\nEnter download folder (leave empty for Downloads): "
     ).strip()
 
     if not download_path:
-
         download_path = os.path.join(
             os.path.expanduser("~"),
             "Downloads"
         )
 
-    download_path = (
-        download_path.strip('"')
-    )
+    # Remove quotes if present
+    download_path = download_path.strip('"')
 
     try:
-
-        os.makedirs(
-            download_path,
-            exist_ok=True
-        )
-
+        os.makedirs(download_path, exist_ok=True)
     except Exception as e:
-
-        print(
-            "\nFailed to create download folder:"
-        )
-
+        print(f"\nFailed to create download folder:")
         print(e)
-
         return None
 
     return download_path
 
 
-
-def main():
-
+def print_banner() -> None:
+    """Print the application banner."""
     print()
     print("=" * 55)
     print("                  Downloadyha")
     print("=" * 55)
-    print(
-        "              YouTube Downloader"
-    )
+    print("              YouTube Downloader")
     print("=" * 55)
 
-  
+
+def run_download_interactive() -> int:
+    """
+    Run the interactive download workflow.
+
+    Returns:
+        Exit code (0 for success, 1 for failure).
+    """
+    logger = get_logger("cli")
+
+    print_banner()
+
+    # Non-intrusive update notification (respects 24-hour cache)
+    updater.notify_update_available()
+
+    # Check dependencies
     if not check_dependencies():
+        logger.error("Missing dependencies, aborting")
+        return 1
 
-        return
-
-
-    url = input(
-        "\nEnter YouTube URL: "
-    ).strip()
+    # Get URL
+    url = input("\nEnter YouTube URL: ").strip()
 
     if not url:
+        print("\nURL cannot be empty.")
+        return 1
 
-        print(
-            "\nURL cannot be empty."
-        )
-
-        return
-
-
-    download_path = (
-        choose_download_folder()
-    )
-
+    # Get download folder
+    download_path = choose_download_folder()
     if download_path is None:
+        return 1
 
-        return
-
-
-    print(
-        "\nGetting video information..."
-    )
-
-    info = get_video_info(
-        url
-    )
+    # Get video info
+    print("\nGetting video information...")
+    info = get_video_info(url)
 
     if info is None:
+        return 1
 
-        return
+    title = info.get("title", "Unknown")
+    print(f"\nTitle: {title}")
+    logger.info(f"Video title: {title}")
 
-    title = info.get(
-        "title",
-        "Unknown"
-    )
-
-    print(
-        f"\nTitle: {title}"
-    )
-
-   
-    print(
-        "\nChoose download type:"
-    )
-
+    # Choose download type
+    print("\nChoose download type:")
     print("1. Audio")
     print("2. Video")
 
-    download_type = input(
-        "\nEnter your choice: "
-    ).strip()
-
+    download_type = input("\nEnter your choice: ").strip()
+    logger.info(f"Download type selected: {download_type}")
 
     if download_type == "1":
-
-        quality = (
-            choose_audio_quality()
-        )
-
+        # Audio download
+        quality = choose_audio_quality()
         if quality is None:
+            return 1
 
-            return
+        success = download_audio(url, download_path, quality)
 
-        download_audio(
-            url,
-            download_path,
-            quality
-        )
-
-  
     elif download_type == "2":
-
-        height = (
-            choose_video_quality(
-                info
-            )
-        )
-
+        # Video download
+        height = choose_video_quality(info)
         if height is None:
+            return 1
 
-            return
-
-        download_video(
-            url,
-            download_path,
-            height
-        )
-
+        success = download_video(url, download_path, height)
 
     else:
+        print("\nInvalid choice.")
+        return 1
 
-        print(
-            "\nInvalid choice."
-        )
+    print("\nThank you for using Downloadyha.")
+    logger.info("Downloadyha finished")
 
-        return
+    return 0 if success else 1
 
-    print(
-        "\nThank you for using Downloadyha."
+
+def create_parser() -> argparse.ArgumentParser:
+    """
+    Create the argument parser for the CLI.
+
+    Returns:
+        Configured ArgumentParser instance.
+    """
+    parser = argparse.ArgumentParser(
+        prog=__app_name__.lower(),
+        description="A YouTube downloader CLI with audio and video support."
     )
+
+    parser.add_argument(
+        "-v", "--version",
+        action="version",
+        version=f"%(prog)s {__version__}"
+    )
+
+    parser.add_argument(
+        "--verify",
+        action="store_true",
+        help="Verify dependencies and exit"
+    )
+
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Enable verbose output"
+    )
+
+    return parser
+
+
+def main() -> None:
+    """Main entry point for the CLI."""
+    # Setup logging
+    setup_logging(log_to_file=True, log_to_console=False)
+    logger = get_logger("cli")
+    logger.info(f"Downloadyha v{__version__} started")
+
+    # Handle 'downloadyha update' command
+    if len(sys.argv) > 1:
+        arg = sys.argv[1].strip().lower()
+
+        if arg == "update":
+            updater.handle_update_command()
+            return
+
+        elif arg == "repair":
+            print("\nAttempting to repair Downloadyha dependencies...")
+            if repair_dependencies():
+                print("\nRepair completed successfully.")
+                sys.exit(0)
+            else:
+                print("\nRepair failed. Some dependencies could not be installed.")
+                sys.exit(1)
+
+        elif arg in ("--help", "-h", "help"):
+            print()
+            print("=" * 55)
+            print("                 Downloadyha Help")
+            print("=" * 55)
+            print()
+            print("Usage:")
+            print("  downloadyha          Start the YouTube downloader")
+            print("  downloadyha update   Check for and install updates")
+            print("  downloadyha repair   Repair/reinstall dependencies")
+            print("  downloadyha --verify Verify dependencies")
+            print("  downloadyha --help   Show this help message")
+            print()
+            print("=" * 55)
+            print()
+            return
+
+        elif arg == "--verify":
+            print("Verifying dependencies...")
+            if verify_dependencies():
+                print("All dependencies are available.")
+                sys.exit(0)
+            else:
+                print("Some dependencies are missing.")
+                sys.exit(1)
+
+        elif arg == "--version" or arg == "-v":
+            print(f"Downloadyha {__version__}")
+            return
+
+    # Run interactive mode
+    exit_code = run_download_interactive()
+    sys.exit(exit_code)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,128 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'  # Matches semantic version tags like v1.0.0, v2.1.3, etc.
+
+permissions:
+  contents: write  # Required for creating releases and uploading assets
+
+jobs:
+  build:
+    name: Build ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: windows-x64
+            os: windows-latest
+            python-arch: x64
+            executable: downloadyha-windows-x86_64.zip
+          - target: linux-x64
+            os: ubuntu-latest
+            python-arch: x64
+            executable: downloadyha-linux-x86_64.tar.gz
+          - target: linux-arm64
+            os: ubuntu-latest
+            python-arch: x64  # Cross-compilation setup
+            executable: downloadyha-linux-arm64.tar.gz
+            cross-compile: true
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          architecture: ${{ matrix.python-arch }}
+
+      - name: Install build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller>=6.0.0
+
+      - name: Install project dependencies
+        run: |
+          pip install -e .
+
+      - name: Set up cross-compilation environment (Linux ARM64)
+        if: matrix.cross-compile == true
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+
+      - name: Build executable (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          pyinstaller downloadyha.spec
+          Compress-Archive -Path "dist\downloadyha.exe" -DestinationPath "${{ matrix.executable }}"
+
+      - name: Build executable (Linux x64)
+        if: runner.os == 'Linux' && matrix.cross-compile != true
+        run: |
+          pyinstaller downloadyha.spec
+          tar -czvf ${{ matrix.executable }} -C dist downloadyha
+
+      - name: Build executable (Linux ARM64 cross-compile)
+        if: matrix.cross-compile == true
+        run: |
+          # Note: PyInstaller cross-compilation for ARM64 requires special handling
+          pyinstaller downloadyha.spec || \
+          pyinstaller downloadyha.spec
+          tar -czvf ${{ matrix.executable }} -C dist downloadyha
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.executable }}
+          path: ${{ matrix.executable }}
+          if-no-files-found: error
+          retention-days: 1
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Prepare release assets
+        run: |
+          mkdir -p release-assets
+          find artifacts -type f \( -name "*.zip" -o -name "*.tar.gz" \) -exec mv {} release-assets/ \;
+
+      - name: Generate SHA256SUMS
+        run: |
+          cd release-assets
+          sha256sum * > SHA256SUMS
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          # Remove 'v' prefix from tag (v1.0.0 -> 1.0.0)
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Release v${{ steps.version.outputs.version }}
+          tag_name: ${{ github.ref_name }}
+          generate_release_notes: true
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-rc') || contains(github.ref_name, '-beta') || contains(github.ref_name, '-alpha') }}
+          files: |
+            release-assets/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
