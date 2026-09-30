@@ -557,7 +557,7 @@ BANNER_ART = [
 
 def get_banner_text(
     version: str = "1.0.0",
-    author: str = "Ahmed Tarek",
+    author: str = "Ahmed Tarek Zaher",
     subtitle: str = "Modern YouTube Downloader",
     width: Optional[int] = None
 ) -> str:
@@ -615,7 +615,7 @@ def get_banner_text(
 
     # Author credit
     author_text = f"Crafted by {author}"
-    author_colored = colorize(author_text, Colors.DIM, Colors.MUTED)
+    author_colored = colorize(author_text, Colors.BOLD, Colors.ACCENT)
     pad_l = (inner_width - get_visible_length(author_text)) // 2
     pad_r = inner_width - get_visible_length(author_text) - pad_l
     lines.append(
@@ -632,7 +632,7 @@ def get_banner_text(
 
 def print_banner(
     version: str = "1.0.0",
-    author: str = "Ahmed Tarek",
+    author: str = "Ahmed Tarek Zaher",
     subtitle: str = "Modern YouTube Downloader",
     width: Optional[int] = None
 ) -> None:

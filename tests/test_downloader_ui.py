@@ -115,11 +115,15 @@ class TestUI(unittest.TestCase):
         self.assertEqual(ui.truncate_text("Very Long String Exceeding Limit", 10), "Very Lo...")
 
     def test_banner(self):
-        banner = ui.get_banner_text(version="1.0.0", author="Ahmed Tarek", subtitle="YouTube Downloader")
+        banner = ui.get_banner_text(version="1.0.0", author="Ahmed Tarek Zaher", subtitle="YouTube Downloader")
         plain_banner = ui.strip_ansi(banner)
         self.assertIn("YouTube Downloader", plain_banner)
         self.assertIn("v1.0.0", plain_banner)
-        self.assertIn("Ahmed Tarek", plain_banner)
+        self.assertIn("Crafted by Ahmed Tarek Zaher", plain_banner)
+
+        # Test default author
+        default_banner = ui.get_banner_text()
+        self.assertIn("Crafted by Ahmed Tarek Zaher", ui.strip_ansi(default_banner))
 
     def test_render_card_and_media_card(self):
         card = ui.render_card(title="Test Card", lines=["Line 1", "Line 2"])

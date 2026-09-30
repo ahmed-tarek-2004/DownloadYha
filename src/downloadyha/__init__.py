@@ -6,5 +6,5 @@ with customizable quality options.
 """
 
 __version__ = "1.0.0"
-__author__ = "Ahmed Tarek"
+__author__ = "Ahmed Tarek Zaher"
 __app_name__ = "Downloadyha"
