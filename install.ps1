@@ -37,6 +37,128 @@ function Write-Step  { param([string]$Msg) Write-Host "  ==> $Msg" -ForegroundCo
 function Write-Ok    { param([string]$Msg) Write-Host "  [OK] $Msg" -ForegroundColor Green  }
 function Write-Fail  { param([string]$Msg) Write-Host "  [ERR] $Msg" -ForegroundColor Red; exit 1 }
 
+function Stop-RunningApp {
+    param([string]$ProcessName = $APP_NAME)
+
+    $processes = Get-Process -Name $ProcessName -ErrorAction SilentlyContinue
+    if ($processes) {
+        Write-Step "Closing running $ProcessName processes..."
+        $processes | Stop-Process -Force -ErrorAction SilentlyContinue
+        Start-Sleep -Milliseconds 500
+
+        # If any processes are still lingering, try once more
+        $lingering = Get-Process -Name $ProcessName -ErrorAction SilentlyContinue
+        if ($lingering) {
+            $lingering | Stop-Process -Force -ErrorAction SilentlyContinue
+            Start-Sleep -Milliseconds 500
+        }
+    }
+}
+
+function Install-ArchiveSafe {
+    param(
+        [string]$ZipPath,
+        [string]$DestinationDir,
+        [string]$TempDirectory
+    )
+
+    # 1. Stop running processes to prevent file locking
+    Stop-RunningApp -ProcessName $APP_NAME
+
+    # 2. Clean up leftover .old and .tmp files from prior installations
+    Get-ChildItem -Path $DestinationDir -Filter "${APP_NAME}*.old*" -File -ErrorAction SilentlyContinue |
+        Remove-Item -Force -ErrorAction SilentlyContinue
+    Get-ChildItem -Path $DestinationDir -Filter "${APP_NAME}*.tmp*" -File -ErrorAction SilentlyContinue |
+        Remove-Item -Force -ErrorAction SilentlyContinue
+
+    # 3. Handle existing binary: rename to .old so replacement works cleanly even if locked
+    $existingExe = Join-Path $DestinationDir "${APP_NAME}.exe"
+    $backupExe   = $null
+    if (Test-Path $existingExe) {
+        $backupExe = Join-Path $DestinationDir "${APP_NAME}.exe.old"
+        if (Test-Path $backupExe) {
+            Remove-Item -Path $backupExe -Force -ErrorAction SilentlyContinue
+        }
+        try {
+            Rename-Item -Path $existingExe -NewName "${APP_NAME}.exe.old" -Force -ErrorAction SilentlyContinue
+        } catch {
+            # Continue even if rename fails; fallback extraction will handle it
+        }
+    }
+
+    Write-Step "Extracting archive..."
+    $extracted = $false
+
+    try {
+        Expand-Archive -Path $ZipPath -DestinationPath $DestinationDir -Force
+        $extracted = $true
+    } catch {
+        # Fallback approach: extract to staging directory and copy files
+        Write-Step "Standard extraction encountered an issue; retrying with resilient fallback..."
+        Stop-RunningApp -ProcessName $APP_NAME
+
+        try {
+            $stageDir = Join-Path $TempDirectory "extracted"
+            if (-not (Test-Path $stageDir)) {
+                New-Item -ItemType Directory -Path $stageDir -Force | Out-Null
+            }
+
+            # Try Expand-Archive to staging directory, or fallback to .NET ZipFile
+            try {
+                Expand-Archive -Path $ZipPath -DestinationPath $stageDir -Force
+            } catch {
+                Add-Type -AssemblyName System.IO.Compression.FileSystem -ErrorAction SilentlyContinue
+                [System.IO.Compression.ZipFile]::ExtractToDirectory($ZipPath, $stageDir)
+            }
+
+            # Copy extracted files to destination directory with safe renaming
+            Get-ChildItem -Path $stageDir -Recurse -File | ForEach-Object {
+                $relativePath = $_.FullName.Substring($stageDir.Length).TrimStart('\', '/')
+                $targetFile = Join-Path $DestinationDir $relativePath
+                $targetParent = [System.IO.Path]::GetDirectoryName($targetFile)
+                if (-not (Test-Path $targetParent)) {
+                    New-Item -ItemType Directory -Path $targetParent -Force | Out-Null
+                }
+
+                if (Test-Path $targetFile) {
+                    $tmpBackup = "$targetFile.old"
+                    if (Test-Path $tmpBackup) {
+                        Remove-Item -Path $tmpBackup -Force -ErrorAction SilentlyContinue
+                    }
+                    try {
+                        Rename-Item -Path $targetFile -NewName "$($_.Name).old" -Force -ErrorAction SilentlyContinue
+                    } catch {}
+                }
+
+                Copy-Item -Path $_.FullName -Destination $targetFile -Force
+
+                if (Test-Path "$targetFile.old") {
+                    Remove-Item -Path "$targetFile.old" -Force -ErrorAction SilentlyContinue
+                }
+            }
+            $extracted = $true
+        } catch {
+            Write-Fail @"
+Failed to extract archive to '$DestinationDir': $_
+
+Troubleshooting:
+  1. Ensure no instances of '$APP_NAME' are running (check Task Manager).
+  2. Check if you have write permissions to: $DestinationDir
+  3. Temporarily disable any antivirus or security software locking '$DestinationDir'.
+  4. Try restarting your terminal or running PowerShell as Administrator.
+"@
+        }
+    }
+
+    if ($extracted) {
+        # Clean up the backup file if extraction succeeded
+        if ($backupExe -and (Test-Path $backupExe)) {
+            Remove-Item -Path $backupExe -Force -ErrorAction SilentlyContinue
+        }
+        Write-Ok "Files extracted to $DestinationDir"
+    }
+}
+
 function Get-Architecture {
     $arch = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture
     switch ($arch) {
@@ -162,13 +284,11 @@ try {
     # 6. Create install directory
     Write-Step "Installing to: $INSTALL_DIR"
     if (-not (Test-Path $INSTALL_DIR)) {
-        New-Item -ItemType Directory -Path $INSTALL_DIR | Out-Null
+        New-Item -ItemType Directory -Path $INSTALL_DIR -Force | Out-Null
     }
 
     # 7. Extract archive
-    Write-Step "Extracting archive..."
-    Expand-Archive -Path $assetPath -DestinationPath $INSTALL_DIR -Force
-    Write-Ok "Files extracted to $INSTALL_DIR"
+    Install-ArchiveSafe -ZipPath $assetPath -DestinationDir $INSTALL_DIR -TempDirectory $tmpDir
 
     # 8. Add to PATH
     Add-ToUserPath -Directory $INSTALL_DIR

@@ -2,15 +2,23 @@
 uninstaller.py - Self-uninstall mechanism for Downloadyha.
 
 Responsibilities:
-- Remove the executable.
-- Remove all user data (config, cache, logs, bundled binaries).
+- Terminate running helper processes (FFmpeg, Deno).
+- Release active logging handlers to prevent Windows file locks.
+- Safely remove all user data (config, cache, logs, bundled binaries).
+- Self-delete running executable on Windows using detached process cleanup and reboot fallback.
 - Ask for confirmation before proceeding with modern UI prompts.
+- Handle read-only files, permission errors, and locked files gracefully.
 """
 
+import os
 import platform
 import shutil
+import stat
+import subprocess
 import sys
+import time
 from pathlib import Path
+from typing import List, Optional, Tuple
 
 from . import config
 from .ui import Colors, Symbols, error, info, init_terminal, prompt_confirm, success, warning
@@ -25,16 +33,160 @@ def _get_executable_path() -> Path:
         return Path(__file__).resolve()
 
 
+def _close_logging_handlers() -> None:
+    """
+    Close and detach all file handlers across the logging system.
+    This releases Windows file locks on active log files (e.g. downloadyha.log).
+    """
+    import logging
+
+    logger_names = [
+        "",
+        "downloadyha",
+        "downloadyha.cli",
+        "downloadyha.download",
+        "downloadyha.dependencies",
+        "downloadyha.error",
+    ]
+    for name in logger_names:
+        log = logging.getLogger(name)
+        for handler in list(log.handlers):
+            try:
+                handler.flush()
+                handler.close()
+                log.removeHandler(handler)
+            except Exception:
+                pass
+
+    try:
+        logging.shutdown()
+    except Exception:
+        pass
+
+
+def _terminate_helper_processes() -> None:
+    """
+    Terminate any lingering helper processes (FFmpeg, Deno) on Windows
+    that may have been spawned and could hold locks on the bin directory.
+    """
+    if platform.system() == "Windows":
+        for proc_name in ["ffmpeg.exe", "ffprobe.exe", "deno.exe"]:
+            try:
+                subprocess.run(
+                    ["taskkill", "/F", "/IM", proc_name, "/T"],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    check=False,
+                )
+            except Exception:
+                pass
+
+
+def _robust_rmtree(path: Path, max_retries: int = 3, retry_delay: float = 0.2) -> Tuple[bool, Optional[str]]:
+    """
+    Recursively remove a directory tree, handling Windows read-only file attributes
+    and transient file locks with retries.
+
+    Returns:
+        (True, None) on success.
+        (False, error_message) on failure.
+    """
+    if not path.exists():
+        return True, None
+
+    def _handle_remove_readonly(func, file_path, exc_info):
+        """Error callback to clear read-only file attributes on Windows and retry."""
+        try:
+            os.chmod(file_path, stat.S_IWRITE | stat.S_IWUSR | stat.S_IRUSR)
+            func(file_path)
+        except Exception:
+            pass
+
+    for attempt in range(max_retries):
+        try:
+            if sys.version_info >= (3, 12):
+                shutil.rmtree(path, on_exc=lambda func, p, exc: _handle_remove_readonly(func, p, exc))
+            else:
+                shutil.rmtree(path, onerror=_handle_remove_readonly)
+            return True, None
+        except OSError as e:
+            if attempt < max_retries - 1:
+                time.sleep(retry_delay)
+            else:
+                return False, str(e)
+
+    return False, "Directory removal failed after retries."
+
+
+def _cleanup_stale_backups(executable: Path) -> None:
+    """Clean up any leftover .old or .tmp executable files in the target directory."""
+    try:
+        parent = executable.parent
+        stem = executable.stem
+        ext = executable.suffix
+
+        patterns = [
+            f"{stem}{ext}.old*",
+            f"{stem}.old*",
+            f"{stem}*.tmp*",
+        ]
+
+        for pattern in patterns:
+            for item in parent.glob(pattern):
+                if item.resolve() != executable.resolve() and item.is_file():
+                    try:
+                        item.unlink()
+                    except OSError:
+                        pass
+    except Exception:
+        pass
+
+
+def _schedule_windows_self_delete(file_to_delete: Path) -> None:
+    """
+    Launch a detached background command on Windows that waits for this process to exit
+    and deletes the old executable file cleanly without needing admin rights or a reboot.
+    Also registers with MoveFileExW as a secondary reboot fallback.
+    """
+    target = str(file_to_delete.resolve())
+
+    # 1. Detached background deletion process
+    cmd = f'ping 127.0.0.1 -n 3 > nul & del /f /q "{target}"'
+    creation_flags = 0
+    if hasattr(subprocess, "CREATE_NO_WINDOW"):
+        creation_flags |= subprocess.CREATE_NO_WINDOW
+    if hasattr(subprocess, "DETACHED_PROCESS"):
+        creation_flags |= subprocess.DETACHED_PROCESS
+
+    try:
+        subprocess.Popen(
+            ["cmd.exe", "/c", cmd],
+            creationflags=creation_flags,
+            close_fds=True,
+            shell=False,
+        )
+    except Exception:
+        pass
+
+    # 2. Secondary fallback: Schedule deletion on reboot via Windows API
+    try:
+        import ctypes
+        ctypes.windll.kernel32.MoveFileExW(target, None, 0x4)  # MOVEFILE_DELAY_UNTIL_REBOOT
+    except Exception:
+        pass
+
+
 def uninstall() -> bool:
     """
     Uninstall Downloadyha from the system.
 
     Removes:
-      - The executable itself.
-      - Configuration directory.
+      - Bundled binaries (FFmpeg, FFprobe, Deno).
       - Cache directory.
-      - Logs directory.
-      - Bundled binaries (ffmpeg, deno).
+      - Log directory & files (releasing active logger locks first).
+      - Configuration directory & settings.
+      - Root application data directory.
+      - The executable itself (with Windows file locking safeguards).
 
     Returns:
         True on success, False on error.
@@ -61,6 +213,10 @@ def uninstall() -> bool:
 
     info("Uninstalling Downloadyha...")
 
+    # Step 1: Release active file locks and terminate helper processes
+    _close_logging_handlers()
+    _terminate_helper_processes()
+
     # Get paths to remove
     config_dir = config.get_config_dir()
     cache_dir = config.get_cache_dir()
@@ -69,73 +225,103 @@ def uninstall() -> bool:
     bin_dir = config.get_bin_dir()
     executable = _get_executable_path()
 
-    errors_list = []
+    errors_list: List[str] = []
 
-    # Remove config directory
-    if config_dir.exists():
-        try:
-            shutil.rmtree(config_dir)
-            success(f"Removed config directory: {config_dir}")
-        except OSError as e:
-            errors_list.append(f"Config directory: {e}")
-
-    # Remove cache directory
-    if cache_dir.exists():
-        try:
-            shutil.rmtree(cache_dir)
-            success(f"Removed cache directory: {cache_dir}")
-        except OSError as e:
-            errors_list.append(f"Cache directory: {e}")
-
-    # Remove logs directory
-    if logs_dir.exists():
-        try:
-            shutil.rmtree(logs_dir)
-            success(f"Removed logs directory: {logs_dir}")
-        except OSError as e:
-            errors_list.append(f"Logs directory: {e}")
-
-    # Remove bin directory (bundled dependencies)
+    # Step 2: Remove bin directory (bundled dependencies)
     if bin_dir.exists():
-        try:
-            shutil.rmtree(bin_dir)
+        ok, err = _robust_rmtree(bin_dir)
+        if ok:
             success(f"Removed binaries directory: {bin_dir}")
-        except OSError as e:
-            errors_list.append(f"Binaries directory: {e}")
+        else:
+            errors_list.append(f"Binaries directory ({bin_dir}): {err}")
 
-    # Remove app data directory if empty or remaining
+    # Step 3: Remove cache directory
+    if cache_dir.exists():
+        ok, err = _robust_rmtree(cache_dir)
+        if ok:
+            success(f"Removed cache directory: {cache_dir}")
+        else:
+            errors_list.append(f"Cache directory ({cache_dir}): {err}")
+
+    # Step 4: Remove logs directory
+    if logs_dir.exists():
+        ok, err = _robust_rmtree(logs_dir)
+        if ok:
+            success(f"Removed logs directory: {logs_dir}")
+        else:
+            errors_list.append(f"Logs directory ({logs_dir}): {err}")
+
+    # Step 5: Remove config directory or config file
+    if config_dir.exists():
+        # On Linux, config_dir (~/.config/downloadyha) is distinct from app_data_dir (~/.local/share/downloadyha)
+        if config_dir.resolve() != app_data_dir.resolve():
+            ok, err = _robust_rmtree(config_dir)
+            if ok:
+                success(f"Removed config directory: {config_dir}")
+            else:
+                errors_list.append(f"Config directory ({config_dir}): {err}")
+        else:
+            # On Windows, config_dir is app_data_dir; delete config.json explicitly
+            config_file = config_dir / "config.json"
+            if config_file.exists():
+                try:
+                    config_file.unlink()
+                    success(f"Removed configuration file: {config_file}")
+                except OSError as e:
+                    errors_list.append(f"Config file ({config_file}): {e}")
+
+    # Step 6: Remove root app data directory if it still exists
     if app_data_dir.exists():
-        try:
-            shutil.rmtree(app_data_dir)
+        ok, err = _robust_rmtree(app_data_dir)
+        if ok:
             success(f"Removed app data directory: {app_data_dir}")
-        except OSError:
-            pass
+        else:
+            try:
+                remaining = list(app_data_dir.iterdir())
+                if not remaining:
+                    app_data_dir.rmdir()
+                    success(f"Removed app data directory: {app_data_dir}")
+                else:
+                    errors_list.append(f"App data directory ({app_data_dir}): {err}")
+            except OSError as e:
+                errors_list.append(f"App data directory ({app_data_dir}): {e}")
 
-    # Remove executable
+    # Step 7: Remove executable
     if getattr(sys, "frozen", False):
         try:
             if platform.system() == "Windows":
-                import ctypes
-                executable_old = executable.with_suffix(executable.suffix + ".old")
-                if executable_old.exists():
-                    try:
-                        executable_old.unlink()
-                    except OSError:
-                        pass
-                executable.rename(executable_old)
+                # Clean up any previous stale backups first
+                _cleanup_stale_backups(executable)
 
-                # Schedule deletion on reboot
-                ctypes.windll.kernel32.MoveFileExW(
-                    str(executable_old),
-                    None,
-                    0x4  # MOVEFILE_DELAY_UNTIL_REBOOT
+                # Rename the running executable to release the main path
+                executable_old = executable.with_name(
+                    f"{executable.stem}.old.{os.getpid()}_{int(time.time())}{executable.suffix}"
                 )
-                success("Executable scheduled for deletion on next reboot.")
+                try:
+                    executable.rename(executable_old)
+                except OSError:
+                    # Fallback to standard .old
+                    executable_old = executable.with_suffix(executable.suffix + ".old")
+                    if executable_old.exists():
+                        try:
+                            executable_old.unlink()
+                        except OSError:
+                            pass
+                    executable.rename(executable_old)
+
+                # Schedule post-exit detached background deletion + MoveFileExW fallback
+                _schedule_windows_self_delete(executable_old)
+                success("Executable scheduled for immediate deletion.")
             else:
                 executable.unlink()
                 success("Executable removed successfully.")
+        except PermissionError:
+            errors_list.append(
+                f"Executable removal ({executable}): Permission denied. "
+                "Please run uninstaller as Administrator or delete the executable manually."
+            )
         except OSError as e:
-            errors_list.append(f"Executable removal: {e}")
+            errors_list.append(f"Executable removal ({executable}): {e}")
     else:
         info("Running in development mode — local source files preserved.")
 
@@ -144,6 +330,7 @@ def uninstall() -> bool:
         warning("Some items could not be automatically deleted:")
         for err_msg in errors_list:
             print(f"  - {err_msg}")
+        info("\nYou can manually delete any remaining folders listed above.")
         return False
 
     success("Downloadyha has been completely uninstalled.")

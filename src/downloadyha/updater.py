@@ -5,6 +5,7 @@ Responsibilities:
 - Check GitHub Releases API for newer versions.
 - Cache update checks (once per 24 hours).
 - Download, verify (SHA-256), and atomically replace the running executable.
+- Robust Windows executable renaming, staging, and file-lock recovery.
 - Preserve user configuration during updates.
 - Handle OS and architecture detection.
 - Cross-platform styled UI for update notices and progress.
@@ -297,6 +298,191 @@ def _get_executable_path() -> Path:
         return Path(__file__).resolve()
 
 
+def cleanup_stale_backups(target_exe: Optional[Path] = None) -> None:
+    """
+    Remove leftover .old, .old.*, or .new.*.tmp executable files from previous updates.
+    Ignores files that are currently locked by running processes.
+    """
+    if target_exe is None:
+        target_exe = _get_executable_path()
+
+    try:
+        parent = target_exe.parent
+        stem = target_exe.stem
+        ext = target_exe.suffix
+
+        patterns = [
+            f"{stem}{ext}.old*",
+            f"{stem}.old*",
+            f"{stem}{ext}.new.*.tmp*",
+            f"{stem}.new.*.tmp*",
+            f"{stem}*.tmp*",
+        ]
+
+        for pattern in patterns:
+            try:
+                for item in parent.glob(pattern):
+                    if item.resolve() != target_exe.resolve() and item.is_file():
+                        try:
+                            item.unlink()
+                        except OSError:
+                            pass
+            except OSError:
+                pass
+    except Exception:
+        pass
+
+
+def _replace_binary(new_binary: Path, target_exe: Path) -> Tuple[bool, Optional[str]]:
+    """
+    Atomically and safely replace target_exe with new_binary.
+
+    On Windows:
+    - Stages the new binary in the target directory first.
+    - Renames target_exe to a backup name (allowed even if running on NTFS).
+    - Renames staged file to target_exe.
+    - If staging rename fails, rolls back backup to target_exe.
+    - Attempts immediate deletion of backup, with MoveFileExW reboot deletion fallback.
+
+    On Linux/POSIX:
+    - Stages new binary, sets executable permissions, and performs atomic os.replace.
+
+    Returns:
+        (True, None) on success.
+        (False, error_message) on failure.
+    """
+    if not new_binary.is_file():
+        return False, f"Source binary '{new_binary}' not found."
+
+    target_dir = target_exe.parent
+    try:
+        target_dir.mkdir(parents=True, exist_ok=True)
+    except OSError as e:
+        return False, f"Cannot access target directory '{target_dir}': {e}"
+
+    # Clean up any stale files from previous update runs
+    cleanup_stale_backups(target_exe)
+
+    # Step 1: Create a staging copy in the target directory
+    pid = os.getpid()
+    timestamp = int(time.time())
+    staging_file = target_dir / f"{target_exe.stem}.new.{pid}_{timestamp}.tmp{target_exe.suffix}"
+
+    try:
+        shutil.copy2(new_binary, staging_file)
+    except PermissionError:
+        return False, (
+            f"Permission denied writing to '{target_dir}'. "
+            "Please run with Administrator / elevated privileges."
+        )
+    except OSError as e:
+        return False, f"Failed to stage update binary: {e}"
+
+    # Step 2: Perform platform-specific swap
+    if platform.system() == "Windows":
+        backup_file = target_dir / f"{target_exe.stem}.old.{pid}_{timestamp}{target_exe.suffix}"
+
+        # If target doesn't exist yet, simply rename staging to target
+        if not target_exe.exists():
+            try:
+                staging_file.rename(target_exe)
+                return True, None
+            except OSError as e:
+                try:
+                    staging_file.unlink()
+                except OSError:
+                    pass
+                return False, f"Failed to install new binary: {e}"
+
+        # 2a: Rename existing executable to backup
+        try:
+            target_exe.rename(backup_file)
+        except PermissionError:
+            try:
+                staging_file.unlink()
+            except OSError:
+                pass
+            return False, (
+                f"Permission denied renaming '{target_exe.name}'. "
+                "The file may be locked by another running instance of Downloadyha, "
+                "or Administrator privileges are required."
+            )
+        except OSError as e:
+            try:
+                staging_file.unlink()
+            except OSError:
+                pass
+            winerr = getattr(e, "winerror", None)
+            if winerr in (5, 32):
+                return False, (
+                    f"File lock error ({target_exe.name}): Another process is accessing Downloadyha. "
+                    "Please close all instances and try again."
+                )
+            return False, f"Failed to move current executable to backup: {e}"
+
+        # 2b: Move staging file to target_exe
+        try:
+            staging_file.rename(target_exe)
+        except OSError as e:
+            # ROLLBACK: Try to restore backup_file to target_exe
+            rollback_ok = False
+            try:
+                backup_file.rename(target_exe)
+                rollback_ok = True
+            except OSError:
+                pass
+
+            try:
+                staging_file.unlink()
+            except OSError:
+                pass
+
+            msg = (
+                f"Failed to place new binary into '{target_exe.name}': {e}."
+                + (" Original version successfully restored." if rollback_ok else " CRITICAL: Could not restore original executable!")
+            )
+            return False, msg
+
+        # 2c: Try to clean up backup_file
+        try:
+            backup_file.unlink()
+        except OSError:
+            # Running executable lock on Windows; schedule for reboot deletion
+            try:
+                import ctypes
+                ctypes.windll.kernel32.MoveFileExW(str(backup_file), None, 0x4)  # MOVEFILE_DELAY_UNTIL_REBOOT
+            except Exception:
+                pass
+
+        return True, None
+
+    else:
+        # Linux / POSIX systems
+        try:
+            # Ensure executable permissions on staged binary
+            current_mode = target_exe.stat().st_mode if target_exe.exists() else 0o755
+            staging_file.chmod(current_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+
+            # Atomic replace (does not trigger ETXTBSY on open running file)
+            os.replace(staging_file, target_exe)
+            return True, None
+        except PermissionError:
+            try:
+                staging_file.unlink()
+            except OSError:
+                pass
+            return False, (
+                f"Permission denied modifying '{target_exe}'. "
+                "Try running the update command with sudo."
+            )
+        except OSError as e:
+            try:
+                staging_file.unlink()
+            except OSError:
+                pass
+            return False, f"Failed to replace executable: {e}"
+
+
 def perform_update(new_version: str) -> bool:
     """
     Download and install the update for new_version.
@@ -307,6 +493,13 @@ def perform_update(new_version: str) -> bool:
     init_terminal()
 
     info(f"Preparing update to {c.BOLD}{new_version}{c.RESET}...")
+
+    # Development mode check
+    if not getattr(sys, "frozen", False):
+        info("Downloadyha is running from source code (development mode).")
+        info("Self-update binary replacement is designed for standalone executables.")
+        info(f"To update your source installation, run: {c.BOLD}git pull{c.RESET}\n")
+        return True
 
     platform_id = _detect_platform()
     if platform_id is None:
@@ -370,27 +563,10 @@ def perform_update(new_version: str) -> bool:
         wait("Applying update to current installation...")
         current_exe = _get_executable_path()
 
-        if platform.system() == "Windows":
-            old_backup = current_exe.with_suffix(current_exe.suffix + ".old")
-            if old_backup.exists():
-                try:
-                    old_backup.unlink()
-                except OSError:
-                    pass
-
-            try:
-                current_exe.rename(old_backup)
-                shutil.copy2(new_exe, current_exe)
-            except OSError as e:
-                error(f"Failed to replace executable: {e}")
-                return False
-        else:
-            try:
-                shutil.copy2(new_exe, current_exe)
-                current_exe.chmod(current_exe.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
-            except OSError as e:
-                error(f"Failed to replace executable: {e}")
-                return False
+        ok, err_msg = _replace_binary(new_exe, current_exe)
+        if not ok:
+            error(f"Failed to replace executable: {err_msg}")
+            return False
 
         success(f"Downloadyha has been updated to {new_version}!")
         print(f"\n{c.BRIGHT_GREEN}Please restart the application to use the updated version.{c.RESET}\n")
@@ -411,7 +587,10 @@ def notify_update_available() -> None:
     """
     Check for updates in the background (respects 24-hour cache).
     If a new version is available, print a stylish notification badge.
+    Also quietly cleans up any old backup files from previous updates.
     """
+    cleanup_stale_backups()
+
     new_version = check_for_updates(force=False)
     if new_version is not None:
         c = Colors

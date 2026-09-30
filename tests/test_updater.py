@@ -2,15 +2,19 @@
 Tests for config.py and updater.py modules.
 """
 
+import hashlib
 import json
 import os
+import platform
 import shutil
+import stat
+import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
-import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 from downloadyha import config, updater
@@ -79,7 +83,6 @@ class TestUpdater(unittest.TestCase):
         self.assertTrue(updater._should_check_for_updates())
 
         # Checked just now -> False
-        import time
         updater._set_last_check_time(time.time())
         self.assertFalse(updater._should_check_for_updates())
 
@@ -89,12 +92,93 @@ class TestUpdater(unittest.TestCase):
 
     def test_compute_sha256(self):
         test_file = Path(self.test_dir) / "test.txt"
-        # Use write_bytes to avoid line ending conversion on Windows
         test_file.write_bytes(b"hello world\n")
-        # SHA256 of "hello world\n"
-        import hashlib
         expected = hashlib.sha256(b"hello world\n").hexdigest()
         self.assertEqual(updater._compute_sha256(test_file), expected)
+
+    def test_cleanup_stale_backups(self):
+        bin_dir = Path(self.test_dir) / "bin"
+        bin_dir.mkdir(parents=True, exist_ok=True)
+        exe = bin_dir / "downloadyha.exe"
+        exe.write_bytes(b"current_exe")
+
+        old_file1 = bin_dir / "downloadyha.exe.old"
+        old_file1.write_bytes(b"old1")
+        old_file2 = bin_dir / "downloadyha.old.12345.exe"
+        old_file2.write_bytes(b"old2")
+        tmp_file = bin_dir / "downloadyha.new.999_123.tmp.exe"
+        tmp_file.write_bytes(b"tmp")
+
+        updater.cleanup_stale_backups(exe)
+
+        self.assertTrue(exe.exists())
+        self.assertFalse(old_file1.exists())
+        self.assertFalse(old_file2.exists())
+        self.assertFalse(tmp_file.exists())
+
+    def test_replace_binary_windows_success(self):
+        bin_dir = Path(self.test_dir) / "bin"
+        bin_dir.mkdir(parents=True, exist_ok=True)
+        target_exe = bin_dir / "downloadyha.exe"
+        target_exe.write_bytes(b"version_1")
+
+        new_binary = Path(self.test_dir) / "new_downloadyha.exe"
+        new_binary.write_bytes(b"version_2")
+
+        with patch("platform.system", return_value="Windows"):
+            ok, err = updater._replace_binary(new_binary, target_exe)
+            self.assertTrue(ok)
+            self.assertIsNone(err)
+            self.assertEqual(target_exe.read_bytes(), b"version_2")
+
+    def test_replace_binary_windows_rollback_on_failure(self):
+        bin_dir = Path(self.test_dir) / "bin"
+        bin_dir.mkdir(parents=True, exist_ok=True)
+        target_exe = bin_dir / "downloadyha.exe"
+        target_exe.write_bytes(b"original_content")
+
+        new_binary = Path(self.test_dir) / "new_downloadyha.exe"
+        new_binary.write_bytes(b"updated_content")
+
+        # Simulate failure during staging -> target rename
+        rename_calls = []
+
+        def mock_rename(*args, **kwargs):
+            rename_calls.append(args)
+            if len(rename_calls) == 2:
+                # Second rename call is staging_file -> target_exe
+                raise OSError("Simulated disk error moving staging")
+            # For other calls, simulate standard rename
+            pass
+
+        with patch("platform.system", return_value="Windows"), \
+             patch.object(Path, "rename", side_effect=mock_rename):
+            ok, err = updater._replace_binary(new_binary, target_exe)
+            self.assertFalse(ok)
+            self.assertIn("Original version successfully restored", err)
+
+    def test_replace_binary_linux_success(self):
+        bin_dir = Path(self.test_dir) / "bin"
+        bin_dir.mkdir(parents=True, exist_ok=True)
+        target_exe = bin_dir / "downloadyha"
+        target_exe.write_bytes(b"linux_v1")
+
+        new_binary = Path(self.test_dir) / "new_downloadyha"
+        new_binary.write_bytes(b"linux_v2")
+
+        with patch("platform.system", return_value="Linux"):
+            ok, err = updater._replace_binary(new_binary, target_exe)
+            self.assertTrue(ok)
+            self.assertIsNone(err)
+            self.assertEqual(target_exe.read_bytes(), b"linux_v2")
+
+    def test_perform_update_dev_mode_skips_binary_replacement(self):
+        with patch.object(sys, "frozen", False, create=True), \
+             patch("downloadyha.updater.init_terminal"), \
+             patch("downloadyha.updater.info") as mock_info:
+            res = updater.perform_update("v2.0.0")
+            self.assertTrue(res)
+            mock_info.assert_any_call("Downloadyha is running from source code (development mode).")
 
 
 if __name__ == "__main__":
