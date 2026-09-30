@@ -8,7 +8,13 @@ A fast, beautiful, and standalone YouTube downloader CLI for **Videos**, **Audio
 
 ### Windows
 
-Open PowerShell and run:
+**Using Command Prompt (CMD):**
+
+```cmd
+powershell -Command "irm https://raw.githubusercontent.com/ahmed-tarek-2004/DownloadYha/master/install.ps1 | iex"
+```
+
+**Using PowerShell:**
 
 ```powershell
 irm https://raw.githubusercontent.com/ahmed-tarek-2004/DownloadYha/master/install.ps1 | iex
@@ -16,7 +22,7 @@ irm https://raw.githubusercontent.com/ahmed-tarek-2004/DownloadYha/master/instal
 
 Then run:
 
-```powershell
+```cmd
 downloadyha
 ```
 
