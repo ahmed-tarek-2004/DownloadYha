@@ -54,7 +54,7 @@ def print_banner() -> None:
     print("=" * 55)
     print("                  Downloadyha")
     print("=" * 55)
-    print("              YouTube Downloader")
+    print("              YouTube Downloader By Ahmed Tarek Zaher")
     print("=" * 55)
 
 

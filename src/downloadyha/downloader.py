@@ -42,9 +42,6 @@ def get_yt_dlp_options() -> Dict[str, Any]:
             "deno": {}
         }
 
-    # Configure remote components
-    options["remote_components"] = ["ejs:github"]
-
     # Configure FFmpeg path
     ffmpeg_path = get_ffmpeg_path()
     if ffmpeg_path:
