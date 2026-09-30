@@ -62,7 +62,7 @@ detect_arch() {
 
 # ── Get Latest Version ───────────────────────────────────────────────────────
 get_latest_version() {
-    step "Fetching latest release information..."
+    echo "  ==> Fetching latest release information..." >&2
 
     local version
     if command -v curl >/dev/null 2>&1; then
