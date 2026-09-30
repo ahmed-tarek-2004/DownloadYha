@@ -1,7 +1,11 @@
 import os
 import shutil
+import sys
 
 import yt_dlp
+
+from . import updater
+from . import config
 
 
 APP_NAME = "Downloadyha"
@@ -399,6 +403,26 @@ def choose_download_folder():
 
 
 def main():
+    # Handle 'downloadyha update' command
+    if len(sys.argv) > 1:
+        arg = sys.argv[1].strip().lower()
+        if arg == "update":
+            updater.handle_update_command()
+            return
+        elif arg in ("--help", "-h", "help"):
+            print()
+            print("=" * 55)
+            print("                 Downloadyha Help")
+            print("=" * 55)
+            print()
+            print("Usage:")
+            print("  downloadyha          Start the YouTube downloader")
+            print("  downloadyha update   Check for and install updates")
+            print("  downloadyha --help   Show this help message")
+            print()
+            print("=" * 55)
+            print()
+            return
 
     print()
     print("=" * 55)
@@ -409,7 +433,9 @@ def main():
     )
     print("=" * 55)
 
-  
+    # Non-intrusive update notification (respects 24-hour cache)
+    updater.notify_update_available()
+
     if not check_dependencies():
 
         return

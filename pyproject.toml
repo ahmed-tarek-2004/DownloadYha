@@ -18,6 +18,12 @@ dependencies = [
 ]
 
 
+[project.optional-dependencies]
+dev = [
+    "pyinstaller>=6.0.0",
+]
+
+
 [project.scripts]
 downloadyha = "downloadyha.cli:main"
 
