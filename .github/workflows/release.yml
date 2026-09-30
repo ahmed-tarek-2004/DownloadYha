@@ -34,6 +34,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Extract version from tag
+        id: get_version
+        shell: bash
+        run: |
+          echo "version=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -59,27 +65,34 @@ jobs:
         if: runner.os == 'Windows'
         run: |
           pyinstaller downloadyha.spec
-          Compress-Archive -Path "dist\downloadyha.exe" -DestinationPath "${{ matrix.executable }}"
+          $version = "${{ steps.get_version.outputs.version }}"
+          $zipName = "downloadyha-${version}-windows-x86_64.zip"
+          Compress-Archive -Path "dist\downloadyha.exe" -DestinationPath $zipName
+          echo "ARTIFACT_NAME=$zipName" >> $env:GITHUB_ENV
 
       - name: Build executable (Linux x64)
         if: runner.os == 'Linux' && matrix.cross-compile != true
         run: |
           pyinstaller downloadyha.spec
-          tar -czvf ${{ matrix.executable }} -C dist downloadyha
+          version="${{ steps.get_version.outputs.version }}"
+          tarName="downloadyha-${version}-linux-x86_64.tar.gz"
+          tar -czvf "$tarName" -C dist downloadyha
+          echo "ARTIFACT_NAME=$tarName" >> $GITHUB_ENV
 
       - name: Build executable (Linux ARM64 cross-compile)
         if: matrix.cross-compile == true
         run: |
-          # Note: PyInstaller cross-compilation for ARM64 requires special handling
-          pyinstaller downloadyha.spec || \
-          pyinstaller downloadyha.spec
-          tar -czvf ${{ matrix.executable }} -C dist downloadyha
+          pyinstaller downloadyha.spec || pyinstaller downloadyha.spec
+          version="${{ steps.get_version.outputs.version }}"
+          tarName="downloadyha-${version}-linux-arm64.tar.gz"
+          tar -czvf "$tarName" -C dist downloadyha
+          echo "ARTIFACT_NAME=$tarName" >> $GITHUB_ENV
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.executable }}
-          path: ${{ matrix.executable }}
+          name: ${{ env.ARTIFACT_NAME }}
+          path: ${{ env.ARTIFACT_NAME }}
           if-no-files-found: error
           retention-days: 1
 
