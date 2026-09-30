@@ -7,8 +7,7 @@ Responsibilities:
 - Download, verify (SHA-256), and atomically replace the running executable.
 - Preserve user configuration during updates.
 - Handle OS and architecture detection.
-
-User consent is ALWAYS required. This module never auto-updates.
+- Cross-platform styled UI for update notices and progress.
 """
 
 import hashlib
@@ -21,30 +20,27 @@ import sys
 import tarfile
 import tempfile
 import time
-import urllib.request
 import urllib.error
+import urllib.request
 import zipfile
 from pathlib import Path
 from typing import Optional, Tuple
 
 from . import __version__
 from . import config
+from .ui import Colors, Symbols, error, info, init_terminal, prompt_confirm, success, wait, warning
 
 
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
 
-# GitHub repository (REPLACE with actual owner/repo)
 GITHUB_OWNER = "ahmed-tarek-2004"
 GITHUB_REPO = "DownloadYha"
 GITHUB_API_BASE = f"https://api.github.com/repos/{GITHUB_OWNER}/{GITHUB_REPO}"
 GITHUB_RELEASE_BASE = f"https://github.com/{GITHUB_OWNER}/{GITHUB_REPO}/releases/download"
 
-# Update check cache duration in seconds (24 hours)
 UPDATE_CHECK_INTERVAL = 24 * 60 * 60
-
-# Timeout for network requests (seconds)
 REQUEST_TIMEOUT = 30
 
 
@@ -141,7 +137,6 @@ def _detect_platform() -> Optional[str]:
     system = platform.system()
     machine = platform.machine().lower()
 
-    # Normalize architecture names to match release artifacts
     if machine in ("x86_64", "amd64"):
         arch = "x86_64"
     elif machine in ("aarch64", "arm64"):
@@ -180,9 +175,6 @@ def _build_artifact_name(version: str, platform_id: str) -> str:
 def _fetch_latest_release() -> Optional[dict]:
     """
     Fetch the latest release metadata from GitHub.
-
-    Returns a dict with keys: 'tag_name', 'assets'.
-    Returns None on error.
     """
     url = f"{GITHUB_API_BASE}/releases/latest"
 
@@ -208,10 +200,7 @@ def check_for_updates(force: bool = False) -> Optional[str]:
         force: If True, bypass the 24-hour cache and check immediately.
 
     Returns:
-        - The new version string (e.g., "v1.1.0") if an update is available.
-        - None if no update is available or if an error occurred.
-
-    Side effect: updates the check timestamp cache.
+        The new version string (e.g. "v1.0.5") if an update is available, else None.
     """
     if not force and not _should_check_for_updates():
         return None
@@ -237,11 +226,7 @@ def check_for_updates(force: bool = False) -> Optional[str]:
 # ---------------------------------------------------------------------------
 
 def _download_file(url: str, dest_path: Path) -> bool:
-    """
-    Download a file from *url* to *dest_path*.
-
-    Returns True on success, False on error.
-    """
+    """Download a file from url to dest_path."""
     try:
         req = urllib.request.Request(url)
         req.add_header("User-Agent", f"Downloadyha/{__version__}")
@@ -272,12 +257,8 @@ def _compute_sha256(file_path: Path) -> str:
 def _fetch_checksum(version: str, artifact_name: str) -> Optional[str]:
     """
     Download SHA256SUMS for the given version and extract the checksum
-    for *artifact_name*.
-
-    Returns the hex digest string on success, None on error.
+    for artifact_name.
     """
-    # Example URL:
-    # https://github.com/OWNER/REPO/releases/download/v1.0.0/SHA256SUMS
     url = f"{GITHUB_RELEASE_BASE}/{version}/SHA256SUMS"
 
     try:
@@ -287,7 +268,6 @@ def _fetch_checksum(version: str, artifact_name: str) -> Optional[str]:
         with urllib.request.urlopen(req, timeout=REQUEST_TIMEOUT) as resp:
             content = resp.read().decode("utf-8")
 
-        # SHA256SUMS format: <hash>  <filename>
         for line in content.splitlines():
             line = line.strip()
             if not line:
@@ -296,7 +276,7 @@ def _fetch_checksum(version: str, artifact_name: str) -> Optional[str]:
             if len(parts) != 2:
                 continue
             checksum, filename = parts
-            if filename == artifact_name:
+            if filename.lstrip("*") == artifact_name:
                 return checksum.lower()
 
         return None
@@ -311,82 +291,57 @@ def _fetch_checksum(version: str, artifact_name: str) -> Optional[str]:
 
 def _get_executable_path() -> Path:
     """Return the absolute path to the current running executable."""
-    # sys.executable points to the Python interpreter if running as a script,
-    # or to the bundled executable if packaged (PyInstaller, etc.)
-    #
-    # For a PyInstaller bundle, sys.executable is the downloadyha.exe path.
-    # For development, it's the python interpreter; in that case we can't
-    # self-update. Check for frozen state.
     if getattr(sys, "frozen", False):
         return Path(sys.executable).resolve()
     else:
-        # Not a frozen executable; return the script path as a fallback
-        # (self-update won't work in this mode)
         return Path(__file__).resolve()
 
 
 def perform_update(new_version: str) -> bool:
     """
-    Download and install the update for *new_version*.
-
-    Steps:
-      1. Detect platform.
-      2. Build artifact name.
-      3. Download artifact to a temporary file.
-      4. Fetch and verify SHA-256 checksum.
-      5. Atomically replace the current executable.
-      6. Preserve user configuration (it lives in a separate directory).
+    Download and install the update for new_version.
 
     Returns True on success, False on error.
-
-    Prints progress messages to stdout.
     """
-    print(f"\nUpdating Downloadyha to {new_version}...\n")
+    c = Colors
+    init_terminal()
+
+    info(f"Preparing update to {c.BOLD}{new_version}{c.RESET}...")
 
     platform_id = _detect_platform()
     if platform_id is None:
-        print("Error: Unsupported platform for auto-update.")
+        error("Unsupported operating system or architecture for auto-update.")
         return False
 
     artifact_name = _build_artifact_name(new_version, platform_id)
-    print(f"Platform: {platform_id}")
-    print(f"Artifact: {artifact_name}\n")
-
-    # Download URL
     download_url = f"{GITHUB_RELEASE_BASE}/{new_version}/{artifact_name}"
-
-    # Create a temporary directory for the download
     temp_dir = Path(tempfile.mkdtemp(prefix="downloadyha-update-"))
 
     try:
         temp_artifact = temp_dir / artifact_name
 
-        # Step 1: Download the new executable
-        print("Downloading update...")
+        # Step 1: Download
+        wait("Downloading update package from GitHub Releases...")
         if not _download_file(download_url, temp_artifact):
-            print("Error: Failed to download the update.")
+            error("Failed to download update package.")
             return False
-        print("Download complete.\n")
+        success("Download complete.")
 
-        # Step 2: Fetch checksum
-        print("Verifying checksum...")
+        # Step 2: Checksum verification
+        wait("Verifying SHA-256 integrity checksum...")
         expected_checksum = _fetch_checksum(new_version, artifact_name)
         if expected_checksum is None:
-            print("Error: Could not retrieve SHA-256 checksum.")
+            error("Could not retrieve SHA256SUMS from GitHub.")
             return False
 
-        # Step 3: Compute actual checksum
         actual_checksum = _compute_sha256(temp_artifact)
-
         if actual_checksum != expected_checksum:
-            print("Error: Checksum verification failed.")
-            print(f"  Expected: {expected_checksum}")
-            print(f"  Got:      {actual_checksum}")
+            error("Integrity check failed: Checksum mismatch.")
             return False
-        print("Checksum verified.\n")
+        success("Checksum verified.")
 
-        # Step 4: Extract the new executable from the archive
-        print("Extracting update...")
+        # Step 3: Extract
+        wait("Extracting update files...")
         extract_dir = temp_dir / "extracted"
         extract_dir.mkdir(parents=True, exist_ok=True)
 
@@ -397,32 +352,26 @@ def perform_update(new_version: str) -> bool:
             with tarfile.open(temp_artifact, "r:gz") as tar_ref:
                 tar_ref.extractall(extract_dir)
         else:
-            print("Error: Unsupported archive format.")
+            error("Unsupported archive format.")
             return False
 
-        # Find the executable in the extracted files
-        new_exe = None
         exe_name = "downloadyha.exe" if platform.system() == "Windows" else "downloadyha"
+        new_exe = None
         for item in extract_dir.rglob(exe_name):
             if item.is_file():
                 new_exe = item
                 break
 
         if new_exe is None:
-            print(f"Error: Could not find '{exe_name}' in the update archive.")
+            error(f"Could not find '{exe_name}' inside the update archive.")
             return False
 
-        # Step 5: Replace the current executable atomically
-        print("Installing update...")
+        # Step 4: Replace executable
+        wait("Applying update to current installation...")
         current_exe = _get_executable_path()
-
-        # On Windows, we can't overwrite a running .exe directly.
-        # Strategy: rename current to .old, move new to original name.
-        # On Linux, we can overwrite directly (running process keeps old inode).
 
         if platform.system() == "Windows":
             old_backup = current_exe.with_suffix(current_exe.suffix + ".old")
-            # Remove any previous .old file
             if old_backup.exists():
                 try:
                     old_backup.unlink()
@@ -433,27 +382,21 @@ def perform_update(new_version: str) -> bool:
                 current_exe.rename(old_backup)
                 shutil.copy2(new_exe, current_exe)
             except OSError as e:
-                print(f"Error: Failed to replace executable: {e}")
+                error(f"Failed to replace executable: {e}")
                 return False
-
         else:
-            # Linux: overwrite directly
             try:
                 shutil.copy2(new_exe, current_exe)
-                # Ensure executable bit is set
                 current_exe.chmod(current_exe.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
             except OSError as e:
-                print(f"Error: Failed to replace executable: {e}")
+                error(f"Failed to replace executable: {e}")
                 return False
 
-        print("Update installed successfully.\n")
-        print(f"Downloadyha has been updated to {new_version}.")
-        print("\nPlease restart the application to use the new version.")
-
+        success(f"Downloadyha has been updated to {new_version}!")
+        print(f"\n{c.BRIGHT_GREEN}Please restart the application to use the updated version.{c.RESET}\n")
         return True
 
     finally:
-        # Clean up temp directory
         try:
             shutil.rmtree(temp_dir)
         except OSError:
@@ -467,25 +410,15 @@ def perform_update(new_version: str) -> bool:
 def notify_update_available() -> None:
     """
     Check for updates in the background (respects 24-hour cache).
-    If a new version is available, print a non-intrusive message.
-
-    Call this at application startup before the main menu.
+    If a new version is available, print a stylish notification badge.
     """
     new_version = check_for_updates(force=False)
     if new_version is not None:
-        print()
-        print("=" * 55)
-        print(" A new version of Downloadyha is available!")
-        print("=" * 55)
-        print(f"  Current version: {__version__}")
-        print(f"  Latest version:  {new_version}")
-        print()
-        print("  Run the following command to update:")
-        print()
-        print("      downloadyha update")
-        print()
-        print("=" * 55)
-        print()
+        c = Colors
+        print(f"{c.BRIGHT_YELLOW}╭────────────────────────────────────────────────────────╮{c.RESET}")
+        print(f"{c.BRIGHT_YELLOW}│{c.RESET}  {Symbols.SPARKLE} {c.BOLD}A new version of Downloadyha is available!{c.RESET} ({c.CYAN}{new_version}{c.RESET})  {c.BRIGHT_YELLOW}│{c.RESET}")
+        print(f"{c.BRIGHT_YELLOW}│{c.RESET}  Run {c.BOLD}{c.BRIGHT_WHITE}downloadyha update{c.RESET} to install the latest features.   {c.BRIGHT_YELLOW}│{c.RESET}")
+        print(f"{c.BRIGHT_YELLOW}╰────────────────────────────────────────────────────────╯{c.RESET}\n")
 
 
 # ---------------------------------------------------------------------------
@@ -493,35 +426,30 @@ def notify_update_available() -> None:
 # ---------------------------------------------------------------------------
 
 def handle_update_command() -> None:
-    """
-    Entry point for the 'downloadyha update' command.
+    """Entry point for the 'downloadyha update' command."""
+    init_terminal()
+    c = Colors
 
-    Checks for updates (ignoring cache) and performs the update if available.
-    """
     print()
-    print("=" * 55)
-    print("           Downloadyha Update")
-    print("=" * 55)
+    print(f"{c.BRIGHT_CYAN}╭────────────────────────────────────────────────────────╮{c.RESET}")
+    print(f"{c.BRIGHT_CYAN}│{c.RESET} {c.BOLD}{c.BRIGHT_WHITE}                Downloadyha Updater                     {c.RESET} {c.BRIGHT_CYAN}│{c.RESET}")
+    print(f"{c.BRIGHT_CYAN}╰────────────────────────────────────────────────────────╯{c.RESET}")
     print()
 
-    print("Checking for updates...")
+    wait("Checking for updates on GitHub...")
     new_version = check_for_updates(force=True)
 
     if new_version is None:
-        print(f"\nYou are already running the latest version ({__version__}).")
+        success(f"You are already running the latest version ({__version__}).")
         return
 
-    print(f"\nCurrent version: {__version__}")
-    print(f"Latest version:  {new_version}")
-    print()
+    info(f"Current version : {Colors.BOLD}{__version__}{Colors.RESET}")
+    info(f"Latest version  : {Colors.BOLD}{Colors.BRIGHT_GREEN}{new_version}{Colors.RESET}")
 
-    # Ask for confirmation
-    response = input("Do you want to update now? [y/N]: ").strip().lower()
-    if response not in ("y", "yes"):
-        print("\nUpdate canceled.")
+    if not prompt_confirm("Do you want to download and install this update now?", default=True):
+        info("Update canceled.")
         return
 
-    success = perform_update(new_version)
-    if not success:
-        print("\nUpdate failed. Please try again later or download manually from:")
-        print(f"  https://github.com/{GITHUB_OWNER}/{GITHUB_REPO}/releases")
+    success_status = perform_update(new_version)
+    if not success_status:
+        warning(f"Update could not be completed automatically. Download manually from:\n  https://github.com/{GITHUB_OWNER}/{GITHUB_REPO}/releases")

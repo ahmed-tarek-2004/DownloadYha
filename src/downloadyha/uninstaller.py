@@ -4,7 +4,7 @@ uninstaller.py - Self-uninstall mechanism for Downloadyha.
 Responsibilities:
 - Remove the executable.
 - Remove all user data (config, cache, logs, bundled binaries).
-- Ask for confirmation before proceeding.
+- Ask for confirmation before proceeding with modern UI prompts.
 """
 
 import platform
@@ -13,6 +13,7 @@ import sys
 from pathlib import Path
 
 from . import config
+from .ui import Colors, Symbols, error, info, init_terminal, prompt_confirm, success, warning
 
 
 def _get_executable_path() -> Path:
@@ -38,26 +39,27 @@ def uninstall() -> bool:
     Returns:
         True on success, False on error.
     """
+    init_terminal()
+    c = Colors
+
     print()
-    print("=" * 55)
-    print("       Downloadyha Uninstaller")
-    print("=" * 55)
+    print(f"{c.BRIGHT_RED}╭────────────────────────────────────────────────────────╮{c.RESET}")
+    print(f"{c.BRIGHT_RED}│{c.RESET} {c.BOLD}{c.BRIGHT_WHITE}              Downloadyha Uninstaller                  {c.RESET} {c.BRIGHT_RED}│{c.RESET}")
+    print(f"{c.BRIGHT_RED}╰────────────────────────────────────────────────────────╯{c.RESET}")
     print()
-    print("This will remove:")
-    print("  - The Downloadyha executable")
-    print("  - Configuration files")
-    print("  - Cache data")
-    print("  - Log files")
-    print("  - Bundled binaries (ffmpeg, deno)")
+    print(f"{c.DIM}This will permanently remove:{c.RESET}")
+    print(f"  {c.RED}•{c.RESET} Downloadyha application executable")
+    print(f"  {c.RED}•{c.RESET} Configuration files")
+    print(f"  {c.RED}•{c.RESET} Cache & log files")
+    print(f"  {c.RED}•{c.RESET} Bundled binaries (FFmpeg, Deno)")
     print()
 
     # Ask for confirmation
-    response = input("Are you sure you want to uninstall Downloadyha? [y/N]: ").strip().lower()
-    if response not in ("y", "yes"):
-        print("\nUninstall canceled.")
+    if not prompt_confirm("Are you sure you want to completely uninstall Downloadyha?", default=False):
+        info("Uninstall canceled.")
         return False
 
-    print("\nUninstalling Downloadyha...\n")
+    info("Uninstalling Downloadyha...")
 
     # Get paths to remove
     config_dir = config.get_config_dir()
@@ -67,56 +69,52 @@ def uninstall() -> bool:
     bin_dir = config.get_bin_dir()
     executable = _get_executable_path()
 
-    errors = []
+    errors_list = []
 
     # Remove config directory
     if config_dir.exists():
         try:
             shutil.rmtree(config_dir)
-            print(f"Removed config: {config_dir}")
+            success(f"Removed config directory: {config_dir}")
         except OSError as e:
-            errors.append(f"Failed to remove config directory: {e}")
+            errors_list.append(f"Config directory: {e}")
 
     # Remove cache directory
     if cache_dir.exists():
         try:
             shutil.rmtree(cache_dir)
-            print(f"Removed cache: {cache_dir}")
+            success(f"Removed cache directory: {cache_dir}")
         except OSError as e:
-            errors.append(f"Failed to remove cache directory: {e}")
+            errors_list.append(f"Cache directory: {e}")
 
     # Remove logs directory
     if logs_dir.exists():
         try:
             shutil.rmtree(logs_dir)
-            print(f"Removed logs: {logs_dir}")
+            success(f"Removed logs directory: {logs_dir}")
         except OSError as e:
-            errors.append(f"Failed to remove logs directory: {e}")
+            errors_list.append(f"Logs directory: {e}")
 
     # Remove bin directory (bundled dependencies)
     if bin_dir.exists():
         try:
             shutil.rmtree(bin_dir)
-            print(f"Removed binaries: {bin_dir}")
+            success(f"Removed binaries directory: {bin_dir}")
         except OSError as e:
-            errors.append(f"Failed to remove bin directory: {e}")
+            errors_list.append(f"Binaries directory: {e}")
 
-    # Remove app data directory (if empty or only contains removed dirs)
+    # Remove app data directory if empty or remaining
     if app_data_dir.exists():
         try:
-            # Try to remove the entire app data dir
             shutil.rmtree(app_data_dir)
-            print(f"Removed app data: {app_data_dir}")
+            success(f"Removed app data directory: {app_data_dir}")
         except OSError:
-            # Directory might not be empty or have permission issues
             pass
 
     # Remove executable
     if getattr(sys, "frozen", False):
         try:
             if platform.system() == "Windows":
-                # On Windows, we can't delete a running executable directly
-                # Mark it for deletion on next restart
                 import ctypes
                 executable_old = executable.with_suffix(executable.suffix + ".old")
                 if executable_old.exists():
@@ -126,40 +124,33 @@ def uninstall() -> bool:
                         pass
                 executable.rename(executable_old)
 
-                # Schedule deletion on reboot using Windows API
+                # Schedule deletion on reboot
                 ctypes.windll.kernel32.MoveFileExW(
                     str(executable_old),
                     None,
                     0x4  # MOVEFILE_DELAY_UNTIL_REBOOT
                 )
-                print(f"Executable will be removed on next restart: {executable_old}")
+                success("Executable scheduled for deletion on next reboot.")
             else:
-                # On Linux, we can delete the running executable
-                # (the process continues from memory)
                 executable.unlink()
-                print(f"Removed executable: {executable}")
+                success("Executable removed successfully.")
         except OSError as e:
-            errors.append(f"Failed to remove executable: {e}")
+            errors_list.append(f"Executable removal: {e}")
     else:
-        print("Note: Running in development mode - executable not removed.")
+        info("Running in development mode — local source files preserved.")
 
     print()
-
-    if errors:
-        print("Some items could not be removed:")
-        for error in errors:
-            print(f"  - {error}")
-        print()
-        print("You may need to remove them manually.")
+    if errors_list:
+        warning("Some items could not be automatically deleted:")
+        for err_msg in errors_list:
+            print(f"  - {err_msg}")
         return False
 
-    print("Downloadyha has been successfully uninstalled.")
-    print("Thank you for using Downloadyha!")
+    success("Downloadyha has been completely uninstalled.")
+    print(f"\n{c.CYAN}Thank you for using Downloadyha!{c.RESET}\n")
     return True
 
 
 def handle_uninstall_command() -> None:
-    """
-    Entry point for the 'downloadyha uninstall' command.
-    """
+    """Entry point for the 'downloadyha uninstall' command."""
     uninstall()
