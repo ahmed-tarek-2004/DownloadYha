@@ -1,0 +1,57 @@
+{
+  "downloadyha": "1.0.0",
+  "yt_dlp": "2026.8.19",
+  "ffmpeg": {
+    "version": "7.1",
+    "windows": {
+      "x86_64": {
+        "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip",
+        "sha256": null,
+        "archive_type": "zip",
+        "bin_path_in_archive": "ffmpeg-master-latest-win64-gpl/bin/ffmpeg.exe",
+        "probe_path_in_archive": "ffmpeg-master-latest-win64-gpl/bin/ffprobe.exe"
+      }
+    },
+    "linux": {
+      "x86_64": {
+        "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz",
+        "sha256": null,
+        "archive_type": "tar.xz",
+        "bin_path_in_archive": "ffmpeg-master-latest-linux64-gpl/bin/ffmpeg",
+        "probe_path_in_archive": "ffmpeg-master-latest-linux64-gpl/bin/ffprobe"
+      },
+      "aarch64": {
+        "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linuxarm64-gpl.tar.xz",
+        "sha256": null,
+        "archive_type": "tar.xz",
+        "bin_path_in_archive": "ffmpeg-master-latest-linuxarm64-gpl/bin/ffmpeg",
+        "probe_path_in_archive": "ffmpeg-master-latest-linuxarm64-gpl/bin/ffprobe"
+      }
+    }
+  },
+  "deno": {
+    "version": "2.1.4",
+    "windows": {
+      "x86_64": {
+        "url": "https://github.com/denoland/deno/releases/download/v2.1.4/deno-x86_64-pc-windows-msvc.zip",
+        "sha256": null,
+        "archive_type": "zip",
+        "bin_path_in_archive": "deno.exe"
+      }
+    },
+    "linux": {
+      "x86_64": {
+        "url": "https://github.com/denoland/deno/releases/download/v2.1.4/deno-x86_64-unknown-linux-gnu.zip",
+        "sha256": null,
+        "archive_type": "zip",
+        "bin_path_in_archive": "deno"
+      },
+      "aarch64": {
+        "url": "https://github.com/denoland/deno/releases/download/v2.1.4/deno-aarch64-unknown-linux-gnu.zip",
+        "sha256": null,
+        "archive_type": "zip",
+        "bin_path_in_archive": "deno"
+      }
+    }
+  }
+}
