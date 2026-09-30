@@ -5,6 +5,7 @@ from typing import Optional
 
 from . import __version__, __app_name__
 from . import updater
+from . import uninstaller
 from . import config
 from .dependencies import check_dependencies, verify_dependencies, repair_dependencies
 from .downloader import (
@@ -191,6 +192,10 @@ def main() -> None:
                 print("\nRepair failed. Some dependencies could not be installed.")
                 sys.exit(1)
 
+        elif arg == "uninstall":
+            uninstaller.handle_uninstall_command()
+            return
+
         elif arg in ("--help", "-h", "help"):
             print()
             print("=" * 55)
@@ -198,11 +203,12 @@ def main() -> None:
             print("=" * 55)
             print()
             print("Usage:")
-            print("  downloadyha          Start the YouTube downloader")
-            print("  downloadyha update   Check for and install updates")
-            print("  downloadyha repair   Repair/reinstall dependencies")
-            print("  downloadyha --verify Verify dependencies")
-            print("  downloadyha --help   Show this help message")
+            print("  downloadyha            Start the YouTube downloader")
+            print("  downloadyha update     Check for and install updates")
+            print("  downloadyha repair     Repair/reinstall dependencies")
+            print("  downloadyha uninstall  Uninstall Downloadyha")
+            print("  downloadyha --verify   Verify dependencies")
+            print("  downloadyha --help     Show this help message")
             print()
             print("=" * 55)
             print()

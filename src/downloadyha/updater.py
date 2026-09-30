@@ -15,12 +15,15 @@ import hashlib
 import json
 import os
 import platform
+import shutil
 import stat
 import sys
+import tarfile
 import tempfile
 import time
 import urllib.request
 import urllib.error
+import zipfile
 from pathlib import Path
 from typing import Optional, Tuple
 
@@ -129,8 +132,8 @@ def _detect_platform() -> Optional[str]:
     Detect the current OS and architecture.
 
     Returns a platform identifier like:
-      - "windows-x64"
-      - "linux-x64"
+      - "windows-x86_64"
+      - "linux-x86_64"
       - "linux-arm64"
 
     Returns None if the platform is unsupported.
@@ -138,9 +141,9 @@ def _detect_platform() -> Optional[str]:
     system = platform.system()
     machine = platform.machine().lower()
 
-    # Normalize architecture names
+    # Normalize architecture names to match release artifacts
     if machine in ("x86_64", "amd64"):
-        arch = "x64"
+        arch = "x86_64"
     elif machine in ("aarch64", "arm64"):
         arch = "arm64"
     else:
@@ -159,10 +162,14 @@ def _build_artifact_name(version: str, platform_id: str) -> str:
     Build the expected artifact name for the given version and platform.
 
     Examples:
-      downloadyha-1.0.0-windows-x64.exe
-      downloadyha-1.0.0-linux-x64
+      downloadyha-v1.0.0-windows-x86_64.zip
+      downloadyha-v1.0.0-linux-x86_64.tar.gz
     """
-    ext = ".exe" if "windows" in platform_id else ""
+    if "windows" in platform_id:
+        ext = ".zip"
+    else:
+        ext = ".tar.gz"
+
     return f"downloadyha-{version}-{platform_id}{ext}"
 
 
@@ -378,7 +385,34 @@ def perform_update(new_version: str) -> bool:
             return False
         print("Checksum verified.\n")
 
-        # Step 4: Replace the current executable atomically
+        # Step 4: Extract the new executable from the archive
+        print("Extracting update...")
+        extract_dir = temp_dir / "extracted"
+        extract_dir.mkdir(parents=True, exist_ok=True)
+
+        if artifact_name.endswith(".zip"):
+            with zipfile.ZipFile(temp_artifact, "r") as zip_ref:
+                zip_ref.extractall(extract_dir)
+        elif artifact_name.endswith(".tar.gz"):
+            with tarfile.open(temp_artifact, "r:gz") as tar_ref:
+                tar_ref.extractall(extract_dir)
+        else:
+            print("Error: Unsupported archive format.")
+            return False
+
+        # Find the executable in the extracted files
+        new_exe = None
+        exe_name = "downloadyha.exe" if platform.system() == "Windows" else "downloadyha"
+        for item in extract_dir.rglob(exe_name):
+            if item.is_file():
+                new_exe = item
+                break
+
+        if new_exe is None:
+            print(f"Error: Could not find '{exe_name}' in the update archive.")
+            return False
+
+        # Step 5: Replace the current executable atomically
         print("Installing update...")
         current_exe = _get_executable_path()
 
@@ -397,7 +431,7 @@ def perform_update(new_version: str) -> bool:
 
             try:
                 current_exe.rename(old_backup)
-                temp_artifact.rename(current_exe)
+                shutil.copy2(new_exe, current_exe)
             except OSError as e:
                 print(f"Error: Failed to replace executable: {e}")
                 return False
@@ -405,7 +439,7 @@ def perform_update(new_version: str) -> bool:
         else:
             # Linux: overwrite directly
             try:
-                temp_artifact.replace(current_exe)
+                shutil.copy2(new_exe, current_exe)
                 # Ensure executable bit is set
                 current_exe.chmod(current_exe.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
             except OSError as e:
@@ -421,9 +455,7 @@ def perform_update(new_version: str) -> bool:
     finally:
         # Clean up temp directory
         try:
-            for item in temp_dir.iterdir():
-                item.unlink()
-            temp_dir.rmdir()
+            shutil.rmtree(temp_dir)
         except OSError:
             pass
 
