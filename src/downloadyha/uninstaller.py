@@ -176,6 +176,112 @@ def _schedule_windows_self_delete(file_to_delete: Path) -> None:
         pass
 
 
+def _remove_path_from_windows_registry(target_dir: Path) -> bool:
+    """Remove a directory from the Windows user's PATH environment variable."""
+    if platform.system() != "Windows":
+        return False
+    try:
+        import winreg
+        target_norm = os.path.normpath(str(target_dir.resolve())).lower()
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Environment", 0, winreg.KEY_READ | winreg.KEY_WRITE) as key:
+            try:
+                current_path, val_type = winreg.QueryValueEx(key, "Path")
+            except FileNotFoundError:
+                return True
+
+            parts = [p.strip() for p in current_path.split(";") if p.strip()]
+            new_parts = [p for p in parts if os.path.normpath(p).lower() != target_norm]
+
+            if len(new_parts) != len(parts):
+                new_path_val = ";".join(new_parts)
+                winreg.SetValueEx(key, "Path", 0, val_type, new_path_val)
+                # Broadcast WM_SETTINGCHANGE so other shells pick it up
+                try:
+                    import ctypes
+                    HWND_BROADCAST = 0xFFFF
+                    WM_SETTINGCHANGE = 0x001A
+                    SMTO_ABORTIFHUNG = 0x0002
+                    result = ctypes.c_ulong()
+                    ctypes.windll.user32.SendMessageTimeoutW(
+                        HWND_BROADCAST,
+                        WM_SETTINGCHANGE,
+                        0,
+                        "Environment",
+                        SMTO_ABORTIFHUNG,
+                        2000,
+                        ctypes.byref(result)
+                    )
+                except Exception:
+                    pass
+                return True
+    except Exception:
+        pass
+    return False
+
+
+def _remove_standalone_installation() -> List[str]:
+    """
+    Remove standalone installation directories created by installers or scripts
+    (e.g., %LOCALAPPDATA%\\Programs\\Downloadyha on Windows).
+    """
+    removed: List[str] = []
+    if platform.system() == "Windows":
+        local_app_data = os.environ.get("LOCALAPPDATA")
+        if local_app_data:
+            prog_dir = Path(local_app_data) / "Programs" / "Downloadyha"
+            if prog_dir.exists():
+                _remove_path_from_windows_registry(prog_dir)
+                for item in list(prog_dir.glob("*")):
+                    try:
+                        if item.is_file():
+                            _schedule_windows_self_delete(item)
+                    except Exception:
+                        pass
+                ok, _ = _robust_rmtree(prog_dir)
+                if ok or not prog_dir.exists():
+                    removed.append(str(prog_dir))
+    return removed
+
+
+def _uninstall_pip_package() -> Tuple[bool, Optional[str]]:
+    """
+    Automatically uninstall the downloadyha package and remove CLI entry points
+    when running in a Python environment so non-technical users do not have to
+    manually invoke pip.
+    """
+    try:
+        # Schedule script wrappers in Python's Scripts folder for deletion if locked
+        scripts_dir = Path(sys.executable).parent / "Scripts"
+        if not scripts_dir.exists():
+            scripts_dir = Path(sys.executable).parent
+
+        for ep_name in ["downloadyha.exe", "downloadyha", "downloadyha-gui.exe", "downloadyha-gui", "downloadyha-script.py"]:
+            ep_file = scripts_dir / ep_name
+            if ep_file.exists():
+                try:
+                    if platform.system() == "Windows":
+                        _schedule_windows_self_delete(ep_file)
+                    else:
+                        ep_file.unlink()
+                except Exception:
+                    pass
+
+        # Execute pip uninstall -y downloadyha
+        cmd = [sys.executable, "-m", "pip", "uninstall", "-y", "downloadyha"]
+        res = subprocess.run(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            timeout=30,
+            check=False
+        )
+
+        return True, None
+    except Exception as e:
+        return False, str(e)
+
+
 def uninstall() -> bool:
     """
     Uninstall Downloadyha from the system.
@@ -286,7 +392,12 @@ def uninstall() -> bool:
             except OSError as e:
                 errors_list.append(f"App data directory ({app_data_dir}): {e}")
 
-    # Step 7: Remove executable
+    # Step 7: Remove standalone installation directory (e.g. Programs\Downloadyha)
+    removed_progs = _remove_standalone_installation()
+    for prog_dir in removed_progs:
+        success(f"Removed application installation directory: {prog_dir}")
+
+    # Step 8: Remove executable / package
     if getattr(sys, "frozen", False):
         try:
             if platform.system() == "Windows":
@@ -323,7 +434,12 @@ def uninstall() -> bool:
         except OSError as e:
             errors_list.append(f"Executable removal ({executable}): {e}")
     else:
-        info("Running in development mode — local source files preserved.")
+        # Running under Python / pip: automatically uninstall the pip package
+        ok_pip, err_pip = _uninstall_pip_package()
+        if ok_pip:
+            success("Removed CLI package and command entry points.")
+        else:
+            errors_list.append(f"Package uninstallation: {err_pip}")
 
     print()
     if errors_list:

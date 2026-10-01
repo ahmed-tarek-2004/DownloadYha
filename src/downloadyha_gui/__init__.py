@@ -1,7 +1,8 @@
 """
-Downloadyha GUI - Modern Desktop Application for YouTube Downloads
+Downloadyha GUI - Modern Desktop Application for Video & Media Downloads
 
 A cross-platform desktop GUI built with CustomTkinter that provides:
+- Support for YouTube, TikTok, Instagram, Facebook, Twitter/X, and more
 - Beautiful dark/light theme support with system auto-detection
 - Download tab with URL input, quality selection, and real-time progress
 - Queue management for multiple downloads

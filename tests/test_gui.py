@@ -33,7 +33,7 @@ class TestURLValidation(unittest.TestCase):
     """Test URL validation functionality."""
 
     def test_validate_youtube_url_valid(self):
-        """Test validation of valid YouTube URLs."""
+        """Test validation of valid media URLs."""
         valid_urls = [
             "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
             "https://youtube.com/watch?v=dQw4w9WgXcQ",
@@ -41,7 +41,10 @@ class TestURLValidation(unittest.TestCase):
             "https://youtu.be/dQw4w9WgXcQ",
             "https://www.youtube.com/playlist?list=PL1234567890",
             "www.youtube.com/watch?v=abc123",
-            "youtube.com/watch?v=abc123",
+            "https://www.tiktok.com/@user/video/123456789",
+            "https://www.instagram.com/reel/abc123",
+            "https://x.com/user/status/123456789",
+            "https://vimeo.com/12345",
         ]
 
         for url in valid_urls:
@@ -56,8 +59,6 @@ class TestURLValidation(unittest.TestCase):
             "",
             "   ",
             "not a url",
-            "https://www.google.com",
-            "https://vimeo.com/12345",
             "ftp://youtube.com/video",
         ]
 
@@ -71,8 +72,9 @@ class TestURLValidation(unittest.TestCase):
         """Test quick URL validation function."""
         self.assertTrue(is_valid_youtube_url("https://www.youtube.com/watch?v=abc"))
         self.assertTrue(is_valid_youtube_url("https://youtu.be/abc"))
+        self.assertTrue(is_valid_youtube_url("https://www.tiktok.com/@tiktok/video/123"))
         self.assertFalse(is_valid_youtube_url(""))
-        self.assertFalse(is_valid_youtube_url("https://www.example.com"))
+        self.assertFalse(is_valid_youtube_url("not_a_url"))
 
 
 class TestSettingsManagement(unittest.TestCase):

@@ -83,7 +83,7 @@ def run_download_interactive() -> int:
         return 1
 
     # Step 1: Input URL
-    print_step(1, 3, "Enter YouTube URL")
+    print_step(1, 3, "Enter Media URL")
     url = prompt_input("Paste Video or Playlist URL")
 
     if not url:
@@ -98,7 +98,7 @@ def run_download_interactive() -> int:
 
     # Step 3: Fetch Metadata & Configure Download
     print_step(3, 3, "Analyzing Media & Selecting Quality")
-    wait("Fetching media metadata from YouTube...")
+    wait("Fetching media metadata...")
     info_dict = get_media_info(url)
 
     if not info_dict:
@@ -110,7 +110,7 @@ def run_download_interactive() -> int:
     # -----------------------------------------------------------------------
     if is_playlist(info_dict):
         entries = get_playlist_entries(info_dict)
-        pl_title = info_dict.get("title", "YouTube Playlist")
+        pl_title = info_dict.get("title", "Playlist")
         pl_author = info_dict.get("uploader") or info_dict.get("channel") or "Unknown"
         total_videos = len(entries) if entries else info_dict.get("playlist_count", "Multiple")
 
@@ -120,7 +120,7 @@ def run_download_interactive() -> int:
                 ("Title", pl_title),
                 ("Channel", pl_author),
                 ("Total Items", f"{total_videos} videos"),
-                ("Type", "YouTube Playlist"),
+                ("Type", "Playlist"),
                 ("Destination", download_path),
             ],
             icon=Symbols.PLAYLIST
@@ -279,7 +279,7 @@ def create_parser() -> argparse.ArgumentParser:
     """
     parser = argparse.ArgumentParser(
         prog=__app_name__.lower(),
-        description="A beautiful and fast YouTube Downloader CLI (Video, Audio & Playlists)."
+        description="A beautiful and fast Video, Audio & Playlist Downloader CLI for YouTube, TikTok & Social Media."
     )
 
     parser.add_argument(

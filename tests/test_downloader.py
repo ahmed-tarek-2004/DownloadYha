@@ -55,7 +55,7 @@ class TestDownloaderHelpers(unittest.TestCase):
 
     def test_sanitize_folder_name(self):
         self.assertEqual(sanitize_folder_name("My Playlist? Vol. 1"), "My Playlist_ Vol. 1")
-        self.assertEqual(sanitize_folder_name("   "), "YouTube_Download")
+        self.assertEqual(sanitize_folder_name("   "), "Media_Download")
 
     def test_is_playlist_url(self):
         # Direct playlist URLs

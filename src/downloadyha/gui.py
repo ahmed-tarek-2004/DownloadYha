@@ -1,8 +1,8 @@
 """
 gui.py - Desktop GUI for Downloadyha using tkinter.
 
-Provides a cross-platform graphical interface for YouTube downloads with:
-- URL input and validation
+Provides a cross-platform graphical interface for video and audio downloads with:
+- URL input and validation (YouTube, TikTok, Instagram, Twitter/X, Facebook, etc.)
 - Quality selection for video/audio
 - Playlist detection and handling
 - Real-time progress tracking
@@ -52,11 +52,13 @@ AUDIO_QUALITY_OPTIONS: List[Tuple[str, str, str]] = [
     ("4", "128 kbps (Compact Size)", "128"),
 ]
 
-# YouTube URL validation regex
-YOUTUBE_URL_PATTERN = re.compile(
-    r"^(https?://)?(www\.)?(youtube\.com|youtu\.be)/.+$",
+# Media URL validation regex: supports http, https, and www URLs
+MEDIA_URL_PATTERN = re.compile(
+    r"^(https?://|www\.)[a-zA-Z0-9\-\.]+\.[a-zA-Z]{2,}(/.*)?$",
     re.IGNORECASE
 )
+# Legacy alias
+YOUTUBE_URL_PATTERN = MEDIA_URL_PATTERN
 
 
 # ---------------------------------------------------------------------------
@@ -103,9 +105,9 @@ class ThemeColors:
 # URL Validation
 # ---------------------------------------------------------------------------
 
-def validate_youtube_url(url: str) -> Tuple[bool, str]:
+def validate_media_url(url: str) -> Tuple[bool, str]:
     """
-    Validate if a string is a valid YouTube URL.
+    Validate if a string is a valid media URL.
 
     Args:
         url: The URL string to validate.
@@ -119,24 +121,30 @@ def validate_youtube_url(url: str) -> Tuple[bool, str]:
 
     url = url.strip()
 
-    if not YOUTUBE_URL_PATTERN.match(url):
-        return False, "Invalid YouTube URL format. Please enter a valid YouTube video or playlist URL."
+    if not MEDIA_URL_PATTERN.match(url):
+        return False, "Invalid URL format. Please enter a valid video, audio, or playlist URL."
 
     return True, ""
 
 
-def is_valid_youtube_url(url: str) -> bool:
+validate_youtube_url = validate_media_url
+
+
+def is_valid_media_url(url: str) -> bool:
     """
-    Quick check if URL is a valid YouTube URL.
+    Quick check if URL is a valid media URL.
 
     Args:
         url: URL string to check.
 
     Returns:
-        True if valid YouTube URL, False otherwise.
+        True if valid URL, False otherwise.
     """
-    valid, _ = validate_youtube_url(url)
+    valid, _ = validate_media_url(url)
     return valid
+
+
+is_valid_youtube_url = is_valid_media_url
 
 
 # ---------------------------------------------------------------------------
@@ -380,7 +388,7 @@ class DownloadyhaGUI:
         """Build the URL input section."""
         url_frame = ttk.LabelFrame(
             self.main_frame,
-            text="YouTube URL",
+            text="Media URL / Video Link",
             style="Card.TLabelframe",
         )
         url_frame.pack(fill=tk.X, pady=(0, 15))
@@ -669,11 +677,11 @@ class DownloadyhaGUI:
             self.url_validation_label.configure(text="", foreground=colors["fg"])
             return
 
-        is_valid, error_msg = validate_youtube_url(url)
+        is_valid, error_msg = validate_media_url(url)
 
         if is_valid:
             self.url_validation_label.configure(
-                text="✓ Valid YouTube URL",
+                text="✓ Valid Media URL",
                 foreground=colors["success"],
             )
         else:
@@ -713,8 +721,8 @@ class DownloadyhaGUI:
         """Fetch and display media information from the URL."""
         url = self.url_var.get().strip()
 
-        if not is_valid_youtube_url(url):
-            messagebox.showerror("Error", "Please enter a valid YouTube URL.")
+        if not is_valid_media_url(url):
+            messagebox.showerror("Error", "Please enter a valid video, audio, or playlist URL.")
             return
 
         self._set_ui_state(downloading=True, message="Fetching media info...")
@@ -777,8 +785,8 @@ class DownloadyhaGUI:
         """Start the download process."""
         url = self.url_var.get().strip()
 
-        if not is_valid_youtube_url(url):
-            messagebox.showerror("Error", "Please enter a valid YouTube URL.")
+        if not is_valid_media_url(url):
+            messagebox.showerror("Error", "Please enter a valid video, audio, or playlist URL.")
             return
 
         download_dir = self.dir_var.get()

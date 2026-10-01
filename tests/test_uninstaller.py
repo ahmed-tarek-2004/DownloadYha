@@ -118,8 +118,10 @@ class TestUninstaller(unittest.TestCase):
         self.assertTrue(self.cache_dir.exists())
         self.assertTrue(self.logs_dir.exists())
 
+    @patch("downloadyha.uninstaller._uninstall_pip_package", return_value=(True, None))
+    @patch("downloadyha.uninstaller._remove_standalone_installation", return_value=[])
     @patch("downloadyha.uninstaller.prompt_confirm", return_value=True)
-    def test_uninstall_success_dev_mode(self, mock_confirm):
+    def test_uninstall_success_dev_mode(self, mock_confirm, mock_standalone, mock_pip):
         with patch.object(sys, "frozen", False, create=True):
             result = uninstaller.uninstall()
             self.assertTrue(result)
@@ -128,6 +130,7 @@ class TestUninstaller(unittest.TestCase):
             self.assertFalse(self.logs_dir.exists())
             self.assertFalse(self.bin_dir.exists())
             self.assertFalse(self.app_data_dir.exists())
+            mock_pip.assert_called_once()
 
     @patch("downloadyha.uninstaller.prompt_confirm", return_value=True)
     def test_uninstall_success_frozen_posix(self, mock_confirm):
@@ -161,6 +164,26 @@ class TestUninstaller(unittest.TestCase):
         with patch("downloadyha.uninstaller._robust_rmtree", return_value=(False, "Simulated Permission Denied")):
             result = uninstaller.uninstall()
             self.assertFalse(result)
+
+    def test_uninstall_pip_package(self):
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
+            ok, err = uninstaller._uninstall_pip_package()
+            self.assertTrue(ok)
+            self.assertIsNone(err)
+
+    def test_remove_standalone_installation(self):
+        with patch("platform.system", return_value="Windows"), \
+             patch.dict(os.environ, {"LOCALAPPDATA": self.test_dir}), \
+             patch("downloadyha.uninstaller._remove_path_from_windows_registry"):
+            prog_dir = Path(self.test_dir) / "Programs" / "Downloadyha"
+            prog_dir.mkdir(parents=True, exist_ok=True)
+            dummy_exe = prog_dir / "downloadyha.exe"
+            dummy_exe.write_text("binary")
+
+            removed = uninstaller._remove_standalone_installation()
+            self.assertIn(str(prog_dir), removed)
+            self.assertFalse(prog_dir.exists())
 
     @patch("downloadyha.uninstaller.uninstall", return_value=True)
     def test_handle_uninstall_command(self, mock_uninstall):

@@ -567,7 +567,7 @@ BANNER_ART = [
 def get_banner_text(
     version: str = "1.0.0",
     author: str = "Ahmed Tarek Zaher",
-    subtitle: str = "Modern YouTube Downloader",
+    subtitle: str = "Modern Video & Media Downloader",
     width: Optional[int] = None
 ) -> str:
     """
@@ -642,7 +642,7 @@ def get_banner_text(
 def print_banner(
     version: str = "1.0.0",
     author: str = "Ahmed Tarek Zaher",
-    subtitle: str = "Modern YouTube Downloader",
+    subtitle: str = "Modern Video & Media Downloader",
     width: Optional[int] = None
 ) -> None:
     """Print the styled banner to standard output."""
@@ -878,7 +878,7 @@ def render_media_card(
     style: str = "rounded"
 ) -> str:
     """
-    Render a high-aesthetic boxed card for YouTube video/audio/playlist metadata.
+    Render a high-aesthetic boxed card for media/video/audio/playlist metadata.
 
     Args:
         title: Media title.

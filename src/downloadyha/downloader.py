@@ -1,11 +1,12 @@
 """
-downloader.py - Robust YouTube video, audio, and playlist downloader using yt-dlp.
+downloader.py - Robust video, audio, and playlist downloader using yt-dlp.
 
 Supports:
 - Single video downloads (custom resolution up to 4K, audio/video stream merging into MP4/MKV).
 - Single audio downloads (MP3 extraction with customizable bitrate: 320k, 192k, 128k, best).
 - Full Playlist downloads (video or audio, indexed filenames, organized folder hierarchy).
 - Automatic detection of single media vs playlist URLs.
+- Multi-platform support (YouTube, TikTok, Facebook, Instagram, Twitter/X, and more).
 - Real-time progress reporting hooks and structured DownloadResult return types.
 - Per-item error tolerance (ignoreerrors) so single broken videos don't fail a playlist.
 - Cross-platform dependency integration (bundled FFmpeg and Deno runtimes).
@@ -144,10 +145,10 @@ def sanitize_folder_name(name: str) -> str:
     Sanitize a string for safe use as a directory name on Windows and Linux.
     """
     if not name:
-        return "YouTube_Download"
+        return "Media_Download"
     clean = re.sub(r'[<>:"/\\|?*\x00-\x1f]+', '_', str(name)).strip('. _')
     clean = re.sub(r'_+', '_', clean)
-    return clean if clean else "YouTube_Download"
+    return clean if clean else "Media_Download"
 
 
 def is_playlist_url(url: str) -> bool:
@@ -355,10 +356,10 @@ def get_media_info(
     process: bool = True
 ) -> Optional[Dict[str, Any]]:
     """
-    Extract video or playlist information from a YouTube URL.
+    Extract video or playlist information from a media URL.
 
     Args:
-        url: YouTube video or playlist URL.
+        url: Media video or playlist URL.
         extract_flat: 'in_playlist' (fast playlist entries), True, or False.
         process: Whether to fully process video info.
 
@@ -399,12 +400,12 @@ def get_media_info(
 
 def get_video_info(url: str) -> Optional[Dict[str, Any]]:
     """
-    Extract video or playlist information from a YouTube URL.
+    Extract video or playlist information from a media URL.
 
     Maintains full backward compatibility.
 
     Args:
-        url: YouTube URL.
+        url: Media URL.
 
     Returns:
         Information dictionary, or None if extraction failed.
@@ -414,10 +415,10 @@ def get_video_info(url: str) -> Optional[Dict[str, Any]]:
 
 def get_playlist_info(url: str) -> Optional[Dict[str, Any]]:
     """
-    Extract playlist information from a YouTube URL.
+    Extract playlist information from a media URL.
 
     Args:
-        url: YouTube playlist URL.
+        url: Media playlist URL.
 
     Returns:
         Playlist information dictionary, or None if not a playlist or failed.
@@ -698,7 +699,7 @@ def download_media(
     - Graceful error tolerance for individual failed playlist items.
 
     Args:
-        url: YouTube media or playlist URL.
+        url: Video, audio, or playlist URL (YouTube, TikTok, Social Media, etc.).
         download_path: Target root download directory.
         media_type: "video" or "audio".
         quality: Video height (int/preset) or Audio bitrate string ("0", "320", "192", "128").
@@ -718,7 +719,7 @@ def download_media(
 
     # Determine destination folder and filename template
     if is_pl:
-        pl_title = (info.get("title") if info else None) or "YouTube_Playlist"
+        pl_title = (info.get("title") if info else None) or "Playlist"
         safe_pl_title = sanitize_folder_name(pl_title)
         target_dir = os.path.join(download_path, safe_pl_title)
         outtmpl = os.path.join(
@@ -858,10 +859,10 @@ def download_audio(
     progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None
 ) -> DownloadResult:
     """
-    Download audio (single video or playlist) as MP3.
+    Download audio (single media or playlist) as MP3.
 
     Args:
-        url: YouTube video or playlist URL.
+        url: Video, audio, or playlist URL.
         download_path: Directory to save the downloaded audio file(s).
         quality: Audio quality for MP3 conversion ("0", "320", "192", "128").
         progress_callback: Optional UI progress callback.
@@ -889,7 +890,7 @@ def download_video(
     Download video (single video or playlist) with FFmpeg muxing into MP4/MKV.
 
     Args:
-        url: YouTube video or playlist URL.
+        url: Video or playlist URL.
         download_path: Directory to save the downloaded video file(s).
         height: Maximum video height resolution (e.g., 1080, 720, 0 for best).
         progress_callback: Optional UI progress callback.
@@ -920,7 +921,7 @@ def download_playlist(
     Download an entire playlist as video or audio.
 
     Args:
-        url: YouTube playlist URL.
+        url: Media playlist URL.
         download_path: Root folder for the playlist subfolder.
         media_type: "video" or "audio".
         quality: Video height or audio bitrate.

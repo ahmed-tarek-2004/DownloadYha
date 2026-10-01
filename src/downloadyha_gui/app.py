@@ -3,6 +3,7 @@ app.py - Main Desktop GUI Application for Downloadyha
 
 Built with CustomTkinter for modern, cross-platform aesthetics with:
 - Video info fetching with title, channel, duration, views & available resolution extraction
+- Multi-platform support (YouTube, TikTok, Facebook, Instagram, Twitter/X, and more)
 - Dynamic quality dropdown matching available video heights (e.g. 4K, 2K, 1080p, 720p, 480p, 360p)
 - Audio MP3 bitrate options (Best VBR, 320k, 192k, 128k)
 - Playlist detection and support (video & audio)
@@ -302,7 +303,7 @@ class DownloadyhaGUI(ctk.CTk):
         super().__init__()
 
         # Window configuration
-        self.title("Downloadyha - YouTube Downloader")
+        self.title("Downloadyha - Video & Media Downloader")
         self.geometry("960x780")
         self.minsize(900, 720)
         self.resizable(True, True)
@@ -420,7 +421,7 @@ class DownloadyhaGUI(ctk.CTk):
         # Title
         title_label = ctk.CTkLabel(
             header_frame,
-            text="🎬 Downloadyha - YouTube Downloader",
+            text="🎬 Downloadyha - Video & Media Downloader",
             font=ctk.CTkFont(size=16, weight="bold"),
             text_color=Theme.get_accent_color()
         )
@@ -461,7 +462,7 @@ class DownloadyhaGUI(ctk.CTk):
 
         url_label = ctk.CTkLabel(
             url_label_frame,
-            text="🔗 YouTube Video or Playlist URL:",
+            text="🔗 Video, Audio, or Playlist URL:",
             font=ctk.CTkFont(size=12, weight="bold")
         )
         url_label.grid(row=0, column=0, sticky="w")
@@ -472,7 +473,7 @@ class DownloadyhaGUI(ctk.CTk):
 
         self.url_entry = ctk.CTkEntry(
             url_input_frame,
-            placeholder_text="https://www.youtube.com/watch?v=... or playlist URL",
+            placeholder_text="Paste YouTube, TikTok, Instagram, Facebook, or other video URL...",
             height=36,
             font=ctk.CTkFont(size=12),
             corner_radius=8,
@@ -532,7 +533,7 @@ class DownloadyhaGUI(ctk.CTk):
 
         self.media_channel_label = ctk.CTkLabel(
             card_header_frame,
-            text="Paste a YouTube link above and click 'Fetch Info' (or press Enter)",
+            text="Paste a video or playlist link above and click 'Fetch Info' (or press Enter)",
             font=ctk.CTkFont(size=11),
             text_color=Theme.rgb_to_hex((150, 150, 170)),
             anchor="w"
@@ -770,8 +771,8 @@ class DownloadyhaGUI(ctk.CTk):
                 clean_url = clipboard_text.strip()
                 self.url_entry.delete(0, tk.END)
                 self.url_entry.insert(0, clean_url)
-                # Automatically fetch if it looks like a YouTube URL
-                if "youtube.com" in clean_url.lower() or "youtu.be" in clean_url.lower():
+                # Automatically fetch if it looks like a web URL
+                if clean_url.lower().startswith("http://") or clean_url.lower().startswith("https://"):
                     self._fetch_media_info()
         except Exception:
             pass
@@ -780,7 +781,7 @@ class DownloadyhaGUI(ctk.CTk):
         """Trigger background metadata extraction for the entered URL."""
         url = self.url_entry.get().strip()
         if not url:
-            self._show_toast("Please enter a YouTube URL first", "warning")
+            self._show_toast("Please enter a media URL first", "warning")
             return
 
         if self.is_fetching_info:
@@ -790,7 +791,7 @@ class DownloadyhaGUI(ctk.CTk):
         self.fetch_btn.configure(text="⏳ Fetching...", state="disabled")
         self.status_indicator.configure(text="● Analyzing...", text_color=Theme.get_accent_color())
         self.status_label.configure(
-            text="⏳ Fetching video metadata and available qualities from YouTube...",
+            text="⏳ Fetching media metadata and available qualities...",
             text_color=Theme.get_accent_color()
         )
 
@@ -817,8 +818,8 @@ class DownloadyhaGUI(ctk.CTk):
         self.fetch_btn.configure(text="🔍 Fetch Info", state="normal")
 
         is_pl = is_playlist(info) or is_playlist_url(url)
-        title = info.get("title") or "YouTube Media"
-        uploader = info.get("uploader") or info.get("channel") or "Unknown Channel"
+        title = info.get("title") or "Media"
+        uploader = info.get("uploader") or info.get("channel") or "Unknown Creator"
 
         if is_pl:
             entries = get_playlist_entries(info)
@@ -833,7 +834,7 @@ class DownloadyhaGUI(ctk.CTk):
             self.media_channel_label.configure(text=f"Channel: {uploader}")
             self.media_title_label.configure(text=f"📑 {title}")
             self.media_meta_label.configure(
-                text=f"Total Items: {count} videos    |    Type: YouTube Playlist"
+                text=f"Total Items: {count} videos    |    Type: Playlist"
             )
         else:
             duration_sec = info.get("duration")
@@ -922,7 +923,7 @@ class DownloadyhaGUI(ctk.CTk):
         # Validate inputs
         url = self.url_entry.get().strip()
         if not url:
-            messagebox.showerror("Error", "Please enter a YouTube URL")
+            messagebox.showerror("Error", "Please enter a video or playlist URL")
             return
 
         dest_path = self.dest_entry.get().strip()
@@ -1493,7 +1494,7 @@ class DownloadyhaGUI(ctk.CTk):
 
         desc_label = ctk.CTkLabel(
             about_frame,
-            text="A powerful YouTube downloader with playlist support,\ncustom resolutions up to 4K, and real-time progress tracking.",
+            text="A powerful video, audio, and playlist downloader with\ncustom resolutions up to 4K, and support for YouTube, TikTok,\nInstagram, Facebook, Twitter/X, and more.",
             font=ctk.CTkFont(size=10),
             text_color=Theme.rgb_to_hex((150, 150, 170)),
             justify="left",

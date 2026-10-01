@@ -17,7 +17,7 @@ class TestDownloader(unittest.TestCase):
     def test_sanitize_folder_name(self):
         self.assertEqual(downloader.sanitize_folder_name("Rock & Roll: Greatest Hits?"), "Rock & Roll_ Greatest Hits")
         self.assertEqual(downloader.sanitize_folder_name("My/Cool\\Playlist*<>|"), "My_Cool_Playlist")
-        self.assertEqual(downloader.sanitize_folder_name("..."), "YouTube_Download")
+        self.assertEqual(downloader.sanitize_folder_name("..."), "Media_Download")
 
     def test_is_playlist(self):
         self.assertTrue(downloader.is_playlist({"_type": "playlist", "entries": []}))
