@@ -22,10 +22,15 @@ dependencies = [
 dev = [
     "pyinstaller>=6.0.0",
 ]
+gui = [
+    "customtkinter>=5.2.0",
+    "pillow>=10.0.0",
+]
 
 
 [project.scripts]
 downloadyha = "downloadyha.cli:main"
+downloadyha-gui = "downloadyha.gui:main"
 
 
 [tool.setuptools.packages.find]

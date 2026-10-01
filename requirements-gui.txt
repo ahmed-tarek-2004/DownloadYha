@@ -1,0 +1,12 @@
+# Downloadyha GUI Requirements
+# Install with: pip install -r requirements-gui.txt
+
+# Core dependencies
+yt-dlp>=2026.8.19
+
+# GUI framework
+customtkinter>=5.2.0
+
+# Additional UI support
+pillow>=10.0.0
+packaging>=23.0
