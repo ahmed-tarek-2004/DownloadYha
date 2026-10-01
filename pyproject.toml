@@ -15,6 +15,7 @@ requires-python = ">=3.10"
 
 dependencies = [
     "yt-dlp>=2026.8.19",
+    "curl_cffi>=0.7.0",
 ]
 
 

@@ -8,21 +8,27 @@ echo    Downloadyha Desktop GUI Launcher
 echo ================================================
 echo.
 
-REM Check if Python is available
-python --version >nul 2>&1
-if errorlevel 1 (
-    echo ERROR: Python is not installed or not in PATH
-    echo Please install Python 3.10 or later from https://www.python.org/
-    echo.
-    pause
-    exit /b 1
+REM Detect best Python command (prefer py -3 launcher for Python 3.10+)
+set "PY_CMD=python"
+py -3 --version >nul 2>&1
+if not errorlevel 1 (
+    set "PY_CMD=py -3"
+) else (
+    python --version >nul 2>&1
+    if errorlevel 1 (
+        echo ERROR: Python is not installed or not in PATH
+        echo Please install Python 3.10 or later from https://www.python.org/
+        echo.
+        pause
+        exit /b 1
+    )
 )
 
 echo Starting Downloadyha GUI...
 echo.
 
 REM Launch the GUI application
-python src\downloadyha_gui\app.py
+%PY_CMD% src\downloadyha_gui\app.py
 
 if errorlevel 1 (
     echo.
