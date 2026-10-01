@@ -303,6 +303,86 @@ def create_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def handle_gui_command() -> None:
+    """
+    Launch the Downloadyha Desktop GUI.
+
+    1. Checks for a standalone GUI executable (downloadyha-gui) in PATH or app directory.
+    2. Falls back to importing the Python GUI module if tkinter is available.
+    3. Displays helpful instructions if GUI dependencies are missing in the current environment.
+    """
+    import shutil
+    import subprocess
+    from pathlib import Path
+
+    init_terminal()
+    logger = get_logger("cli")
+
+    gui_binary_name = "downloadyha-gui.exe" if sys.platform == "win32" else "downloadyha-gui"
+
+    # 1. Look for standalone GUI binary alongside current executable or in PATH
+    exe_dir = Path(sys.executable).parent
+    sibling_gui = exe_dir / gui_binary_name
+
+    gui_exec_path = None
+    if sibling_gui.exists() and os.access(str(sibling_gui), os.X_OK):
+        gui_exec_path = str(sibling_gui)
+    else:
+        found_in_path = shutil.which("downloadyha-gui") or shutil.which("downloadyha-gui.exe")
+        if found_in_path:
+            gui_exec_path = found_in_path
+
+    if gui_exec_path:
+        info(f"Launching Downloadyha Desktop GUI ({gui_exec_path})...")
+        try:
+            if sys.platform == "win32":
+                DETACHED_PROCESS = 0x00000008
+                CREATE_NEW_PROCESS_GROUP = 0x00000200
+                subprocess.Popen(
+                    [gui_exec_path],
+                    creationflags=DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP,
+                    close_fds=True
+                )
+            else:
+                subprocess.Popen(
+                    [gui_exec_path],
+                    start_new_session=True,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL
+                )
+            return
+        except Exception as e:
+            logger.warning(f"Failed to launch standalone GUI executable: {e}")
+
+    # 2. Try in-process Python GUI
+    try:
+        from .gui import launch_gui
+        launch_gui()
+        return
+    except (ImportError, ModuleNotFoundError) as e:
+        logger.warning(f"Failed to launch in-process GUI: {e}")
+        c = Colors
+        print()
+        print(f"  {c.BOLD}{c.BRIGHT_WHITE}╭─ 🖥️  Downloadyha Desktop GUI ──────────────────────────────╮{c.RESET}")
+        print(f"  {c.BOLD}{c.BRIGHT_WHITE}│{c.RESET}  The standalone CLI binary is lightweight and does not     {c.BOLD}{c.BRIGHT_WHITE}│{c.RESET}")
+        print(f"  {c.BOLD}{c.BRIGHT_WHITE}│{c.RESET}  bundle Desktop GUI graphical components.                  {c.BOLD}{c.BRIGHT_WHITE}│{c.RESET}")
+        print(f"  {c.BOLD}{c.BRIGHT_WHITE}├────────────────────────────────────────────────────────────┤{c.RESET}")
+        print(f"  {c.BOLD}{c.BRIGHT_WHITE}│{c.RESET}  {c.BOLD}{c.BRIGHT_CYAN}Option 1: Download Standalone GUI App (Recommended){c.RESET}       {c.BOLD}{c.BRIGHT_WHITE}│{c.RESET}")
+        print(f"  {c.BOLD}{c.BRIGHT_WHITE}│{c.RESET}  Download {c.CYBER_PURPLE}downloadyha-gui-windows.zip{c.RESET} or {c.CYBER_PURPLE}downloadyha-gui-linux.tar.gz{c.RESET} {c.BOLD}{c.BRIGHT_WHITE}│{c.RESET}")
+        print(f"  {c.BOLD}{c.BRIGHT_WHITE}│{c.RESET}  from GitHub Releases:                                     {c.BOLD}{c.BRIGHT_WHITE}│{c.RESET}")
+        print(f"  {c.BOLD}{c.BRIGHT_WHITE}│{c.RESET}  {c.UNDERLINE}https://github.com/ahmed-tarek-2004/DownloadYha/releases{c.RESET}   {c.BOLD}{c.BRIGHT_WHITE}│{c.RESET}")
+        print(f"  {c.BOLD}{c.BRIGHT_WHITE}│{c.RESET}                                                            {c.BOLD}{c.BRIGHT_WHITE}│{c.RESET}")
+        print(f"  {c.BOLD}{c.BRIGHT_WHITE}│{c.RESET}  {c.BOLD}{c.BRIGHT_CYAN}Option 2: Run via Python / Pip{c.RESET}                            {c.BOLD}{c.BRIGHT_WHITE}│{c.RESET}")
+        print(f"  {c.BOLD}{c.BRIGHT_WHITE}│{c.RESET}  {c.BRIGHT_GREEN}pip install downloadyha[gui]{c.RESET}                              {c.BOLD}{c.BRIGHT_WHITE}│{c.RESET}")
+        print(f"  {c.BOLD}{c.BRIGHT_WHITE}│{c.RESET}  {c.BRIGHT_GREEN}downloadyha-gui{c.RESET}                                           {c.BOLD}{c.BRIGHT_WHITE}│{c.RESET}")
+        if sys.platform != "win32":
+            print(f"  {c.BOLD}{c.BRIGHT_WHITE}│{c.RESET}                                                            {c.BOLD}{c.BRIGHT_WHITE}│{c.RESET}")
+            print(f"  {c.BOLD}{c.BRIGHT_WHITE}│{c.RESET}  {c.MUTED}On Linux: sudo apt install python3-tk{c.RESET}                      {c.BOLD}{c.BRIGHT_WHITE}│{c.RESET}")
+        print(f"  {c.BOLD}{c.BRIGHT_WHITE}╰────────────────────────────────────────────────────────────╯{c.RESET}")
+        print()
+        sys.exit(1)
+
+
 def main() -> None:
     """Main CLI entry point."""
     setup_logging(log_to_file=True, log_to_console=False)
@@ -314,13 +394,8 @@ def main() -> None:
         arg = sys.argv[1].strip().lower()
 
         if arg in ("gui", "--gui"):
-            try:
-                from .gui import launch_gui
-                launch_gui()
-                return
-            except ImportError as e:
-                error(f"Failed to start GUI: {e}")
-                sys.exit(1)
+            handle_gui_command()
+            return
 
         elif arg == "update":
             updater.handle_update_command()
