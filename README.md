@@ -1,291 +1,143 @@
 # Downloadyha
 
-A fast, beautiful, and standalone YouTube downloader available in both **CLI** and **Desktop GUI** versions for **Videos**, **Audio (MP3)**, and **Full Playlists**. No Python, FFmpeg, Deno, or yt-dlp setup required.
+A fast, modern, and beautiful YouTube downloader available in both **Desktop GUI** and **CLI** versions for **Videos**, **Audio (MP3)**, and **Full Playlists**. No Python, FFmpeg, Deno, or yt-dlp setup required.
 
 ---
 
-## 🖥️ Desktop GUI - Download & Run (No Installation!)
+## 🖥️ Desktop GUI - Installation & Quick Start
 
-**For non-technical users:** Download the standalone GUI application - no command-line needed!
+The **Downloadyha Desktop GUI** provides a sleek graphical interface featuring real-time metadata fetching, dynamic quality selection (up to 4K), audio extraction, download history, and dark/light themes.
 
-### 📥 Direct Download
+### Option 1: Standalone Download (No Python Required — Recommended)
 
-> **[⬇️ Download Windows GUI (downloadyha-gui-windows.zip)](https://github.com/ahmed-tarek-2004/DownloadYha/releases/latest/download/downloadyha-gui-windows.zip)**
->
-> **Size:** ~80-100MB | **Platform:** Windows 10/11 (64-bit)
+Download the pre-built standalone app for your operating system:
 
-### 🚀 3-Step Quick Installation
+| Platform | Download | Instructions |
+|---|---|---|
+| **Windows 10/11 (64-bit)** | **[⬇️ Download Windows GUI (ZIP)](https://github.com/ahmed-tarek-2004/DownloadYha/releases/latest/download/downloadyha-gui-windows.zip)** | Extract the ZIP and double-click `downloadyha-gui.exe` |
+| **Linux (x86_64)** | **[⬇️ Download Linux GUI (tar.gz)](https://github.com/ahmed-tarek-2004/DownloadYha/releases/latest/download/downloadyha-gui-linux-x86_64.tar.gz)** | Extract archive and run `./downloadyha-gui` |
 
-1. **Extract** the ZIP file to any folder (e.g., `C:\Program Files\DownloadyhaGUI`)
-2. **Double-click** `downloadyha-gui.exe` to launch
-3. **Start downloading** - paste a YouTube URL and go!
-
-✨ **No installation, no Python, no dependencies - just download, extract, and run!**
-
-📖 **[Complete GUI Download Guide →](GUI_DOWNLOAD.md)**
+#### 3-Step Windows Quick Start:
+1. **Download & Extract** `downloadyha-gui-windows.zip` to a folder of your choice (e.g. `Downloads` or `C:\Program Files\DownloadyhaGUI`).
+2. **Double-click** `downloadyha-gui.exe` to launch.
+3. **Paste any YouTube URL** — the app automatically fetches video details (Title, Channel, Duration) and populates the available video/audio resolutions!
 
 ---
 
-## ⚡ Quick Start (CLI Version)
+### Option 2: Install via Python & Pip
 
-### Windows
+If you have Python 3.10+ installed, you can install the GUI package with:
 
-**Using Command Prompt (CMD):**
-
-```cmd
-powershell -Command "irm https://raw.githubusercontent.com/ahmed-tarek-2004/DownloadYha/master/install.ps1 | iex"
+```bash
+pip install "downloadyha[gui]"
 ```
 
-**Using PowerShell:**
+Then launch the GUI anytime with:
+
+```bash
+downloadyha-gui
+```
+
+*(On Linux systems without Tkinter: `sudo apt install python3-tk`)*
+
+📖 **[Complete GUI User Guide →](GUI_USER_GUIDE.md)** | **[GUI Download Documentation →](GUI_DOWNLOAD.md)**
+
+---
+
+## ⚡ CLI Version - Quick Install
+
+For terminal power-users, Downloadyha offers a rich, interactive CLI experience with color-coded steps, live progress bars, and batch playlist support.
+
+### Windows (PowerShell / CMD)
 
 ```powershell
 irm https://raw.githubusercontent.com/ahmed-tarek-2004/DownloadYha/master/install.ps1 | iex
 ```
 
-Then run:
-
-```cmd
-# CLI (Interactive Terminal)
-downloadyha
-
-# Desktop GUI
-downloadyha gui
-```
-
 ### Linux
-
-Open your terminal and run:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/ahmed-tarek-2004/DownloadYha/master/install.sh | bash
 ```
 
-Then run:
-
-```bash
-# CLI (Interactive Terminal)
-downloadyha
-
-# Desktop GUI
-downloadyha gui
-```
-
----
-
-## 🖥️ Desktop GUI
-
-Downloadyha now includes a modern desktop GUI application for users who prefer a graphical interface.
-
-### Features
-
-- 🎨 **Modern UI**: Clean, intuitive interface built with tkinter
-- 🌓 **Light & Dark Themes**: Switch between themes with one click
-- ✅ **Real-time URL Validation**: Instant feedback on URL validity
-- 📂 **Easy Folder Selection**: Built-in folder browser with persistence
-- ⬇️ **Progress Tracking**: Real-time progress bars with speed and ETA
-- 🎬 **All CLI Features**: Video, audio, and playlist downloads
-- 💾 **Settings Persistence**: Remembers your preferences and window position
-- 🔄 **Background Downloads**: Non-blocking UI during downloads
-
-### Launch GUI
-
-After installation, launch the GUI with:
-
-```bash
-downloadyha gui
-```
-
-See [GUI_USER_GUIDE.md](GUI_USER_GUIDE.md) for complete GUI documentation.
-
----
-
-## 🌟 Features
-
-### CLI Features
-- 🎬 **Single Video Downloads**: Custom resolutions up to 4K (2160p, 1440p, 1080p, 720p, 480p, 360p) with merged audio in MP4.
-- 🎵 **High Quality Audio Extraction**: Convert audio directly to MP3 (Best VBR ~245k, 320 kbps, 192 kbps, 128 kbps).
-- 📑 **Full Playlist Downloads**: Download entire video or audio playlists in batch.
-  - Automatically organizes tracks into a clean subfolder named after the playlist.
-  - Indexes track filenames (`01 - Title.mp4`, `02 - Title.mp4`).
-  - Error-resilient: private or restricted videos are skipped without failing the entire batch.
-- ✨ **Modern & Pretty Terminal UI**:
-  - Beautiful box-framed banners and cards.
-  - Visual step-by-step indicator pills (`[1/3]`, `[2/3]`, `[3/3]`).
-  - High-resolution dynamic progress bar with speed, ETA, and playlist counter `[3/15]`.
-- 🪟 **True Cross-Platform**: Native ANSI and Windows Virtual Terminal Processing (`cmd`, `PowerShell`, `Windows Terminal`, `Linux`).
-
-### GUI Features
-- 🖱️ **Point-and-Click Interface**: No command-line knowledge required
-- 🎨 **Dual Themes**: Switch between Light and Dark themes instantly
-- ✅ **Real-time Validation**: See if your URL is valid as you type
-- 📊 **Visual Progress**: Watch downloads with smooth progress bars
-- 💾 **Smart Memory**: Remembers your preferences and last used settings
-- 🎯 **Quality Presets**: Easy dropdown selection for video and audio quality
-- 📂 **Folder Browser**: Select download location with native file dialog
-
-### Universal Features
-- 🔄 **Self-Updating & Repairing**: Built-in `downloadyha update` and `downloadyha repair`.
-- 🗑️ **One-Command Uninstaller**: Built-in `downloadyha uninstall`.
-- 📦 **Completely Standalone**: All dependencies (FFmpeg, Deno, yt-dlp) are self-contained.
-
----
-
-## 💻 Requirements
-
-**None.**
-
-Downloadyha is fully self-contained. You do **not** need to install:
-- ❌ Python
-- ❌ pip
-- ❌ FFmpeg / FFprobe
-- ❌ Deno
-- ❌ yt-dlp
-
----
-
-## 🖥️ Supported Platforms
-
-- ✅ Windows 10 / 11 (64-bit)
-- ✅ Linux x86_64 (glibc 2.31+)
-- ✅ Linux ARM64 (glibc 2.31+)
-
----
-
-## 🚀 Usage
-
-Simply launch the interactive CLI:
+### Run CLI:
 
 ```bash
 downloadyha
 ```
 
-### Interactive Workflow
+---
 
-```text
-╭────────────────────────────────────────────────────────╮
-│                       D O W N L O A D Y H A                        │
-│                Fast & Beautiful YouTube Downloader                 │
-│                       By Ahmed Tarek Zaher  •  v1.0.0                       │
-╰────────────────────────────────────────────────────────╯
+## 🌟 Key Features
 
-[1/3] Enter YouTube URL
-➜ Paste Video or Playlist URL
-╰─> https://www.youtube.com/playlist?list=PLrAXtmErZgOdP_8GzKt...
+### 🖥️ Desktop GUI
+- 🎨 **Modern Interface**: CustomTkinter UI with glassmorphism cards and smooth themes (Dark, Light, System).
+- 🔍 **Real-Time Metadata Fetching**: Automatically inspects video/playlist URLs to show Title, Channel, Duration, and Type.
+- 🎯 **Dynamic Quality Dropdown**: Automatically detects and lists exact available resolutions (4K 2160p, 1440p, 1080p, 720p, 480p, 360p, etc.).
+- 🎵 **Audio MP3 Extractor**: One-click MP3 conversion with custom bitrate presets (320 kbps, 192 kbps, 128 kbps).
+- 📑 **Full Playlist Downloads**: One-click batch downloading of entire video or audio playlists.
+- 📜 **Download History & Management**: Track recent downloads and open downloaded files or destination folders directly.
+- 🔄 **Non-Blocking Downloads**: Smooth multithreaded downloading with live progress indicators.
 
-[2/3] Select Destination Folder
-➜ Enter destination folder (default: C:\Users\Ahmed\Downloads)
-╰─> 
-
-[3/3] Analyzing Media & Selecting Quality
-⏳ Fetching media metadata from YouTube...
-
-╭─ 📑 Playlist Detected ─────────────────────────────────────────╮
-│  Title           :  Synthwave & Cyberpunk Mix 2026             │
-│  Channel         :  RetroWave Records                          │
-│  Total Items     :  15 videos                                  │
-│  Type            :  YouTube Playlist                           │
-│  Destination     :  C:\Users\Ahmed\Downloads                   │
-╰────────────────────────────────────────────────────────────────╯
-
-Select Playlist Download Type:
-  [1] Video Playlist (MP4) • Download all videos in playlist
-  [2] Audio Playlist (MP3) • Extract all songs/audio to MP3
-
-╰─> Enter choice [1-2]: 1
-
-Select Maximum Video Quality for Playlist:
-  [1] Best Available • Maximum resolution per video
-  [2] 1080p (Full HD) • 1920x1080 maximum
-  [3] 720p (HD) • 1280x720 standard HD
-  [4] 480p (SD) • Standard Definition
-
-╰─> Enter choice [1-4]: 2
-
-ℹ Starting Video Playlist Download: Synthwave & Cyberpunk Mix 2026
-⬇ [1/15] [████████████████░░░░░░░░]  65.4% │ 18.2MiB/s │ ETA 00:04 │ 85.0/130.0MB
-
-╭─ ✔ Playlist Download Complete ────────────────────────────────╮
-│  Playlist          :  Synthwave & Cyberpunk Mix 2026
-│  Type              :  VIDEO
-│  Saved To          :  C:\Users\Ahmed\Downloads\Synthwave & Cyberpunk Mix 2026
-╰───────────────────────────────────────────────────────────────╯
-```
+### ⚡ Terminal CLI
+- 🎬 **Interactive Wizard**: Step-by-step guidance (`[1/3] Enter URL`, `[2/3] Folder`, `[3/3] Quality`).
+- 📊 **Rich Progress Bars**: Displays speed, percentage, ETA, and batch counters (`[3/15]`).
+- 📑 **Automated Playlist Indexing**: Organizes batch downloads into numbered subfolders.
+- 🔄 **Self-Updater & Repair**: Built-in update checker and dependency repair tools (`downloadyha update`, `downloadyha repair`).
 
 ---
 
-## 🛠️ Commands
+## 🛠️ Available Commands
 
-| Command | Description |
-|---|---|
-| `downloadyha` | Start the interactive CLI downloader (Single Video / Audio / Playlist) |
-| `downloadyha gui` | Launch the Desktop GUI interface |
-| `downloadyha update` | Check GitHub Releases and update to the newest version |
-| `downloadyha repair` | Re-verify and restore bundled dependencies |
-| `downloadyha uninstall` | Cleanly remove Downloadyha and all configuration/cache |
-| `downloadyha --verify` | Check system dependencies status |
-| `downloadyha --version` | Display version information |
-| `downloadyha --help` | Show command usage and options |
+| Command | Type | Description |
+|---|---|---|
+| `downloadyha-gui` | Desktop App | Launch the standalone graphical user interface |
+| `downloadyha` | Terminal CLI | Start the interactive command-line downloader |
+| `downloadyha gui` | Terminal Helper | Launch the Desktop GUI from the CLI |
+| `downloadyha update` | Maintenance | Check for and install the latest updates from GitHub Releases |
+| `downloadyha repair` | Maintenance | Verify and re-download missing helper binaries (FFmpeg, Deno) |
+| `downloadyha uninstall` | Maintenance | Completely remove Downloadyha, configuration, and cache |
+| `downloadyha --verify` | Diagnostic | Verify that dependencies and helper binaries are operational |
+| `downloadyha --version` | Info | Print version information |
 
 ---
 
 ## ⚙️ Configuration
 
-Downloadyha automatically creates and manages a configuration file:
+Downloadyha stores your preferences (default download folder, background update checks) in a standard configuration file:
 
 - **Windows**: `%LOCALAPPDATA%\Downloadyha\config.json`
 - **Linux**: `~/.local/share/downloadyha/config.json`
-
-Example configuration:
-
-```json
-{
-  "download_directory": "C:\\Users\\Ahmed\\Downloads",
-  "check_updates": true
-}
-```
 
 ---
 
 ## 🗑️ Uninstallation
 
-You can uninstall Downloadyha at any time using the built-in command:
+Uninstall cleanly at any time using:
 
 ```bash
 downloadyha uninstall
 ```
 
-Or manually:
-
-### Windows (PowerShell)
-```powershell
-Remove-Item -Recurse -Force "$env:LOCALAPPDATA\Downloadyha"
-Remove-Item -Recurse -Force "$env:LOCALAPPDATA\Programs\Downloadyha"
-```
-
-### Linux
-```bash
-rm -rf ~/.local/share/downloadyha
-rm -f ~/.local/bin/downloadyha
-```
+For the standalone GUI ZIP, simply delete the extracted folder.
 
 ---
 
 ## 🔒 Privacy
 
-- 🚫 **Zero Tracking**: Downloadyha does not collect, log, or transmit personal telemetry or usage statistics.
-- 🔒 **Direct Connection**: Downloads stream directly from YouTube to your local machine.
-- 🛡️ **Integrity Verification**: Updates and components are checked against SHA-256 digests.
+- 🚫 **Zero Telemetry**: No tracking, analytics, or personal data collection.
+- 🔒 **Direct Connection**: Downloads stream directly from YouTube to your local disk.
+- 🛡️ **Integrity Verification**: Released binaries and updates are verified against SHA-256 checksums.
 
 ---
 
 ## 📚 Documentation
 
-- **[GUI User Guide](GUI_USER_GUIDE.md)** - Complete guide for Desktop GUI usage
-- **[GUI Development Guide](GUI_DEVELOPMENT.md)** - Developer documentation for GUI codebase
-- **[GUI Changelog](CHANGELOG_GUI.md)** - GUI-specific version history
-- **[Main Changelog](CHANGELOG.md)** - Complete project version history
-- **[Contributing Guide](CONTRIBUTING.md)** - How to contribute to the project
-- **[Project Summary](PROJECT_SUMMARY.md)** - Technical overview and architecture
+- **[GUI User Guide](GUI_USER_GUIDE.md)** - Desktop GUI usage, tips, and keyboard shortcuts
+- **[GUI Download Guide](GUI_DOWNLOAD.md)** - Standalone GUI download and setup instructions
+- **[GUI Development Guide](GUI_DEVELOPMENT.md)** - Architecture and developer documentation
+- **[Main Changelog](CHANGELOG.md)** - Complete release notes and version history
+- **[Contributing Guide](CONTRIBUTING.md)** - Guidelines for contributing to Downloadyha
 
 ---
 
