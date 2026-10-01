@@ -1,8 +1,8 @@
 """
-Downloadyha - A YouTube downloader CLI.
+Downloadyha - A YouTube downloader CLI and Desktop GUI.
 
 A standalone YouTube downloader that supports audio and video downloads
-with customizable quality options.
+with customizable quality options, available in both CLI and Desktop GUI versions.
 """
 
 __version__ = "1.0.0"

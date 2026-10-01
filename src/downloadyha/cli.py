@@ -152,9 +152,8 @@ def run_download_interactive() -> int:
             res = download_playlist(
                 url=url,
                 download_path=download_path,
-                download_type="video",
-                quality=quality_choice,
-                playlist_title=pl_title
+                media_type="video",
+                quality=quality_choice
             )
 
         else:
@@ -173,9 +172,8 @@ def run_download_interactive() -> int:
             res = download_playlist(
                 url=url,
                 download_path=download_path,
-                download_type="audio",
-                quality=audio_quality,
-                playlist_title=pl_title
+                media_type="audio",
+                quality=audio_quality
             )
 
         if res.get("success"):
@@ -315,7 +313,16 @@ def main() -> None:
     if len(sys.argv) > 1:
         arg = sys.argv[1].strip().lower()
 
-        if arg == "update":
+        if arg in ("gui", "--gui"):
+            try:
+                from .gui import launch_gui
+                launch_gui()
+                return
+            except ImportError as e:
+                error(f"Failed to start GUI: {e}")
+                sys.exit(1)
+
+        elif arg == "update":
             updater.handle_update_command()
             return
 
@@ -339,6 +346,7 @@ def main() -> None:
             c = Colors
             print(f"{c.BOLD}{c.BRIGHT_WHITE}Usage:{c.RESET}")
             print(f"  {c.BRIGHT_CYAN}downloadyha{c.RESET}            Start interactive downloader (Video / Audio / Playlist)")
+            print(f"  {c.BRIGHT_CYAN}downloadyha gui{c.RESET}        Launch Desktop GUI interface")
             print(f"  {c.BRIGHT_CYAN}downloadyha update{c.RESET}     Check for and install updates")
             print(f"  {c.BRIGHT_CYAN}downloadyha repair{c.RESET}     Re-download and repair dependencies (FFmpeg / Deno)")
             print(f"  {c.BRIGHT_CYAN}downloadyha uninstall{c.RESET}  Completely uninstall Downloadyha")

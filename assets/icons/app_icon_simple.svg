@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#00D2FF;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#DC50FF;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Minimalist download arrow -->
+  <g>
+    <!-- Circle background -->
+    <circle cx="256" cy="256" r="224" fill="url(#gradient)"/>
+
+    <!-- White arrow -->
+    <g fill="#FFFFFF">
+      <!-- Vertical line -->
+      <rect x="226" y="140" width="60" height="200" rx="12" ry="12"/>
+
+      <!-- Arrow head -->
+      <polygon points="256,380 140,264 372,264"/>
+
+      <!-- Bottom platform -->
+      <rect x="140" y="360" width="232" height="32" rx="16" ry="16" opacity="0.8"/>
+    </g>
+  </g>
+</svg>

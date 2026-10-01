@@ -1,6 +1,6 @@
 # Downloadyha
 
-A fast, beautiful, and standalone YouTube downloader CLI for **Videos**, **Audio (MP3)**, and **Full Playlists**. No Python, FFmpeg, Deno, or yt-dlp setup required.
+A fast, beautiful, and standalone YouTube downloader available in both **CLI** and **Desktop GUI** versions for **Videos**, **Audio (MP3)**, and **Full Playlists**. No Python, FFmpeg, Deno, or yt-dlp setup required.
 
 ---
 
@@ -23,7 +23,11 @@ irm https://raw.githubusercontent.com/ahmed-tarek-2004/DownloadYha/master/instal
 Then run:
 
 ```cmd
+# CLI (Interactive Terminal)
 downloadyha
+
+# Desktop GUI
+downloadyha gui
 ```
 
 ### Linux
@@ -37,13 +41,45 @@ curl -fsSL https://raw.githubusercontent.com/ahmed-tarek-2004/DownloadYha/master
 Then run:
 
 ```bash
+# CLI (Interactive Terminal)
 downloadyha
+
+# Desktop GUI
+downloadyha gui
 ```
+
+---
+
+## 🖥️ Desktop GUI
+
+Downloadyha now includes a modern desktop GUI application for users who prefer a graphical interface.
+
+### Features
+
+- 🎨 **Modern UI**: Clean, intuitive interface built with tkinter
+- 🌓 **Light & Dark Themes**: Switch between themes with one click
+- ✅ **Real-time URL Validation**: Instant feedback on URL validity
+- 📂 **Easy Folder Selection**: Built-in folder browser with persistence
+- ⬇️ **Progress Tracking**: Real-time progress bars with speed and ETA
+- 🎬 **All CLI Features**: Video, audio, and playlist downloads
+- 💾 **Settings Persistence**: Remembers your preferences and window position
+- 🔄 **Background Downloads**: Non-blocking UI during downloads
+
+### Launch GUI
+
+After installation, launch the GUI with:
+
+```bash
+downloadyha gui
+```
+
+See [GUI_USER_GUIDE.md](GUI_USER_GUIDE.md) for complete GUI documentation.
 
 ---
 
 ## 🌟 Features
 
+### CLI Features
 - 🎬 **Single Video Downloads**: Custom resolutions up to 4K (2160p, 1440p, 1080p, 720p, 480p, 360p) with merged audio in MP4.
 - 🎵 **High Quality Audio Extraction**: Convert audio directly to MP3 (Best VBR ~245k, 320 kbps, 192 kbps, 128 kbps).
 - 📑 **Full Playlist Downloads**: Download entire video or audio playlists in batch.
@@ -55,6 +91,17 @@ downloadyha
   - Visual step-by-step indicator pills (`[1/3]`, `[2/3]`, `[3/3]`).
   - High-resolution dynamic progress bar with speed, ETA, and playlist counter `[3/15]`.
 - 🪟 **True Cross-Platform**: Native ANSI and Windows Virtual Terminal Processing (`cmd`, `PowerShell`, `Windows Terminal`, `Linux`).
+
+### GUI Features
+- 🖱️ **Point-and-Click Interface**: No command-line knowledge required
+- 🎨 **Dual Themes**: Switch between Light and Dark themes instantly
+- ✅ **Real-time Validation**: See if your URL is valid as you type
+- 📊 **Visual Progress**: Watch downloads with smooth progress bars
+- 💾 **Smart Memory**: Remembers your preferences and last used settings
+- 🎯 **Quality Presets**: Easy dropdown selection for video and audio quality
+- 📂 **Folder Browser**: Select download location with native file dialog
+
+### Universal Features
 - 🔄 **Self-Updating & Repairing**: Built-in `downloadyha update` and `downloadyha repair`.
 - 🗑️ **One-Command Uninstaller**: Built-in `downloadyha uninstall`.
 - 📦 **Completely Standalone**: All dependencies (FFmpeg, Deno, yt-dlp) are self-contained.
@@ -148,7 +195,8 @@ Select Maximum Video Quality for Playlist:
 
 | Command | Description |
 |---|---|
-| `downloadyha` | Start the interactive downloader (Single Video / Audio / Playlist) |
+| `downloadyha` | Start the interactive CLI downloader (Single Video / Audio / Playlist) |
+| `downloadyha gui` | Launch the Desktop GUI interface |
 | `downloadyha update` | Check GitHub Releases and update to the newest version |
 | `downloadyha repair` | Re-verify and restore bundled dependencies |
 | `downloadyha uninstall` | Cleanly remove Downloadyha and all configuration/cache |
@@ -205,6 +253,17 @@ rm -f ~/.local/bin/downloadyha
 - 🚫 **Zero Tracking**: Downloadyha does not collect, log, or transmit personal telemetry or usage statistics.
 - 🔒 **Direct Connection**: Downloads stream directly from YouTube to your local machine.
 - 🛡️ **Integrity Verification**: Updates and components are checked against SHA-256 digests.
+
+---
+
+## 📚 Documentation
+
+- **[GUI User Guide](GUI_USER_GUIDE.md)** - Complete guide for Desktop GUI usage
+- **[GUI Development Guide](GUI_DEVELOPMENT.md)** - Developer documentation for GUI codebase
+- **[GUI Changelog](CHANGELOG_GUI.md)** - GUI-specific version history
+- **[Main Changelog](CHANGELOG.md)** - Complete project version history
+- **[Contributing Guide](CONTRIBUTING.md)** - How to contribute to the project
+- **[Project Summary](PROJECT_SUMMARY.md)** - Technical overview and architecture
 
 ---
 
