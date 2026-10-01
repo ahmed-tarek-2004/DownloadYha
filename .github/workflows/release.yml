@@ -9,8 +9,9 @@ permissions:
   contents: write  # Required for creating releases and uploading assets
 
 jobs:
-  build:
-    name: Build ${{ matrix.target }}
+  # CLI Build Jobs
+  build-cli:
+    name: Build CLI ${{ matrix.target }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -19,15 +20,15 @@ jobs:
           - target: windows-x64
             os: windows-latest
             python-arch: x64
-            executable: downloadyha-windows-x86_64.zip
+            artifact: downloadyha-windows-x86_64.zip
           - target: linux-x64
             os: ubuntu-latest
             python-arch: x64
-            executable: downloadyha-linux-x86_64.tar.gz
+            artifact: downloadyha-linux-x86_64.tar.gz
           - target: linux-arm64
             os: ubuntu-latest
             python-arch: x64  # Cross-compilation setup
-            executable: downloadyha-linux-arm64.tar.gz
+            artifact: downloadyha-linux-arm64.tar.gz
             cross-compile: true
 
     steps:
@@ -61,7 +62,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
 
-      - name: Build executable (Windows)
+      - name: Build CLI executable (Windows)
         if: runner.os == 'Windows'
         run: |
           pyinstaller downloadyha.spec
@@ -70,7 +71,7 @@ jobs:
           Compress-Archive -Path "dist\downloadyha.exe" -DestinationPath $zipName
           echo "ARTIFACT_NAME=$zipName" >> $env:GITHUB_ENV
 
-      - name: Build executable (Linux x64)
+      - name: Build CLI executable (Linux x64)
         if: runner.os == 'Linux' && matrix.cross-compile != true
         run: |
           pyinstaller downloadyha.spec
@@ -79,7 +80,7 @@ jobs:
           tar -czvf "$tarName" -C dist downloadyha
           echo "ARTIFACT_NAME=$tarName" >> $GITHUB_ENV
 
-      - name: Build executable (Linux ARM64 cross-compile)
+      - name: Build CLI executable (Linux ARM64 cross-compile)
         if: matrix.cross-compile == true
         run: |
           pyinstaller downloadyha.spec || pyinstaller downloadyha.spec
@@ -88,7 +89,95 @@ jobs:
           tar -czvf "$tarName" -C dist downloadyha
           echo "ARTIFACT_NAME=$tarName" >> $GITHUB_ENV
 
-      - name: Upload artifact
+      - name: Upload CLI artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.ARTIFACT_NAME }}
+          path: ${{ env.ARTIFACT_NAME }}
+          if-no-files-found: error
+          retention-days: 1
+
+  # GUI Build Jobs
+  build-gui:
+    name: Build GUI ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: windows-x64
+            os: windows-latest
+            python-arch: x64
+            artifact: downloadyha-gui-windows.zip
+          - target: linux-x64
+            os: ubuntu-latest
+            python-arch: x64
+            artifact: downloadyha-gui-linux-x86_64.tar.gz
+          - target: linux-arm64
+            os: ubuntu-latest
+            python-arch: x64  # Cross-compilation setup
+            artifact: downloadyha-gui-linux-arm64.tar.gz
+            cross-compile: true
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        id: get_version
+        shell: bash
+        run: |
+          echo "version=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          architecture: ${{ matrix.python-arch }}
+
+      - name: Install build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller>=6.0.0
+
+      - name: Install project dependencies (with GUI extras)
+        run: |
+          pip install -e ".[gui]"
+
+      - name: Set up cross-compilation environment (Linux ARM64)
+        if: matrix.cross-compile == true
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+
+      - name: Build GUI executable (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          pyinstaller downloadyha-gui.spec
+          $version = "${{ steps.get_version.outputs.version }}"
+          $zipName = "downloadyha-gui-${version}-windows-x86_64.zip"
+          Compress-Archive -Path "dist\downloadyha-gui.exe" -DestinationPath $zipName
+          echo "ARTIFACT_NAME=$zipName" >> $env:GITHUB_ENV
+
+      - name: Build GUI executable (Linux x64)
+        if: runner.os == 'Linux' && matrix.cross-compile != true
+        run: |
+          pyinstaller downloadyha-gui.spec
+          version="${{ steps.get_version.outputs.version }}"
+          tarName="downloadyha-gui-${version}-linux-x86_64.tar.gz"
+          tar -czvf "$tarName" -C dist downloadyha-gui
+          echo "ARTIFACT_NAME=$tarName" >> $GITHUB_ENV
+
+      - name: Build GUI executable (Linux ARM64 cross-compile)
+        if: matrix.cross-compile == true
+        run: |
+          pyinstaller downloadyha-gui.spec || pyinstaller downloadyha-gui.spec
+          version="${{ steps.get_version.outputs.version }}"
+          tarName="downloadyha-gui-${version}-linux-arm64.tar.gz"
+          tar -czvf "$tarName" -C dist downloadyha-gui
+          echo "ARTIFACT_NAME=$tarName" >> $GITHUB_ENV
+
+      - name: Upload GUI artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.ARTIFACT_NAME }}
@@ -98,7 +187,7 @@ jobs:
 
   release:
     name: Create Release
-    needs: build
+    needs: [build-cli, build-gui]
     runs-on: ubuntu-latest
 
     steps:

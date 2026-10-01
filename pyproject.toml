@@ -30,7 +30,7 @@ gui = [
 
 [project.scripts]
 downloadyha = "downloadyha.cli:main"
-downloadyha-gui = "downloadyha.gui:main"
+downloadyha-gui = "downloadyha_gui.app:main"
 
 
 [tool.setuptools.packages.find]

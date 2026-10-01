@@ -59,8 +59,8 @@ if [ "$CLEAN" = true ]; then
     rm -f dist/downloadyha-gui
     echo -e "${GRAY}  - Removed dist/downloadyha-gui${NC}"
 
-    rm -f dist/downloadyha-gui-linux.tar.gz
-    echo -e "${GRAY}  - Removed dist/downloadyha-gui-linux.tar.gz${NC}"
+    rm -f dist/downloadyha-gui-linux-*.tar.gz
+    echo -e "${GRAY}  - Removed dist/downloadyha-gui-linux-*.tar.gz${NC}"
 
     echo -e "${GREEN}  Clean complete.${NC}"
     echo ""
@@ -105,6 +105,13 @@ echo -e "${GRAY}  Using spec file: downloadyha-gui.spec${NC}"
 echo ""
 
 pyinstaller --clean --noconfirm downloadyha-gui.spec
+PYINSTALLER_EXIT_CODE=$?
+
+if [ $PYINSTALLER_EXIT_CODE -ne 0 ]; then
+    echo ""
+    echo -e "${RED}  ERROR: PyInstaller build failed with exit code $PYINSTALLER_EXIT_CODE.${NC}"
+    exit $PYINSTALLER_EXIT_CODE
+fi
 
 echo ""
 echo -e "${GREEN}  Build complete.${NC}"
@@ -141,7 +148,16 @@ echo ""
 # Step 6: Create distribution archive
 echo -e "${YELLOW}[6/6] Creating distribution archive...${NC}"
 
-ARCHIVE_PATH="dist/downloadyha-gui-linux.tar.gz"
+# Detect architecture
+ARCH=$(uname -m)
+case $ARCH in
+    x86_64) ARCH_NAME="x86_64" ;;
+    aarch64) ARCH_NAME="arm64" ;;
+    *) ARCH_NAME="$ARCH" ;;
+esac
+
+ARCHIVE_NAME="downloadyha-gui-linux-${ARCH_NAME}.tar.gz"
+ARCHIVE_PATH="dist/${ARCHIVE_NAME}"
 
 # Create a temporary directory for the archive contents
 TEMP_DIR="dist/temp_package"
@@ -159,7 +175,7 @@ Fast & Beautiful YouTube Downloader - Desktop GUI Edition
 
 ## Installation
 
-1. Extract this archive: tar -xzf downloadyha-gui-linux.tar.gz
+1. Extract this archive: tar -xzf downloadyha-gui-linux-*.tar.gz
 2. Make executable: chmod +x downloadyha-gui
 3. Run: ./downloadyha-gui
 4. No installation or dependencies required!
@@ -182,8 +198,7 @@ Fast & Beautiful YouTube Downloader - Desktop GUI Edition
 
 ## System Requirements
 
-- Linux x86_64 (glibc 2.31+)
-- Linux ARM64 (glibc 2.31+)
+- Linux (glibc 2.31+)
 - X11 or Wayland display server
 - Internet connection
 
@@ -200,9 +215,30 @@ Version: 1.0.0
 License: MIT
 EOF
 
+# Create QUICKSTART.txt
+cat > "$TEMP_DIR/QUICKSTART.txt" << 'EOF'
+==================================================
+  Downloadyha Desktop GUI - Quick Start Guide
+==================================================
+
+1. Extract the archive:
+   tar -xzf downloadyha-gui-linux-*.tar.gz
+
+2. Make executable (if needed):
+   chmod +x downloadyha-gui
+
+3. Run the application:
+   ./downloadyha-gui
+
+Requirements:
+- X11 or Wayland display server
+- No Python or FFmpeg installation required!
+==================================================
+EOF
+
 # Create the tar.gz archive
 cd dist
-tar -czf "downloadyha-gui-linux.tar.gz" -C temp_package .
+tar -czf "$ARCHIVE_NAME" -C temp_package .
 cd ..
 
 # Clean up temp directory

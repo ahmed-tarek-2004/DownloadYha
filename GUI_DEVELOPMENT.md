@@ -337,10 +337,10 @@ The GUI is included in the main executable build:
 
 ```bash
 # Windows
-.\scripts\build-windows.ps1
+.\build-windows.ps1
 
 # Linux
-./scripts/build-linux.sh
+./build-linux.sh
 ```
 
 The resulting executable supports both CLI and GUI modes:

@@ -394,8 +394,6 @@ def get_media_info(
 
     except Exception as e:
         logger.error(f"Failed to get media information: {e}")
-        print(f"\nFailed to get media information:")
-        print(e)
         return None
 
 

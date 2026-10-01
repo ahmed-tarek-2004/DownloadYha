@@ -59,7 +59,7 @@ pip install pyinstaller
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/<USER>/<REPO>.git
+git clone https://github.com/ahmed-tarek-2004/DownloadYha.git
 cd downloadyha
 ```
 
@@ -82,8 +82,7 @@ source .venv/bin/activate
 ### 3. Install Dependencies
 
 ```bash
-pip install -r requirements.txt
-pip install pyinstaller
+pip install -e ".[dev]"
 ```
 
 ### 4. Build Standalone Executable
@@ -91,13 +90,13 @@ pip install pyinstaller
 **Windows:**
 
 ```powershell
-.\scripts\build-windows.ps1
+.\build-windows.ps1
 ```
 
 **Linux:**
 
 ```bash
-./scripts/build-linux.sh
+./build-linux.sh
 ```
 
 The executable will be created in `dist/downloadyha` (Linux) or `dist\downloadyha.exe` (Windows).
@@ -124,16 +123,14 @@ downloadyha/
 │       ├── __init__.py          # Package initialization, version
 │       ├── __main__.py          # Entry point
 │       ├── cli.py               # Main CLI application
+│       ├── downloader.py        # YouTube download logic (yt-dlp)
 │       ├── dependencies.py      # Dependency management
 │       ├── updater.py           # Self-update mechanism
 │       ├── config.py            # Configuration handling
-│       └── paths.py             # Platform-specific paths
-│
-├── scripts/
-│   ├── build-windows.ps1        # Windows build script
-│   ├── build-linux.sh           # Linux build script
-│   ├── install.ps1              # Windows installer
-│   └── install.sh               # Linux installer
+│       ├── paths.py             # Platform-specific paths
+│       ├── platform.py          # OS/architecture detection
+│       ├── logging.py           # Structured logging
+│       └── versions.json        # Dependency version manifest
 │
 ├── .github/
 │   └── workflows/
@@ -141,8 +138,12 @@ downloadyha/
 │
 ├── tests/                       # Test suite
 │
+├── build-windows.ps1            # Windows build script
+├── build-linux.sh               # Linux build script
+├── install.ps1                  # Windows installer
+├── install.sh                   # Linux installer
 ├── pyproject.toml               # Project configuration
-├── requirements.txt             # Python dependencies
+├── downloadyha.spec             # PyInstaller configuration
 ├── README.md                    # User documentation
 ├── CONTRIBUTING.md              # This file
 ├── CHANGELOG.md                 # Version history
@@ -155,13 +156,15 @@ downloadyha/
 | File | Purpose |
 |------|---------|
 | `src/downloadyha/cli.py` | Main application logic, user interaction |
+| `src/downloadyha/downloader.py` | YouTube download logic (yt-dlp) |
 | `src/downloadyha/dependencies.py` | Manages bundled FFmpeg, Deno, yt-dlp |
 | `src/downloadyha/updater.py` | Handles self-updates from GitHub Releases |
 | `src/downloadyha/paths.py` | Cross-platform path resolution |
 | `src/downloadyha/config.py` | User configuration file handling |
+| `src/downloadyha/versions.json` | Dependency version manifest |
 | `pyproject.toml` | Project metadata and build configuration |
-| `scripts/install.ps1` | Windows one-command installer |
-| `scripts/install.sh` | Linux one-command installer |
+| `install.ps1` | Windows one-command installer |
+| `install.sh` | Linux one-command installer |
 
 ---
 
@@ -394,7 +397,7 @@ ydl_opts = {
 ### Update Mechanism
 
 1. User runs `downloadyha update`
-2. Query GitHub Releases API: `https://api.github.com/repos/<USER>/<REPO>/releases/latest`
+2. Query GitHub Releases API: `https://api.github.com/repos/ahmed-tarek-2004/DownloadYha/releases/latest`
 3. Compare version with current version
 4. Download correct platform artifact
 5. Verify SHA-256 checksum
@@ -415,8 +418,8 @@ ydl_opts = {
 
 ## Getting Help
 
-- **Open an issue**: [GitHub Issues](https://github.com/<USER>/<REPO>/issues)
-- **Start a discussion**: [GitHub Discussions](https://github.com/<USER>/<REPO>/discussions)
+- **Open an issue**: [GitHub Issues](https://github.com/ahmed-tarek-2004/DownloadYha/issues)
+- **Start a discussion**: [GitHub Discussions](https://github.com/ahmed-tarek-2004/DownloadYha/discussions)
 
 ---
 

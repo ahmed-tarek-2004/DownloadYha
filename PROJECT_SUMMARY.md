@@ -28,12 +28,12 @@ This project has been completely redesigned from a script-based Python applicati
 
 ### Windows
 ```powershell
-irm https://raw.githubusercontent.com/ahmed-tarek-2004/DownloadYha/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/ahmed-tarek-2004/DownloadYha/master/install.ps1 | iex
 ```
 
 ### Linux
 ```bash
-curl -fsSL https://raw.githubusercontent.com/ahmed-tarek-2004/DownloadYha/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/ahmed-tarek-2004/DownloadYha/master/install.sh | bash
 ```
 
 After installation:

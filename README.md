@@ -4,7 +4,29 @@ A fast, beautiful, and standalone YouTube downloader available in both **CLI** a
 
 ---
 
-## ⚡ Quick Start
+## 🖥️ Desktop GUI - Download & Run (No Installation!)
+
+**For non-technical users:** Download the standalone GUI application - no command-line needed!
+
+### 📥 Direct Download
+
+> **[⬇️ Download Windows GUI (downloadyha-gui-windows.zip)](https://github.com/ahmed-tarek-2004/DownloadYha/releases/latest/download/downloadyha-gui-windows.zip)**
+>
+> **Size:** ~80-100MB | **Platform:** Windows 10/11 (64-bit)
+
+### 🚀 3-Step Quick Installation
+
+1. **Extract** the ZIP file to any folder (e.g., `C:\Program Files\DownloadyhaGUI`)
+2. **Double-click** `downloadyha-gui.exe` to launch
+3. **Start downloading** - paste a YouTube URL and go!
+
+✨ **No installation, no Python, no dependencies - just download, extract, and run!**
+
+📖 **[Complete GUI Download Guide →](GUI_DOWNLOAD.md)**
+
+---
+
+## ⚡ Quick Start (CLI Version)
 
 ### Windows
 

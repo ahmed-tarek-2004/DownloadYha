@@ -354,7 +354,14 @@ def handle_gui_command() -> None:
         except Exception as e:
             logger.warning(f"Failed to launch standalone GUI executable: {e}")
 
-    # 2. Try in-process Python GUI
+    # 2. Try in-process Python GUI (Modern CustomTkinter GUI first, then Tkinter fallback)
+    try:
+        from downloadyha_gui.app import main as launch_modern_gui
+        launch_modern_gui()
+        return
+    except (ImportError, ModuleNotFoundError):
+        pass
+
     try:
         from .gui import launch_gui
         launch_gui()

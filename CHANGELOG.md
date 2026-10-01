@@ -69,5 +69,5 @@ For future releases, use this template:
 
 ---
 
-[Unreleased]: https://github.com/<USER>/<REPO>/compare/v1.0.0...HEAD
-[1.0.0]: https://github.com/<USER>/<REPO>/releases/tag/v1.0.0
+[Unreleased]: https://github.com/ahmed-tarek-2004/DownloadYha/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/ahmed-tarek-2004/DownloadYha/releases/tag/v1.0.0

@@ -983,5 +983,8 @@ def launch_gui() -> None:
     app.run()
 
 
+main = launch_gui
+
+
 if __name__ == "__main__":
     launch_gui()

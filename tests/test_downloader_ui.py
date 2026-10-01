@@ -10,7 +10,7 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
-from downloadyha import downloader, ui
+from downloadyha import cli, downloader, ui
 
 
 class TestDownloader(unittest.TestCase):
@@ -79,6 +79,34 @@ class TestUI(unittest.TestCase):
         self.assertEqual(ui.format_number(None), "N/A")
         self.assertEqual(ui.format_number(1234567), "1,234,567")
         self.assertEqual(ui.format_number("invalid"), "invalid")
+
+    def test_color_aliases(self):
+        self.assertEqual(ui.Colors.ELECTRIC_CYAN, ui.Colors.PRIMARY)
+        self.assertEqual(ui.Colors.NEON_MAGENTA, ui.Colors.SECONDARY)
+        self.assertEqual(ui.Colors.CYBER_PURPLE, ui.Colors.ACCENT)
+        self.assertEqual(ui.Colors.EMERALD_GREEN, ui.Colors.SUCCESS)
+        self.assertEqual(ui.Colors.AMBER_YELLOW, ui.Colors.WARNING)
+        self.assertEqual(ui.Colors.CRIMSON_RED, ui.Colors.ERROR)
+        self.assertEqual(ui.Colors.SKY_BLUE, ui.Colors.INFO)
+
+    def test_colors_palette_and_aliases(self):
+        # Semantic aliases
+        self.assertEqual(ui.Colors.CYBER_PURPLE, ui.Colors.ACCENT)
+        self.assertEqual(ui.Colors.ELECTRIC_CYAN, ui.Colors.PRIMARY)
+        self.assertEqual(ui.Colors.NEON_MAGENTA, ui.Colors.SECONDARY)
+        self.assertEqual(ui.Colors.EMERALD_GREEN, ui.Colors.SUCCESS)
+        self.assertEqual(ui.Colors.AMBER_YELLOW, ui.Colors.WARNING)
+        self.assertEqual(ui.Colors.CRIMSON_RED, ui.Colors.ERROR)
+        self.assertEqual(ui.Colors.SKY_BLUE, ui.Colors.INFO)
+
+        # Basic ANSI and styling codes
+        self.assertTrue(bool(ui.Colors.RESET))
+        self.assertTrue(bool(ui.Colors.BOLD))
+        self.assertTrue(bool(ui.Colors.UNDERLINE))
+        self.assertTrue(bool(ui.Colors.BRIGHT_CYAN))
+        self.assertTrue(bool(ui.Colors.BRIGHT_GREEN))
+        self.assertTrue(bool(ui.Colors.BRIGHT_WHITE))
+        self.assertTrue(bool(ui.Colors.MUTED))
 
     def test_strip_ansi_and_visible_length(self):
         styled = f"{ui.Colors.CYAN}{ui.Colors.BOLD}Hello World{ui.Colors.RESET}"
@@ -218,6 +246,122 @@ class TestUI(unittest.TestCase):
         with patch("builtins.input", side_effect=["", ""]):
             self.assertTrue(ui.prompt_confirm("Continue?", default=True))
             self.assertFalse(ui.prompt_confirm("Continue?", default=False))
+
+
+class TestColorsAttributes(unittest.TestCase):
+    """Comprehensive tests for all Colors class attributes."""
+
+    def test_all_colors_attributes_exist(self):
+        """Test that all expected Colors attributes exist and are non-empty strings."""
+        # Control codes
+        self.assertTrue(hasattr(ui.Colors, 'RESET'))
+        self.assertTrue(hasattr(ui.Colors, 'BOLD'))
+        self.assertTrue(hasattr(ui.Colors, 'DIM'))
+        self.assertTrue(hasattr(ui.Colors, 'ITALIC'))
+        self.assertTrue(hasattr(ui.Colors, 'UNDERLINE'))
+        self.assertTrue(hasattr(ui.Colors, 'INVERT'))
+
+        # Standard foreground colors
+        self.assertTrue(hasattr(ui.Colors, 'BLACK'))
+        self.assertTrue(hasattr(ui.Colors, 'RED'))
+        self.assertTrue(hasattr(ui.Colors, 'GREEN'))
+        self.assertTrue(hasattr(ui.Colors, 'YELLOW'))
+        self.assertTrue(hasattr(ui.Colors, 'BLUE'))
+        self.assertTrue(hasattr(ui.Colors, 'MAGENTA'))
+        self.assertTrue(hasattr(ui.Colors, 'CYAN'))
+        self.assertTrue(hasattr(ui.Colors, 'WHITE'))
+
+        # High intensity foreground colors
+        self.assertTrue(hasattr(ui.Colors, 'BRIGHT_BLACK'))
+        self.assertTrue(hasattr(ui.Colors, 'BRIGHT_RED'))
+        self.assertTrue(hasattr(ui.Colors, 'BRIGHT_GREEN'))
+        self.assertTrue(hasattr(ui.Colors, 'BRIGHT_YELLOW'))
+        self.assertTrue(hasattr(ui.Colors, 'BRIGHT_BLUE'))
+        self.assertTrue(hasattr(ui.Colors, 'BRIGHT_MAGENTA'))
+        self.assertTrue(hasattr(ui.Colors, 'BRIGHT_CYAN'))
+        self.assertTrue(hasattr(ui.Colors, 'BRIGHT_WHITE'))
+
+        # Standard background colors
+        self.assertTrue(hasattr(ui.Colors, 'BG_BLACK'))
+        self.assertTrue(hasattr(ui.Colors, 'BG_RED'))
+        self.assertTrue(hasattr(ui.Colors, 'BG_GREEN'))
+        self.assertTrue(hasattr(ui.Colors, 'BG_YELLOW'))
+        self.assertTrue(hasattr(ui.Colors, 'BG_BLUE'))
+        self.assertTrue(hasattr(ui.Colors, 'BG_MAGENTA'))
+        self.assertTrue(hasattr(ui.Colors, 'BG_CYAN'))
+        self.assertTrue(hasattr(ui.Colors, 'BG_WHITE'))
+
+        # Modern cyber theme palette (semantic names)
+        self.assertTrue(hasattr(ui.Colors, 'PRIMARY'))
+        self.assertTrue(hasattr(ui.Colors, 'SECONDARY'))
+        self.assertTrue(hasattr(ui.Colors, 'ACCENT'))
+        self.assertTrue(hasattr(ui.Colors, 'SUCCESS'))
+        self.assertTrue(hasattr(ui.Colors, 'WARNING'))
+        self.assertTrue(hasattr(ui.Colors, 'ERROR'))
+        self.assertTrue(hasattr(ui.Colors, 'INFO'))
+        self.assertTrue(hasattr(ui.Colors, 'MUTED'))
+        self.assertTrue(hasattr(ui.Colors, 'DARK_GRAY'))
+        self.assertTrue(hasattr(ui.Colors, 'HIGHLIGHT'))
+
+        # Color aliases
+        self.assertTrue(hasattr(ui.Colors, 'CYBER_PURPLE'))
+        self.assertTrue(hasattr(ui.Colors, 'ELECTRIC_CYAN'))
+        self.assertTrue(hasattr(ui.Colors, 'NEON_MAGENTA'))
+        self.assertTrue(hasattr(ui.Colors, 'EMERALD_GREEN'))
+        self.assertTrue(hasattr(ui.Colors, 'AMBER_YELLOW'))
+        self.assertTrue(hasattr(ui.Colors, 'CRIMSON_RED'))
+        self.assertTrue(hasattr(ui.Colors, 'SKY_BLUE'))
+
+    def test_colors_are_ansi_strings(self):
+        """Test that color attributes are ANSI escape sequences."""
+        # All colors should be strings
+        self.assertIsInstance(ui.Colors.RESET, str)
+        self.assertIsInstance(ui.Colors.BOLD, str)
+        self.assertIsInstance(ui.Colors.PRIMARY, str)
+        self.assertIsInstance(ui.Colors.SUCCESS, str)
+        self.assertIsInstance(ui.Colors.ERROR, str)
+
+        # Control codes should start with escape sequence
+        self.assertTrue(ui.Colors.RESET.startswith('\033['))
+        self.assertTrue(ui.Colors.BOLD.startswith('\033['))
+        self.assertTrue(ui.Colors.UNDERLINE.startswith('\033['))
+
+        # Colors should start with escape sequence
+        self.assertTrue(ui.Colors.RED.startswith('\033['))
+        self.assertTrue(ui.Colors.PRIMARY.startswith('\033['))
+        self.assertTrue(ui.Colors.SUCCESS.startswith('\033['))
+
+    def test_color_aliases_match_semantic_colors(self):
+        """Test that color aliases correctly reference semantic colors."""
+        self.assertEqual(ui.Colors.CYBER_PURPLE, ui.Colors.ACCENT)
+        self.assertEqual(ui.Colors.ELECTRIC_CYAN, ui.Colors.PRIMARY)
+        self.assertEqual(ui.Colors.NEON_MAGENTA, ui.Colors.SECONDARY)
+        self.assertEqual(ui.Colors.EMERALD_GREEN, ui.Colors.SUCCESS)
+        self.assertEqual(ui.Colors.AMBER_YELLOW, ui.Colors.WARNING)
+        self.assertEqual(ui.Colors.CRIMSON_RED, ui.Colors.ERROR)
+        self.assertEqual(ui.Colors.SKY_BLUE, ui.Colors.INFO)
+
+    def test_all_colors_non_empty(self):
+        """Test that no color attribute is empty."""
+        color_attrs = [
+            'RESET', 'BOLD', 'DIM', 'ITALIC', 'UNDERLINE', 'INVERT',
+            'BLACK', 'RED', 'GREEN', 'YELLOW', 'BLUE', 'MAGENTA', 'CYAN', 'WHITE',
+            'BRIGHT_BLACK', 'BRIGHT_RED', 'BRIGHT_GREEN', 'BRIGHT_YELLOW',
+            'BRIGHT_BLUE', 'BRIGHT_MAGENTA', 'BRIGHT_CYAN', 'BRIGHT_WHITE',
+            'BG_BLACK', 'BG_RED', 'BG_GREEN', 'BG_YELLOW', 'BG_BLUE',
+            'BG_MAGENTA', 'BG_CYAN', 'BG_WHITE',
+            'PRIMARY', 'SECONDARY', 'ACCENT', 'SUCCESS', 'WARNING', 'ERROR',
+            'INFO', 'MUTED', 'DARK_GRAY', 'HIGHLIGHT',
+            'CYBER_PURPLE', 'ELECTRIC_CYAN', 'NEON_MAGENTA', 'EMERALD_GREEN',
+            'AMBER_YELLOW', 'CRIMSON_RED', 'SKY_BLUE'
+        ]
+
+        for attr in color_attrs:
+            with self.subTest(attribute=attr):
+                self.assertTrue(hasattr(ui.Colors, attr), f"Colors.{attr} does not exist")
+                value = getattr(ui.Colors, attr)
+                self.assertIsInstance(value, str, f"Colors.{attr} is not a string")
+                self.assertTrue(len(value) > 0, f"Colors.{attr} is empty")
 
 
 if __name__ == "__main__":

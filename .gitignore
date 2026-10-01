@@ -60,6 +60,7 @@ SHA256SUMS
 # Ignore only the built executable, not the source directory
 /dist/downloadyha
 downloadyha-*
+!*.spec
 
 # Temporary files
 *.tmp

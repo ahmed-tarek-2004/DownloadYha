@@ -1,4 +1,4 @@
-"""
+r"""
 config.py - User configuration management for Downloadyha.
 
 Stores and loads config.json from the platform-specific app config directory:

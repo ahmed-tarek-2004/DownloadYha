@@ -12,6 +12,6 @@ A cross-platform desktop GUI built with CustomTkinter that provides:
 __version__ = "1.0.0"
 __author__ = "Ahmed Tarek Zaher"
 
-from .app import DownloadyhaGUI
+from .app import DownloadyhaGUI, main
 
-__all__ = ["DownloadyhaGUI"]
+__all__ = ["DownloadyhaGUI", "main"]

@@ -105,7 +105,7 @@ def _robust_rmtree(path: Path, max_retries: int = 3, retry_delay: float = 0.2) -
     for attempt in range(max_retries):
         try:
             if sys.version_info >= (3, 12):
-                shutil.rmtree(path, on_exc=lambda func, p, exc: _handle_remove_readonly(func, p, exc))
+                shutil.rmtree(path, onexc=lambda func, p, exc: _handle_remove_readonly(func, p, exc))
             else:
                 shutil.rmtree(path, onerror=_handle_remove_readonly)
             return True, None

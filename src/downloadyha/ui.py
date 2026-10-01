@@ -189,6 +189,15 @@ class Colors:
     DARK_GRAY = "\033[38;2;75;75;75m"      # Dark Gray (Bar background)
     HIGHLIGHT = "\033[38;2;250;250;250m"   # Bright White
 
+    # Color Aliases (for backward compatibility and semantic naming)
+    ELECTRIC_CYAN = PRIMARY
+    NEON_MAGENTA = SECONDARY
+    CYBER_PURPLE = ACCENT
+    EMERALD_GREEN = SUCCESS
+    AMBER_YELLOW = WARNING
+    CRIMSON_RED = ERROR
+    SKY_BLUE = INFO
+
 
 class Symbols:
     """Unicode and fallback symbols for rich CLI rendering."""

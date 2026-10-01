@@ -56,17 +56,40 @@ if ($Clean) {
 
 # Step 2: Check Python version
 Write-Host "[2/6] Checking Python version..." -ForegroundColor Yellow
-$pythonVersion = python --version 2>&1
-Write-Host "  $pythonVersion" -ForegroundColor Gray
 
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "  ERROR: Python not found. Install Python 3.10+ first." -ForegroundColor Red
-    exit 1
+$pythonCmd = "python"
+$pythonVersion = python --version 2>&1
+
+$usePyLauncher = $false
+if ($pythonVersion -match "Python (\d+)\.(\d+)") {
+    $major = [int]$matches[1]
+    $minor = [int]$matches[2]
+    if ($major -lt 3 -or ($major -eq 3 -and $minor -lt 10)) {
+        $usePyLauncher = $true
+    }
+} else {
+    $usePyLauncher = $true
 }
 
-# Parse version (e.g., "Python 3.11.4")
-$versionMatch = $pythonVersion -match "Python (\d+)\.(\d+)"
-if ($versionMatch) {
+if ($usePyLauncher) {
+    try {
+        $pyVersion = py -3 --version 2>&1
+        if ($pyVersion -match "Python (\d+)\.(\d+)") {
+            $major = [int]$matches[1]
+            $minor = [int]$matches[2]
+            if ($major -gt 3 -or ($major -eq 3 -and $minor -ge 10)) {
+                $pythonCmd = "py -3"
+                $pythonVersion = $pyVersion
+            }
+        }
+    } catch {
+        # Keep original error handling
+    }
+}
+
+Write-Host "  Using $pythonCmd: $pythonVersion" -ForegroundColor Gray
+
+if ($pythonVersion -match "Python (\d+)\.(\d+)") {
     $major = [int]$matches[1]
     $minor = [int]$matches[2]
 
@@ -74,6 +97,9 @@ if ($versionMatch) {
         Write-Host "  ERROR: Python 3.10+ required, found $major.$minor" -ForegroundColor Red
         exit 1
     }
+} else {
+    Write-Host "  ERROR: Python not found. Install Python 3.10+ first." -ForegroundColor Red
+    exit 1
 }
 
 Write-Host "  Python version OK." -ForegroundColor Green
@@ -81,8 +107,8 @@ Write-Host ""
 
 # Step 3: Install/check dependencies
 Write-Host "[3/6] Installing build dependencies..." -ForegroundColor Yellow
-python -m pip install --upgrade pip setuptools wheel | Out-Null
-python -m pip install pyinstaller customtkinter pillow | Out-Null
+& ($pythonCmd.Split(' ')) -m pip install --upgrade pip setuptools wheel | Out-Null
+& ($pythonCmd.Split(' ')) -m pip install pyinstaller customtkinter pillow | Out-Null
 Write-Host "  Dependencies installed." -ForegroundColor Green
 Write-Host ""
 
@@ -91,12 +117,13 @@ Write-Host "[4/6] Running PyInstaller..." -ForegroundColor Yellow
 Write-Host "  Using spec file: downloadyha-gui.spec" -ForegroundColor Gray
 Write-Host ""
 
-pyinstaller --clean --noconfirm downloadyha-gui.spec
+& ($pythonCmd.Split(' ')) -m PyInstaller --clean --noconfirm downloadyha-gui.spec
+$pyinstallerExitCode = $LASTEXITCODE
 
-if ($LASTEXITCODE -ne 0) {
+if ($pyinstallerExitCode -ne 0) {
     Write-Host ""
-    Write-Host "  ERROR: PyInstaller build failed." -ForegroundColor Red
-    exit 1
+    Write-Host "  ERROR: PyInstaller build failed with exit code $pyinstallerExitCode." -ForegroundColor Red
+    exit $pyinstallerExitCode
 }
 
 Write-Host ""
@@ -194,6 +221,24 @@ License: MIT
 "@
 
 Set-Content -Path "$tempDir\README.txt" -Value $readmeContent
+
+# Create QUICKSTART.txt for the package
+$quickstartContent = @"
+==================================================
+  Downloadyha Desktop GUI - Quick Start Guide
+==================================================
+
+Step 1: Double-click downloadyha-gui.exe to start.
+Step 2: Paste your YouTube video or playlist URL.
+Step 3: Choose Video or Audio format, pick your quality, and click START DOWNLOAD!
+
+Files are saved to your Downloads folder by default.
+You can change the destination folder anytime in the app.
+
+No installation, Python, or FFmpeg setup required!
+==================================================
+"@
+Set-Content -Path "$tempDir\QUICKSTART.txt" -Value $quickstartContent
 
 # Create the ZIP archive
 if (Test-Path $archivePath) {
