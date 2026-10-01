@@ -1,26 +1,24 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
   <defs>
-    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+    <linearGradient id="simpleGradient" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" style="stop-color:#00D2FF;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#9B51E0;stop-opacity:1" />
       <stop offset="100%" style="stop-color:#DC50FF;stop-opacity:1" />
     </linearGradient>
   </defs>
 
-  <!-- Minimalist download arrow -->
-  <g>
-    <!-- Circle background -->
-    <circle cx="256" cy="256" r="224" fill="url(#gradient)"/>
+  <!-- Circular container -->
+  <circle cx="256" cy="256" r="224" fill="url(#simpleGradient)"/>
 
-    <!-- White arrow -->
-    <g fill="#FFFFFF">
-      <!-- Vertical line -->
-      <rect x="226" y="140" width="60" height="200" rx="12" ry="12"/>
+  <!-- Minimalist download emblem -->
+  <g fill="#FFFFFF">
+    <!-- Arrow shaft -->
+    <rect x="232" y="140" width="48" height="120" rx="14" ry="14"/>
 
-      <!-- Arrow head -->
-      <polygon points="256,380 140,264 372,264"/>
+    <!-- Arrow head -->
+    <polygon points="168,236 256,324 344,236"/>
 
-      <!-- Bottom platform -->
-      <rect x="140" y="360" width="232" height="32" rx="16" ry="16" opacity="0.8"/>
-    </g>
+    <!-- Bottom tray -->
+    <rect x="168" y="348" width="176" height="24" rx="12" ry="12" opacity="0.9"/>
   </g>
 </svg>

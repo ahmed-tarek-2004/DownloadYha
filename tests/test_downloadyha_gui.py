@@ -17,6 +17,7 @@ from downloadyha_gui.app import (
     DEFAULT_VIDEO_QUALITIES,
     DownloadHistory,
     DownloadyhaGUI,
+    ModernButton,
     Theme,
     format_height_label,
 )
@@ -68,6 +69,21 @@ class TestDownloadyhaGUIHelpers(unittest.TestCase):
         # Clear history
         history.clear()
         self.assertEqual(len(history.get_all()), 0)
+
+    def test_modern_button_callbacks(self):
+        """Test ModernButton initialization and internal Tkinter leave/enter callbacks."""
+        try:
+            import customtkinter as ctk
+            root = ctk.CTk()
+            btn = ModernButton(root, text="Test Button")
+            # CTkButton internal calls _on_leave() without arguments on click/release
+            btn._on_leave()
+            btn._on_enter()
+            root.destroy()
+        except Exception as e:
+            # If running in headless environment without display, skip GUI creation error
+            if "no display name" not in str(e).lower():
+                raise e
 
 
 class TestDownloadyhaGUILogic(unittest.TestCase):

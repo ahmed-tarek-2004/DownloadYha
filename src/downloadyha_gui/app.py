@@ -168,7 +168,7 @@ class Theme:
 # ---------------------------------------------------------------------------
 
 class ModernButton(ctk.CTkButton):
-    """Button with gradient hover effect and smooth animations."""
+    """Button with modern defaults and hover styling."""
 
     def __init__(self, master, gradient_hover: bool = True, **kwargs):
         # Set modern defaults
@@ -176,26 +176,12 @@ class ModernButton(ctk.CTkButton):
             kwargs['corner_radius'] = 12
         if 'border_width' not in kwargs:
             kwargs['border_width'] = 0
+        if 'fg_color' not in kwargs:
+            kwargs['fg_color'] = Theme.get_accent_color()
+        if 'hover_color' not in kwargs:
+            kwargs['hover_color'] = Theme.rgb_to_hex(Theme.CYBER_PURPLE)
 
         super().__init__(master, **kwargs)
-
-        self.gradient_hover = gradient_hover
-        self.default_fg = kwargs.get('fg_color', Theme.get_accent_color())
-        self.hover_fg = kwargs.get('hover_color', Theme.rgb_to_hex(Theme.CYBER_PURPLE))
-
-        # Bind hover events for smooth transition
-        self.bind('<Enter>', self._on_enter)
-        self.bind('<Leave>', self._on_leave)
-
-    def _on_enter(self, event):
-        """Smooth hover transition."""
-        if self.gradient_hover and self.hover_fg:
-            self.configure(fg_color=self.hover_fg)
-
-    def _on_leave(self, event):
-        """Reset on leave."""
-        if self.gradient_hover:
-            self.configure(fg_color=self.default_fg)
 
 
 class GlassCard(ctk.CTkFrame):
@@ -366,9 +352,19 @@ class DownloadyhaGUI(ctk.CTk):
     def _set_window_icon(self):
         """Set window icon if available."""
         try:
-            icon_path = Path(__file__).parent / "resources" / "icon.ico"
-            if icon_path.exists():
-                self.iconbitmap(str(icon_path))
+            potential_paths = [
+                Path(__file__).parent / "resources" / "icon.ico",
+                Path(__file__).resolve().parent.parent.parent / "assets" / "icons" / "downloadyha.ico",
+                Path(__file__).resolve().parent.parent.parent / "assets" / "icons" / "app_icon_256.png",
+            ]
+            for icon_path in potential_paths:
+                if icon_path.exists():
+                    if icon_path.suffix == ".ico":
+                        self.iconbitmap(str(icon_path))
+                    else:
+                        photo = tk.PhotoImage(file=str(icon_path))
+                        self.wm_iconphoto(True, photo)
+                    break
         except Exception:
             pass
 

@@ -116,6 +116,6 @@ exe = EXE(
 
     # Windows-specific version / icon metadata.
     # Uncomment and adjust as needed:
-    # icon="assets/icon.ico",
+    icon="assets/icons/downloadyha.ico",
     # version="version_info.txt",
 )

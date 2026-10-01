@@ -143,47 +143,27 @@ def svg_to_ico(svg_path, ico_path):
 svg_to_ico('assets/icons/app_icon.svg', 'assets/icons/downloadyha.ico')
 ```
 
-## GUI Framework Recommendations
+## Generating Icons
 
-### For Python Desktop GUI:
+### Using Built-in Python Script (Pillow)
+The project includes `assets/scripts/generate_icons.py` which generates high-resolution antialiased PNGs (16px to 512px) and multi-resolution Windows ICO files directly:
 
-1. **PyQt6 / PySide6** (Recommended)
-   - Professional, native-looking UI
-   - Cross-platform (Windows, macOS, Linux)
-   - Excellent documentation
-   - Good integration with existing Python codebase
+```bash
+python assets/scripts/generate_icons.py
+```
 
-2. **Tkinter + ttkbootstrap**
-   - Built into Python
-   - Lightweight
-   - Modern themes via ttkbootstrap
-   - Easier learning curve
+## Desktop GUI Integration
 
-3. **Electron + Python Backend**
-   - Web technologies (HTML/CSS/JavaScript)
-   - Modern UI possibilities
-   - Larger bundle size
-   - Python runs as backend service
-
-### Icon Integration Example (PyQt6)
+Downloadyha Desktop GUI is built with **CustomTkinter** for modern, lightweight cross-platform aesthetics:
 
 ```python
-from PyQt6.QtWidgets import QApplication, QMainWindow
-from PyQt6.QtGui import QIcon
-import sys
+import customtkinter as ctk
+from pathlib import Path
 
-class DownloadyhaWindow(QMainWindow):
-    def __init__(self):
-        super().__init__()
-        self.setWindowTitle("Downloadyha")
-        self.setWindowIcon(QIcon('assets/icons/app_icon_512.png'))
-        self.setGeometry(100, 100, 800, 600)
-
-if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    window = DownloadyhaWindow()
-    window.show()
-    sys.exit(app.exec())
+app = ctk.CTk()
+icon_path = Path("assets/icons/downloadyha.ico")
+if icon_path.exists():
+    app.iconbitmap(str(icon_path))
 ```
 
 ## Icon Resources & Tools

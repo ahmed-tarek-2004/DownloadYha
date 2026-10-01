@@ -13,59 +13,73 @@ ENV/
 env.bak/
 venv.bak/
 
-# Build artifacts
+# Build artifacts & distributions
 build/
 dist/
+/dist/
 *.egg-info/
 *.egg
 .eggs/
 
 # PyInstaller
 *.manifest
-# Keep downloadyha.spec for builds
+*.spec.bak
+# Keep downloadyha.spec and downloadyha-gui.spec for builds
 # *.spec
 
-# IDEs
+# IDEs, Editors & Tools
 .idea/
 .vscode/
 *.swp
 *.swo
 *~
+*.sublime-project
+*.sublime-workspace
+.project
+.pydevproject
 
-# Environment variables
+# Environment variables & Local configs
 .env
 .env.local
+.env.*.local
 
 # Logs
 *.log
 logs/
+*.out
 
-# OS
+# OS Generated
 .DS_Store
 Thumbs.db
 desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msm
+*.msp
 
-# Testing
+# Testing & Coverage
 .pytest_cache/
 .coverage
+.coverage.*
 htmlcov/
 .tox/
 .hypothesis/
+.cache/
 
-# Distribution
+# Distribution Binaries & Archives
 SHA256SUMS
 *.zip
 *.tar.gz
 *.exe
-# Ignore only the built executable, not the source directory
-/dist/downloadyha
+*.bin
 downloadyha-*
 !*.spec
 
-# Temporary files
+# Temporary files & Scratchpads
 *.tmp
 *.temp
-.cache/
-
-# Project-specific
+*.bak
+*~.nib
 next_step.md
+.claude/

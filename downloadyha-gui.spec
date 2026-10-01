@@ -32,9 +32,11 @@ a = Analysis(
     # - yt-dlp data files (extractors, JS snippets)
     # - customtkinter assets (themes, images, fonts)
     # - PIL/Pillow assets (images, fonts)
-    # - downloadyha versions manifest
+    # - downloadyha versions manifest and GUI resources (icons)
     datas=[
         ("src/downloadyha/versions.json", "downloadyha"),
+        ("src/downloadyha_gui/resources", "downloadyha_gui/resources"),
+        ("assets/icons", "assets/icons"),
     ] + collect_data_files("yt_dlp") + customtkinter_datas + pil_datas,
 
     hiddenimports=[
@@ -167,6 +169,6 @@ exe = EXE(
     codesign_identity=None,
     entitlements_file=None,
 
-    # Windows-specific icon (uncomment when icon is available)
-    # icon="assets/icon.ico",
+    # Windows-specific icon
+    icon="assets/icons/downloadyha.ico",
 )

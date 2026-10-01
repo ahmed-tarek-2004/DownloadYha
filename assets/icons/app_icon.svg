@@ -1,34 +1,49 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
   <defs>
+    <!-- Background cyber gradient -->
     <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" style="stop-color:#00D2FF;stop-opacity:1" />
       <stop offset="50%" style="stop-color:#9B51E0;stop-opacity:1" />
       <stop offset="100%" style="stop-color:#DC50FF;stop-opacity:1" />
     </linearGradient>
-    <linearGradient id="arrowGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" style="stop-color:#FFFFFF;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#E0E0E0;stop-opacity:1" />
+
+    <!-- Emblem gradient -->
+    <linearGradient id="emblemGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#00D2FF;stop-opacity:1" />
+      <stop offset="60%" style="stop-color:#9B51E0;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#DC50FF;stop-opacity:1" />
+    </linearGradient>
+
+    <!-- Card shadow -->
+    <filter id="cardShadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#000000" flood-opacity="0.3" />
+    </filter>
+
+    <!-- Outer rim highlight -->
+    <linearGradient id="rimGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFFFFF;stop-opacity:0.6" />
+      <stop offset="100%" style="stop-color:#FFFFFF;stop-opacity:0.1" />
     </linearGradient>
   </defs>
 
-  <!-- Background rounded square -->
-  <rect x="32" y="32" width="448" height="448" rx="96" ry="96" fill="url(#bgGradient)"/>
+  <!-- Outer background squircle -->
+  <rect x="32" y="32" width="448" height="448" rx="112" ry="112" fill="url(#bgGradient)"/>
 
-  <!-- Video play symbol background -->
-  <rect x="128" y="96" width="256" height="192" rx="24" ry="24" fill="#FFFFFF" opacity="0.9"/>
+  <!-- Subtle highlight border -->
+  <rect x="33" y="33" width="446" height="446" rx="111" ry="111" fill="none" stroke="url(#rimGradient)" stroke-width="2"/>
 
-  <!-- Play triangle -->
-  <polygon points="200,140 200,240 300,190" fill="url(#bgGradient)"/>
+  <!-- Center rounded media card -->
+  <rect x="116" y="116" width="280" height="280" rx="64" ry="64" fill="#FFFFFF" opacity="0.96" filter="url(#cardShadow)"/>
 
-  <!-- Download arrow -->
-  <g transform="translate(0, 0)">
+  <!-- Download emblem inside card -->
+  <g fill="url(#emblemGradient)">
     <!-- Arrow shaft -->
-    <rect x="236" y="300" width="40" height="120" rx="8" ry="8" fill="url(#arrowGradient)"/>
+    <rect x="232" y="160" width="48" height="96" rx="14" ry="14"/>
 
-    <!-- Arrow head (pointing down) -->
-    <polygon points="256,440 180,360 332,360" fill="url(#arrowGradient)"/>
+    <!-- Arrow head -->
+    <polygon points="176,236 256,316 336,236"/>
 
-    <!-- Download tray line -->
-    <rect x="140" y="450" width="232" height="16" rx="8" ry="8" fill="#FFFFFF" opacity="0.8"/>
+    <!-- Download base tray -->
+    <rect x="176" y="336" width="160" height="24" rx="12" ry="12"/>
   </g>
 </svg>
