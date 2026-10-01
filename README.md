@@ -48,10 +48,16 @@ downloadyha-gui
 
 For terminal power-users, Downloadyha offers a rich, interactive CLI experience with color-coded steps, live progress bars, and batch playlist support.
 
-### Windows (PowerShell / CMD)
+### Windows
 
+#### PowerShell:
 ```powershell
 irm https://raw.githubusercontent.com/ahmed-tarek-2004/DownloadYha/master/install.ps1 | iex
+```
+
+#### Command Prompt (CMD):
+```cmd
+powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.com/ahmed-tarek-2004/DownloadYha/master/install.ps1 | iex"
 ```
 
 ### Linux

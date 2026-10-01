@@ -27,8 +27,15 @@ This project has been completely redesigned from a script-based Python applicati
 ## Installation
 
 ### Windows
+
+**PowerShell:**
 ```powershell
 irm https://raw.githubusercontent.com/ahmed-tarek-2004/DownloadYha/master/install.ps1 | iex
+```
+
+**Command Prompt (CMD):**
+```cmd
+powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.com/ahmed-tarek-2004/DownloadYha/master/install.ps1 | iex"
 ```
 
 ### Linux
