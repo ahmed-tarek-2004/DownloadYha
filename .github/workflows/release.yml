@@ -69,7 +69,8 @@ jobs:
           $version = "${{ steps.get_version.outputs.version }}"
           $zipName = "downloadyha-${version}-windows-x86_64.zip"
           Compress-Archive -Path "dist\downloadyha.exe" -DestinationPath $zipName
-          echo "ARTIFACT_NAME=$zipName" >> $env:GITHUB_ENV
+          Copy-Item $zipName "downloadyha-windows-x86_64.zip"
+          Copy-Item $zipName "downloadyha-windows.zip"
 
       - name: Build CLI executable (Linux x64)
         if: runner.os == 'Linux' && matrix.cross-compile != true
@@ -78,7 +79,8 @@ jobs:
           version="${{ steps.get_version.outputs.version }}"
           tarName="downloadyha-${version}-linux-x86_64.tar.gz"
           tar -czvf "$tarName" -C dist downloadyha
-          echo "ARTIFACT_NAME=$tarName" >> $GITHUB_ENV
+          cp "$tarName" downloadyha-linux-x86_64.tar.gz
+          cp "$tarName" downloadyha-linux.tar.gz
 
       - name: Build CLI executable (Linux ARM64 cross-compile)
         if: matrix.cross-compile == true
@@ -87,13 +89,15 @@ jobs:
           version="${{ steps.get_version.outputs.version }}"
           tarName="downloadyha-${version}-linux-arm64.tar.gz"
           tar -czvf "$tarName" -C dist downloadyha
-          echo "ARTIFACT_NAME=$tarName" >> $GITHUB_ENV
+          cp "$tarName" downloadyha-linux-arm64.tar.gz
 
       - name: Upload CLI artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.ARTIFACT_NAME }}
-          path: ${{ env.ARTIFACT_NAME }}
+          name: cli-${{ matrix.target }}
+          path: |
+            *.zip
+            *.tar.gz
           if-no-files-found: error
           retention-days: 1
 
@@ -108,15 +112,12 @@ jobs:
           - target: windows-x64
             os: windows-latest
             python-arch: x64
-            artifact: downloadyha-gui-windows.zip
           - target: linux-x64
             os: ubuntu-latest
             python-arch: x64
-            artifact: downloadyha-gui-linux-x86_64.tar.gz
           - target: linux-arm64
             os: ubuntu-latest
             python-arch: x64  # Cross-compilation setup
-            artifact: downloadyha-gui-linux-arm64.tar.gz
             cross-compile: true
 
     steps:
@@ -157,7 +158,8 @@ jobs:
           $version = "${{ steps.get_version.outputs.version }}"
           $zipName = "downloadyha-gui-${version}-windows-x86_64.zip"
           Compress-Archive -Path "dist\downloadyha-gui.exe" -DestinationPath $zipName
-          echo "ARTIFACT_NAME=$zipName" >> $env:GITHUB_ENV
+          Copy-Item $zipName "downloadyha-gui-windows.zip"
+          Copy-Item $zipName "downloadyha-gui-windows-x86_64.zip"
 
       - name: Build GUI executable (Linux x64)
         if: runner.os == 'Linux' && matrix.cross-compile != true
@@ -166,7 +168,8 @@ jobs:
           version="${{ steps.get_version.outputs.version }}"
           tarName="downloadyha-gui-${version}-linux-x86_64.tar.gz"
           tar -czvf "$tarName" -C dist downloadyha-gui
-          echo "ARTIFACT_NAME=$tarName" >> $GITHUB_ENV
+          cp "$tarName" downloadyha-gui-linux-x86_64.tar.gz
+          cp "$tarName" downloadyha-gui-linux.tar.gz
 
       - name: Build GUI executable (Linux ARM64 cross-compile)
         if: matrix.cross-compile == true
@@ -175,13 +178,15 @@ jobs:
           version="${{ steps.get_version.outputs.version }}"
           tarName="downloadyha-gui-${version}-linux-arm64.tar.gz"
           tar -czvf "$tarName" -C dist downloadyha-gui
-          echo "ARTIFACT_NAME=$tarName" >> $GITHUB_ENV
+          cp "$tarName" downloadyha-gui-linux-arm64.tar.gz
 
       - name: Upload GUI artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.ARTIFACT_NAME }}
-          path: ${{ env.ARTIFACT_NAME }}
+          name: gui-${{ matrix.target }}
+          path: |
+            *.zip
+            *.tar.gz
           if-no-files-found: error
           retention-days: 1
 
