@@ -211,7 +211,20 @@ function Test-Checksum {
         Write-Fail "No checksum entry found for '$FileName' in SHA256SUMS."
     }
 
-    $actual = (Get-FileHash -Path $FilePath -Algorithm SHA256).Hash.ToLower()
+    $actual = $null
+    if (Get-Command Get-FileHash -ErrorAction SilentlyContinue) {
+        $actual = (Get-FileHash -Path $FilePath -Algorithm SHA256).Hash.ToLower()
+    } else {
+        $sha256 = [System.Security.Cryptography.SHA256]::Create()
+        $fileStream = [System.IO.File]::OpenRead($FilePath)
+        try {
+            $hashBytes = $sha256.ComputeHash($fileStream)
+            $actual = [System.BitConverter]::ToString($hashBytes).Replace("-", "").ToLower()
+        } finally {
+            $fileStream.Close()
+            $sha256.Dispose()
+        }
+    }
 
     if ($actual -ne $expected) {
         Write-Fail "Checksum mismatch!`n  Expected : $expected`n  Actual   : $actual"
@@ -224,15 +237,32 @@ function Add-ToUserPath {
     param([string]$Directory)
 
     $userPath = [System.Environment]::GetEnvironmentVariable("PATH", "User")
-    $entries  = $userPath -split ";" | Where-Object { $_ -ne "" -and (Resolve-Path -Path $_ -ErrorAction SilentlyContinue).Path -ne (Resolve-Path -Path $Directory -ErrorAction SilentlyContinue).Path }
+    if (-not $userPath) {
+        $userPath = ""
+    }
+
+    $cleanDir = $Directory.Trim().TrimEnd('\', '/')
+    $rawEntries = $userPath -split ";" | Where-Object { $_ -and $_.Trim() -ne "" }
+    $filteredEntries = @()
+
+    foreach ($entry in $rawEntries) {
+        $entryClean = $entry.Trim().TrimEnd('\', '/')
+        if ($entryClean -and ($entryClean.ToLowerInvariant() -ne $cleanDir.ToLowerInvariant())) {
+            $filteredEntries += $entry.Trim()
+        }
+    }
 
     Write-Step "Configuring '$Directory' in user PATH..."
-    # Put Downloadyha at the front so it takes precedence over any conflicting Python script wrappers
-    $newPath = ($Directory, ($entries -join ";")) -join ";"
+    if ($filteredEntries.Count -gt 0) {
+        $newPath = "$cleanDir;" + ($filteredEntries -join ";")
+    } else {
+        $newPath = $cleanDir
+    }
+
     [System.Environment]::SetEnvironmentVariable("PATH", $newPath, "User")
 
     # Also update the current session PATH
-    $env:PATH = "$Directory;$env:PATH"
+    $env:PATH = "$cleanDir;$env:PATH"
 
     Write-Ok "Added to user PATH with priority."
 }
