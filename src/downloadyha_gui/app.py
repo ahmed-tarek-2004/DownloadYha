@@ -28,6 +28,7 @@ import customtkinter as ctk
 
 # Import downloadyha core engine
 try:
+    from downloadyha import __version__
     from downloadyha.config import get_download_dir, load as load_config, save as save_config
     from downloadyha.dependencies import check_dependencies, check_ffmpeg
     from downloadyha.downloader import (
@@ -45,6 +46,7 @@ try:
 except ImportError:
     # Fallback for direct execution during development
     sys.path.insert(0, str(Path(__file__).parent.parent))
+    from downloadyha import __version__
     from downloadyha.config import get_download_dir, load as load_config, save as save_config
     from downloadyha.dependencies import check_dependencies, check_ffmpeg
     from downloadyha.downloader import (
@@ -305,7 +307,7 @@ class DownloadyhaGUI(ctk.CTk):
         super().__init__()
 
         # Window configuration
-        self.title("Downloadyha - Video & Media Downloader")
+        self.title(f"Downloadyha v{__version__} - Video & Media Downloader")
         self.geometry("960x780")
         self.minsize(900, 720)
         self.resizable(True, True)
@@ -1497,7 +1499,7 @@ class DownloadyhaGUI(ctk.CTk):
 
         version_label = ctk.CTkLabel(
             about_frame,
-            text="Version: 1.0.0",
+            text=f"Version: {__version__}",
             font=ctk.CTkFont(size=11, weight="bold"),
             text_color=Theme.get_accent_color(),
             anchor="w"

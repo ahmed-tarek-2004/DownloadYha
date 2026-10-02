@@ -565,7 +565,7 @@ BANNER_ART = [
 
 
 def get_banner_text(
-    version: str = "1.0.0",
+    version: Optional[str] = None,
     author: str = "Ahmed Tarek Zaher",
     subtitle: str = "Modern Video & Media Downloader",
     width: Optional[int] = None
@@ -574,7 +574,7 @@ def get_banner_text(
     Build the styled ASCII banner with gradient coloring and box frame.
 
     Args:
-        version: Application version string.
+        version: Application version string. If None, dynamically resolved from package metadata.
         author: Author credit name.
         subtitle: Application subtitle.
         width: Total width of the framed banner.
@@ -582,6 +582,13 @@ def get_banner_text(
     Returns:
         Framed banner string.
     """
+    if version is None:
+        try:
+            from . import __version__
+            version = __version__
+        except Exception:
+            version = "1.0.0"
+
     box_width = max(width or get_terminal_width(default=74, max_width=76), 72)
     inner_width = box_width - 2
     b = BOX_STYLES["rounded"]
@@ -640,7 +647,7 @@ def get_banner_text(
 
 
 def print_banner(
-    version: str = "1.0.0",
+    version: Optional[str] = None,
     author: str = "Ahmed Tarek Zaher",
     subtitle: str = "Modern Video & Media Downloader",
     width: Optional[int] = None

@@ -72,7 +72,7 @@ def run_download_interactive() -> int:
     logger = get_logger("cli")
 
     init_terminal()
-    print_banner()
+    print_banner(__version__)
 
     # Check for updates in the background
     updater.notify_update_available()
