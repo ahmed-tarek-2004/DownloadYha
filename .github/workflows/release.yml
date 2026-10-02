@@ -47,6 +47,43 @@ jobs:
           python-version: '3.11'
           architecture: ${{ matrix.python-arch }}
 
+      - name: Sync package version from tag
+        shell: bash
+        run: |
+          RAW_TAG="${GITHUB_REF_NAME}"
+          CLEAN_VER="${RAW_TAG#v}"
+          echo "Syncing version $CLEAN_VER across codebase..."
+          python -c "
+          import re, json
+          from pathlib import Path
+
+          ver = '$CLEAN_VER'
+
+          init_py = Path('src/downloadyha/__init__.py')
+          if init_py.exists():
+              content = init_py.read_text(encoding='utf-8')
+              content = re.sub(r'__version__\s*=\s*[\"\x27].*?[\"\x27]', f'__version__ = \"{ver}\"', content)
+              init_py.write_text(content, encoding='utf-8')
+
+          gui_init_py = Path('src/downloadyha_gui/__init__.py')
+          if gui_init_py.exists():
+              content = gui_init_py.read_text(encoding='utf-8')
+              content = re.sub(r'__version__\s*=\s*[\"\x27].*?[\"\x27]', f'__version__ = \"{ver}\"', content)
+              gui_init_py.write_text(content, encoding='utf-8')
+
+          v_json = Path('src/downloadyha/versions.json')
+          if v_json.exists():
+              data = json.loads(v_json.read_text(encoding='utf-8'))
+              data['downloadyha'] = ver
+              v_json.write_text(json.dumps(data, indent=2), encoding='utf-8')
+
+          p_toml = Path('pyproject.toml')
+          if p_toml.exists():
+              content = p_toml.read_text(encoding='utf-8')
+              content = re.sub(r'version\s*=\s*[\"\x27].*?[\"\x27]', f'version = \"{ver}\"', content, count=1)
+              p_toml.write_text(content, encoding='utf-8')
+          "
+
       - name: Install build dependencies
         run: |
           python -m pip install --upgrade pip
@@ -135,6 +172,43 @@ jobs:
         with:
           python-version: '3.11'
           architecture: ${{ matrix.python-arch }}
+
+      - name: Sync package version from tag
+        shell: bash
+        run: |
+          RAW_TAG="${GITHUB_REF_NAME}"
+          CLEAN_VER="${RAW_TAG#v}"
+          echo "Syncing version $CLEAN_VER across codebase..."
+          python -c "
+          import re, json
+          from pathlib import Path
+
+          ver = '$CLEAN_VER'
+
+          init_py = Path('src/downloadyha/__init__.py')
+          if init_py.exists():
+              content = init_py.read_text(encoding='utf-8')
+              content = re.sub(r'__version__\s*=\s*[\"\x27].*?[\"\x27]', f'__version__ = \"{ver}\"', content)
+              init_py.write_text(content, encoding='utf-8')
+
+          gui_init_py = Path('src/downloadyha_gui/__init__.py')
+          if gui_init_py.exists():
+              content = gui_init_py.read_text(encoding='utf-8')
+              content = re.sub(r'__version__\s*=\s*[\"\x27].*?[\"\x27]', f'__version__ = \"{ver}\"', content)
+              gui_init_py.write_text(content, encoding='utf-8')
+
+          v_json = Path('src/downloadyha/versions.json')
+          if v_json.exists():
+              data = json.loads(v_json.read_text(encoding='utf-8'))
+              data['downloadyha'] = ver
+              v_json.write_text(json.dumps(data, indent=2), encoding='utf-8')
+
+          p_toml = Path('pyproject.toml')
+          if p_toml.exists():
+              content = p_toml.read_text(encoding='utf-8')
+              content = re.sub(r'version\s*=\s*[\"\x27].*?[\"\x27]', f'version = \"{ver}\"', content, count=1)
+              p_toml.write_text(content, encoding='utf-8')
+          "
 
       - name: Install build dependencies
         run: |
