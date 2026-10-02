@@ -224,21 +224,34 @@ function Add-ToUserPath {
     param([string]$Directory)
 
     $userPath = [System.Environment]::GetEnvironmentVariable("PATH", "User")
-    $entries  = $userPath -split ";" | Where-Object { $_ -ne "" }
+    $entries  = $userPath -split ";" | Where-Object { $_ -ne "" -and (Resolve-Path -Path $_ -ErrorAction SilentlyContinue).Path -ne (Resolve-Path -Path $Directory -ErrorAction SilentlyContinue).Path }
 
-    if ($entries -contains $Directory) {
-        Write-Ok "PATH already contains: $Directory"
-        return
-    }
-
-    Write-Step "Adding '$Directory' to user PATH..."
-    $newPath = ($entries + $Directory) -join ";"
+    Write-Step "Configuring '$Directory' in user PATH..."
+    # Put Downloadyha at the front so it takes precedence over any conflicting Python script wrappers
+    $newPath = ($Directory, ($entries -join ";")) -join ";"
     [System.Environment]::SetEnvironmentVariable("PATH", $newPath, "User")
 
-    # Also update the current session so the verify step works immediately
-    $env:PATH = "$env:PATH;$Directory"
+    # Also update the current session PATH
+    $env:PATH = "$Directory;$env:PATH"
 
-    Write-Ok "Added to user PATH. Restart your terminal for the change to take effect in new sessions."
+    Write-Ok "Added to user PATH with priority."
+}
+
+function Remove-ConflictingPythonStubs {
+    param([string]$DestinationDir)
+
+    # Look for stale pip wrappers in user's Python Scripts directories
+    $allCommands = @(Get-Command -Name $APP_NAME -All -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source)
+    foreach ($cmdPath in $allCommands) {
+        if ($cmdPath -and ($cmdPath -notlike "$DestinationDir*")) {
+            if ($cmdPath -like "*\Python*\Scripts\*" -or $cmdPath -like "*\site-packages\*") {
+                Write-Step "Cleaning up conflicting old Python wrapper: $cmdPath"
+                try {
+                    Remove-Item -Path $cmdPath -Force -ErrorAction SilentlyContinue
+                } catch {}
+            }
+        }
+    }
 }
 
 # ── Main ─────────────────────────────────────────────────────────────────────
@@ -290,10 +303,13 @@ try {
     # 7. Extract archive
     Install-ArchiveSafe -ZipPath $assetPath -DestinationDir $INSTALL_DIR -TempDirectory $tmpDir
 
-    # 8. Add to PATH
+    # 8. Add to PATH with priority
     Add-ToUserPath -Directory $INSTALL_DIR
 
-    # 9. Verify the binary runs
+    # 9. Clean up any conflicting old python pip wrappers
+    Remove-ConflictingPythonStubs -DestinationDir $INSTALL_DIR
+
+    # 10. Verify the binary runs
     Write-Step "Verifying installation..."
     $binary = Join-Path $INSTALL_DIR "${APP_NAME}.exe"
     if (-not (Test-Path $binary)) {
