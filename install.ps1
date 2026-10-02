@@ -160,10 +160,18 @@ Troubleshooting:
 }
 
 function Get-Architecture {
-    $arch = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture
-    switch ($arch) {
-        "X64"   { return "x86_64" }
-        default { Write-Fail "Unsupported architecture: $arch. Only x64 is supported." }
+    $is64 = [System.Environment]::Is64BitOperatingSystem
+    $archEnv = [System.Environment]::GetEnvironmentVariable("PROCESSOR_ARCHITEW6432")
+    if (-not $archEnv) {
+        $archEnv = [System.Environment]::GetEnvironmentVariable("PROCESSOR_ARCHITECTURE")
+    }
+
+    if ($archEnv -eq "AMD64" -or $archEnv -eq "x86_64" -or ($is64 -and $archEnv -ne "ARM64")) {
+        return "x86_64"
+    } elseif ($archEnv -eq "ARM64") {
+        Write-Fail "Unsupported architecture: ARM64. Only x64 is currently supported."
+    } else {
+        Write-Fail "Unsupported architecture: $archEnv. Only x64 is supported."
     }
 }
 

@@ -21,6 +21,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from . import __version__
 from .config import get_app_data_dir, get_download_dir, load, save
+from .dependencies import check_dependencies, check_ffmpeg
 from .downloader import (
     DownloadResult,
     download_audio,
@@ -315,6 +316,18 @@ class DownloadyhaGUI:
 
         # Handle window close
         self.root.protocol("WM_DELETE_WINDOW", self._on_close)
+
+        # Prepare bundled dependencies in background
+        self._prepare_dependencies_async()
+
+    def _prepare_dependencies_async(self) -> None:
+        """Ensure FFmpeg and Deno dependencies are available in background."""
+        def worker() -> None:
+            try:
+                check_dependencies(auto_download=True)
+            except Exception:
+                pass
+        threading.Thread(target=worker, daemon=True).start()
 
     def _setup_styles(self) -> None:
         """Configure ttk styles for the application."""
@@ -814,6 +827,11 @@ class DownloadyhaGUI:
         # Start download in background thread
         def download_task() -> None:
             try:
+                ffmpeg_ok, _ = check_ffmpeg()
+                if not ffmpeg_ok:
+                    self.root.after(0, lambda: self.status_bar.configure(text="Setting up FFmpeg components..."))
+                    check_dependencies(auto_download=True)
+
                 if download_type == "video":
                     result = download_video(
                         url=url,

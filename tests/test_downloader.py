@@ -119,12 +119,19 @@ class TestQualityResolvers(unittest.TestCase):
     """Test video and audio quality resolution."""
 
     def test_resolve_video_format(self):
-        best_fmt = resolve_video_format(0)
+        best_fmt = resolve_video_format(0, has_ffmpeg=True)
         self.assertEqual(best_fmt, "bestvideo+bestaudio/best")
 
-        h1080_fmt = resolve_video_format(1080)
+        h1080_fmt = resolve_video_format(1080, has_ffmpeg=True)
         self.assertIn("height<=1080", h1080_fmt)
         self.assertIn("bestvideo", h1080_fmt)
+
+        no_ffmpeg_best = resolve_video_format(0, has_ffmpeg=False)
+        self.assertEqual(no_ffmpeg_best, "best[acodec!=none]/best")
+
+        no_ffmpeg_1080 = resolve_video_format(1080, has_ffmpeg=False)
+        self.assertIn("height<=1080", no_ffmpeg_1080)
+        self.assertIn("acodec!=none", no_ffmpeg_1080)
 
     def test_resolve_audio_quality(self):
         self.assertEqual(resolve_audio_quality("best"), "0")

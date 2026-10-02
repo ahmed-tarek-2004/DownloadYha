@@ -231,13 +231,14 @@ def _remove_standalone_installation() -> List[str]:
             prog_dir = Path(local_app_data) / "Programs" / "Downloadyha"
             if prog_dir.exists():
                 _remove_path_from_windows_registry(prog_dir)
-                for item in list(prog_dir.glob("*")):
-                    try:
-                        if item.is_file():
-                            _schedule_windows_self_delete(item)
-                    except Exception:
-                        pass
                 ok, _ = _robust_rmtree(prog_dir)
+                if not ok and prog_dir.exists():
+                    for item in list(prog_dir.glob("*")):
+                        try:
+                            if item.is_file():
+                                _schedule_windows_self_delete(item)
+                        except Exception:
+                            pass
                 if ok or not prog_dir.exists():
                     removed.append(str(prog_dir))
     return removed

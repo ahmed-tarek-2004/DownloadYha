@@ -63,10 +63,27 @@ def load_versions() -> Dict[str, Any]:
     versions_file = Path(__file__).parent / "versions.json"
 
     try:
-        with open(versions_file, "r", encoding="utf-8") as f:
-            return json.load(f)
+        if versions_file.exists():
+            with open(versions_file, "r", encoding="utf-8") as f:
+                return json.load(f)
     except Exception:
-        return {}
+        pass
+
+    # Fallback for PyInstaller frozen app
+    if hasattr(sys, "_MEIPASS"):
+        try:
+            meipass_file = Path(sys._MEIPASS) / "downloadyha" / "versions.json"
+            if meipass_file.exists():
+                with open(meipass_file, "r", encoding="utf-8") as f:
+                    return json.load(f)
+            meipass_root_file = Path(sys._MEIPASS) / "versions.json"
+            if meipass_root_file.exists():
+                with open(meipass_root_file, "r", encoding="utf-8") as f:
+                    return json.load(f)
+        except Exception:
+            pass
+
+    return {}
 
 
 def get_dependency_versions() -> Dict[str, str]:

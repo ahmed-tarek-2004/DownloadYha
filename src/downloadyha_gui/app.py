@@ -29,6 +29,7 @@ import customtkinter as ctk
 # Import downloadyha core engine
 try:
     from downloadyha.config import get_download_dir, load as load_config, save as save_config
+    from downloadyha.dependencies import check_dependencies, check_ffmpeg
     from downloadyha.downloader import (
         DownloadResult,
         download_audio,
@@ -45,6 +46,7 @@ except ImportError:
     # Fallback for direct execution during development
     sys.path.insert(0, str(Path(__file__).parent.parent))
     from downloadyha.config import get_download_dir, load as load_config, save as save_config
+    from downloadyha.dependencies import check_dependencies, check_ffmpeg
     from downloadyha.downloader import (
         DownloadResult,
         download_audio,
@@ -338,6 +340,18 @@ class DownloadyhaGUI(ctk.CTk):
 
         # Set icon if available
         self._set_window_icon()
+
+        # Ensure dependencies (FFmpeg, Deno) are available in background
+        self._prepare_dependencies_async()
+
+    def _prepare_dependencies_async(self):
+        """Ensure FFmpeg and Deno dependencies are available in background."""
+        def worker():
+            try:
+                check_dependencies(auto_download=True)
+            except Exception:
+                pass
+        threading.Thread(target=worker, daemon=True).start()
 
     def _setup_theme(self):
         """Configure application theme with modern styling."""
@@ -956,6 +970,12 @@ class DownloadyhaGUI(ctk.CTk):
     def _download_worker(self, url: str, dest_path: str):
         """Background worker executing the download."""
         try:
+            # Ensure FFmpeg is present for merging video/audio streams into a single file
+            ffmpeg_ok, _ = check_ffmpeg()
+            if not ffmpeg_ok:
+                self.after(0, self._update_status, "Preparing FFmpeg components for audio/video merging...")
+                check_dependencies(auto_download=True)
+
             # If metadata was not fetched yet or URL changed, fetch it first
             if self.media_info is None or self.last_fetched_url != url:
                 self.after(0, self._update_status, "Fetching media information...")

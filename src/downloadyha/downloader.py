@@ -291,7 +291,8 @@ class YtDlpMessageCollector:
 
 def get_yt_dlp_options(
     extra_options: Optional[Dict[str, Any]] = None,
-    logger_instance: Optional[Any] = None
+    logger_instance: Optional[Any] = None,
+    auto_download_deps: bool = False
 ) -> Dict[str, Any]:
     """
     Get common yt-dlp options configured with bundled dependencies.
@@ -305,6 +306,7 @@ def get_yt_dlp_options(
     Args:
         extra_options: Optional extra parameters to merge into options.
         logger_instance: Optional custom logger instance.
+        auto_download_deps: Whether to auto-download missing dependencies.
 
     Returns:
         Dictionary of yt-dlp options.
@@ -318,7 +320,7 @@ def get_yt_dlp_options(
     }
 
     # Configure Deno runtime for yt-dlp JS execution
-    deno_path = get_deno_path(auto_download=False)
+    deno_path = get_deno_path(auto_download=auto_download_deps)
     if deno_path and deno_path.exists():
         options["js_runtimes"] = {
             "deno": {
@@ -331,7 +333,7 @@ def get_yt_dlp_options(
         }
 
     # Configure FFmpeg location
-    ffmpeg_path = get_ffmpeg_path(auto_download=False)
+    ffmpeg_path = get_ffmpeg_path(auto_download=auto_download_deps)
     if ffmpeg_path and ffmpeg_path.exists():
         options["ffmpeg_location"] = str(ffmpeg_path.parent)
 
@@ -539,16 +541,23 @@ def choose_audio_quality() -> Optional[str]:
     return quality
 
 
-def resolve_video_format(height: Optional[int] = None) -> str:
+def resolve_video_format(height: Optional[int] = None, has_ffmpeg: bool = True) -> str:
     """
     Build yt-dlp format selector string for video downloads.
 
     Args:
         height: Maximum video height resolution (e.g., 1080, 720, 0 for best).
+        has_ffmpeg: Whether FFmpeg is available to mux separate video and audio streams.
 
     Returns:
         yt-dlp format string.
     """
+    if not has_ffmpeg:
+        # Fallback to single-file progressive streams with audio if FFmpeg is absent
+        if height and height > 0:
+            return f"best[height<={height}][acodec!=none]/best[acodec!=none]/best"
+        return "best[acodec!=none]/best"
+
     if height and height > 0:
         return (
             f"bestvideo[height<={height}]+bestaudio/"
@@ -747,6 +756,10 @@ def download_media(
             download_directory=target_dir
         )
 
+    # Ensure dependencies (FFmpeg for stream merging / MP3 extraction, Deno for JS solver)
+    ffmpeg_path = get_ffmpeg_path(auto_download=True)
+    has_ffmpeg = ffmpeg_path is not None and ffmpeg_path.exists()
+
     # Set up progress and stats tracking
     stats_tracker: Dict[str, Any] = {
         "total_items": entries_count,
@@ -779,14 +792,16 @@ def download_media(
     else:
         # Video download
         height = int(quality) if (quality is not None and str(quality).isdigit()) else 0
-        video_format = resolve_video_format(height)
+        video_format = resolve_video_format(height, has_ffmpeg=has_ffmpeg)
         extra_options.update({
             "format": video_format,
             "merge_output_format": output_format,
         })
         desc_str = f"video (format: {output_format}, max height: {height or 'best'}p)"
 
-    options = get_yt_dlp_options(extra_options, logger_instance=collector)
+    options = get_yt_dlp_options(extra_options, logger_instance=collector, auto_download_deps=True)
+    if has_ffmpeg and "ffmpeg_location" not in options:
+        options["ffmpeg_location"] = str(ffmpeg_path.parent)
 
     try:
         logger.info(f"Starting download: url={url}, type={desc_str}, is_playlist={is_pl}")
