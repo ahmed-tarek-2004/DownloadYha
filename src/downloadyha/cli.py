@@ -38,7 +38,6 @@ from .ui import (
     print_step,
     print_summary,
     prompt_choice,
-    prompt_confirm,
     prompt_input,
     success,
     wait,
@@ -392,68 +391,73 @@ def handle_gui_command() -> None:
 
 def main() -> None:
     """Main CLI entry point."""
-    setup_logging(log_to_file=True, log_to_console=False)
-    logger = get_logger("cli")
-    logger.info(f"Downloadyha v{__version__} started")
+    try:
+        setup_logging(log_to_file=True, log_to_console=False)
+        logger = get_logger("cli")
+        logger.info(f"Downloadyha v{__version__} started")
 
-    # Command-line subcommands
-    if len(sys.argv) > 1:
-        arg = sys.argv[1].strip().lower()
+        # Command-line subcommands
+        if len(sys.argv) > 1:
+            arg = sys.argv[1].strip().lower()
 
-        if arg in ("gui", "--gui"):
-            handle_gui_command()
-            return
+            if arg in ("gui", "--gui"):
+                handle_gui_command()
+                return
 
-        elif arg == "update":
-            updater.handle_update_command()
-            return
+            elif arg == "update":
+                updater.handle_update_command()
+                return
 
-        elif arg == "repair":
-            init_terminal()
-            info("Attempting to repair Downloadyha dependencies...")
-            if repair_dependencies():
-                success("Repair completed successfully. All dependencies are installed.")
-                sys.exit(0)
-            else:
-                error("Repair failed. Some dependencies could not be automatically downloaded.")
-                sys.exit(1)
+            elif arg == "repair":
+                init_terminal()
+                info("Attempting to repair Downloadyha dependencies...")
+                if repair_dependencies():
+                    success("Repair completed successfully. All dependencies are installed.")
+                    sys.exit(0)
+                else:
+                    error("Repair failed. Some dependencies could not be automatically downloaded.")
+                    sys.exit(1)
 
-        elif arg == "uninstall":
-            uninstaller.handle_uninstall_command()
-            return
+            elif arg == "uninstall":
+                uninstaller.handle_uninstall_command()
+                return
 
-        elif arg in ("--help", "-h", "help"):
-            init_terminal()
-            print_banner()
-            c = Colors
-            print(f"{c.BOLD}{c.BRIGHT_WHITE}Usage:{c.RESET}")
-            print(f"  {c.BRIGHT_CYAN}downloadyha{c.RESET}            Start interactive downloader (Video / Audio / Playlist)")
-            print(f"  {c.BRIGHT_CYAN}downloadyha gui{c.RESET}        Launch Desktop GUI interface")
-            print(f"  {c.BRIGHT_CYAN}downloadyha update{c.RESET}     Check for and install updates")
-            print(f"  {c.BRIGHT_CYAN}downloadyha repair{c.RESET}     Re-download and repair dependencies (FFmpeg / Deno)")
-            print(f"  {c.BRIGHT_CYAN}downloadyha uninstall{c.RESET}  Completely uninstall Downloadyha")
-            print(f"  {c.BRIGHT_CYAN}downloadyha --verify{c.RESET}   Verify dependencies status")
-            print(f"  {c.BRIGHT_CYAN}downloadyha --version{c.RESET}  Display version info")
-            print()
-            return
+            elif arg in ("--help", "-h", "help"):
+                init_terminal()
+                print_banner()
+                c = Colors
+                print(f"{c.BOLD}{c.BRIGHT_WHITE}Usage:{c.RESET}")
+                print(f"  {c.BRIGHT_CYAN}downloadyha{c.RESET}            Start interactive downloader (Video / Audio / Playlist)")
+                print(f"  {c.BRIGHT_CYAN}downloadyha gui{c.RESET}        Launch Desktop GUI interface")
+                print(f"  {c.BRIGHT_CYAN}downloadyha update{c.RESET}     Check for and install updates")
+                print(f"  {c.BRIGHT_CYAN}downloadyha repair{c.RESET}     Re-download and repair dependencies (FFmpeg / Deno)")
+                print(f"  {c.BRIGHT_CYAN}downloadyha uninstall{c.RESET}  Completely uninstall Downloadyha")
+                print(f"  {c.BRIGHT_CYAN}downloadyha --verify{c.RESET}   Verify dependencies status")
+                print(f"  {c.BRIGHT_CYAN}downloadyha --version{c.RESET}  Display version info")
+                print()
+                return
 
-        elif arg == "--verify":
-            init_terminal()
-            info("Verifying system dependencies...")
-            if verify_dependencies():
-                success("All dependencies are ready and operational.")
-                sys.exit(0)
-            else:
-                warning("Some dependencies are missing. Run 'downloadyha repair' to fix them.")
-                sys.exit(1)
+            elif arg == "--verify":
+                init_terminal()
+                info("Verifying system dependencies...")
+                if verify_dependencies():
+                    success("All dependencies are ready and operational.")
+                    sys.exit(0)
+                else:
+                    warning("Some dependencies are missing. Run 'downloadyha repair' to fix them.")
+                    sys.exit(1)
 
-        elif arg in ("--version", "-v"):
-            print(f"Downloadyha {__version__}")
-            return
+            elif arg in ("--version", "-v"):
+                print(f"Downloadyha {__version__}")
+                return
 
-    # Interactive flow
-    exit_code = run_download_interactive()
-    sys.exit(exit_code)
+        # Interactive flow
+        exit_code = run_download_interactive()
+        sys.exit(exit_code)
+
+    except (KeyboardInterrupt, EOFError):
+        print(f"\n\n{Colors.MUTED}Operation cancelled by user.{Colors.RESET}\n")
+        sys.exit(130)
 
 
 if __name__ == "__main__":

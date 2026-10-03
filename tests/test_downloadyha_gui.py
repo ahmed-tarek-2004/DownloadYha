@@ -184,5 +184,25 @@ class TestDownloadyhaGUILogic(unittest.TestCase):
         self.gui.media_title_label.configure.assert_called_with(text="📑 Awesome Music Playlist")
 
 
+class TestDownloadyhaGUILauncher(unittest.TestCase):
+    """Test launcher dependency checking."""
+
+    def test_check_dependencies_success(self):
+        with patch.dict("sys.modules", {"tkinter": MagicMock(), "customtkinter": MagicMock(), "yt_dlp": MagicMock()}):
+            from downloadyha_gui import launcher
+            self.assertTrue(launcher.check_dependencies())
+
+    def test_check_dependencies_missing_tkinter(self):
+        with patch.dict("sys.modules", {"tkinter": None}):
+            from downloadyha_gui import launcher
+            self.assertFalse(launcher.check_dependencies())
+
+    def test_check_dependencies_missing_customtkinter(self):
+        with patch.dict("sys.modules", {"tkinter": MagicMock(), "customtkinter": None, "yt_dlp": MagicMock()}):
+            from downloadyha_gui import launcher
+            self.assertFalse(launcher.check_dependencies())
+
+
 if __name__ == "__main__":
     unittest.main()
+
