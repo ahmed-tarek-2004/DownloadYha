@@ -2,38 +2,46 @@
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
-
 [project]
 name = "downloadyha"
-version = "2.0.0"
-
+version = "2.0.1"
 description = "A modern video, audio, and playlist downloader CLI and GUI for YouTube & Social Media"
-
 readme = "README.md"
-
 requires-python = ">=3.10"
-
+license = { text = "MIT" }
+authors = [
+    { name = "Ahmed Tarek Zaher" }
+]
 dependencies = [
     "yt-dlp>=2026.8.19",
     "curl_cffi>=0.7.0",
     "certifi>=2024.0.0",
 ]
 
-
 [project.optional-dependencies]
 dev = [
     "pyinstaller>=6.0.0",
+    "build>=1.0.0",
+    "twine>=5.0.0",
 ]
 gui = [
     "customtkinter>=5.2.0",
     "pillow>=10.0.0",
 ]
 
+[project.urls]
+Homepage = "https://github.com/ahmed-tarek-2004/DownloadYha"
+Repository = "https://github.com/ahmed-tarek-2004/DownloadYha"
+Issues = "https://github.com/ahmed-tarek-2004/DownloadYha/issues"
+Changelog = "https://github.com/ahmed-tarek-2004/DownloadYha/blob/master/CHANGELOG.md"
 
 [project.scripts]
 downloadyha = "downloadyha.cli:main"
-downloadyha-gui = "downloadyha_gui.app:main"
-
+downloadyha-gui = "downloadyha_gui.launcher:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+downloadyha = ["*.json"]
+downloadyha_gui = ["resources/*"]
