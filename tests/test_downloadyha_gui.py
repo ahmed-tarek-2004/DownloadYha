@@ -82,7 +82,7 @@ class TestDownloadyhaGUIHelpers(unittest.TestCase):
             root.destroy()
         except Exception as e:
             # If running in headless environment without display, skip GUI creation error
-            if "no display name" not in str(e).lower():
+            if "no display name" not in str(e).lower() and "display" not in str(e).lower():
                 raise e
 
 
