@@ -36,6 +36,7 @@ from .ui import (
     init_terminal,
     print_banner,
     print_card,
+    print_interrupted,
     print_step,
     print_summary,
     prompt_choice,
@@ -540,19 +541,57 @@ def main() -> None:
     logger = get_logger("cli")
     logger.info(f"Downloadyha v{__version__} started")
 
-    # Command-line subcommands without flags
-    if len(sys.argv) > 1:
-        arg = sys.argv[1].strip().lower()
+    try:
+        # Command-line subcommands without flags
+        if len(sys.argv) > 1:
+            arg = sys.argv[1].strip().lower()
 
-        if arg == "gui":
+            if arg == "gui":
+                handle_gui_command()
+                return
+
+            elif arg == "update":
+                updater.handle_update_command()
+                return
+
+            elif arg == "repair":
+                init_terminal()
+                info("Attempting to repair Downloadyha dependencies...")
+                if repair_dependencies():
+                    success("Repair completed successfully. All dependencies are installed.")
+                    sys.exit(0)
+                else:
+                    error("Repair failed. Some dependencies could not be automatically downloaded.")
+                    sys.exit(1)
+
+            elif arg == "uninstall":
+                uninstaller.handle_uninstall_command()
+                return
+
+            elif arg in ("--help", "-h", "help"):
+                init_terminal()
+                print_banner(__version__)
+                parser = create_parser()
+                parser.print_help()
+                return
+
+            elif arg in ("--version", "-v"):
+                print(f"Downloadyha {__version__}")
+                return
+
+        # Parse standard command-line flags and arguments
+        parser = create_parser()
+        args = parser.parse_args()
+
+        if args.gui:
             handle_gui_command()
             return
 
-        elif arg == "update":
+        if args.update:
             updater.handle_update_command()
             return
 
-        elif arg == "repair":
+        if args.repair:
             init_terminal()
             info("Attempting to repair Downloadyha dependencies...")
             if repair_dependencies():
@@ -562,67 +601,35 @@ def main() -> None:
                 error("Repair failed. Some dependencies could not be automatically downloaded.")
                 sys.exit(1)
 
-        elif arg == "uninstall":
+        if args.uninstall:
             uninstaller.handle_uninstall_command()
             return
 
-        elif arg in ("--help", "-h", "help"):
+        if args.verify:
             init_terminal()
-            print_banner(__version__)
-            parser = create_parser()
-            parser.print_help()
-            return
+            info("Verifying system dependencies...")
+            if verify_dependencies():
+                success("All dependencies are ready and operational.")
+                sys.exit(0)
+            else:
+                warning("Some dependencies are missing. Run 'downloadyha repair' to fix them.")
+                sys.exit(1)
 
-        elif arg in ("--version", "-v"):
-            print(f"Downloadyha {__version__}")
-            return
+        # Interactive flow with optional CLI arguments
+        exit_code = run_download_interactive(
+            url=args.url,
+            start_time=args.start_time,
+            end_time=args.end_time,
+            download_path=args.output_dir,
+            dl_type=args.format,
+            quality=args.quality,
+        )
+        sys.exit(exit_code)
 
-    # Parse standard command-line flags and arguments
-    parser = create_parser()
-    args = parser.parse_args()
-
-    if args.gui:
-        handle_gui_command()
-        return
-
-    if args.update:
-        updater.handle_update_command()
-        return
-
-    if args.repair:
-        init_terminal()
-        info("Attempting to repair Downloadyha dependencies...")
-        if repair_dependencies():
-            success("Repair completed successfully. All dependencies are installed.")
-            sys.exit(0)
-        else:
-            error("Repair failed. Some dependencies could not be automatically downloaded.")
-            sys.exit(1)
-
-    if args.uninstall:
-        uninstaller.handle_uninstall_command()
-        return
-
-    if args.verify:
-        init_terminal()
-        info("Verifying system dependencies...")
-        if verify_dependencies():
-            success("All dependencies are ready and operational.")
-            sys.exit(0)
-        else:
-            warning("Some dependencies are missing. Run 'downloadyha repair' to fix them.")
-            sys.exit(1)
-
-    # Interactive flow with optional CLI arguments
-    exit_code = run_download_interactive(
-        url=args.url,
-        start_time=args.start_time,
-        end_time=args.end_time,
-        download_path=args.output_dir,
-        dl_type=args.format,
-        quality=args.quality,
-    )
-    sys.exit(exit_code)
+    except (KeyboardInterrupt, EOFError):
+        logger.info("Session canceled by user (Ctrl+C / EOF)")
+        print_interrupted()
+        sys.exit(130)
 
 
 if __name__ == "__main__":

@@ -1555,6 +1555,69 @@ error = print_error
 wait = print_wait
 
 
+def print_interrupted(
+    message: str = "Operation canceled by user.",
+    details: Optional[str] = "Exited cleanly. Thanks for using Downloadyha!",
+    width: Optional[int] = None
+) -> None:
+    """
+    Print a clean, friendly cancellation message when user presses Ctrl+C.
+    Handles terminal line clearing and works seamlessly across Linux and Windows.
+
+    Args:
+        message: Primary cancellation message.
+        details: Optional helpful tip or friendly exit remark.
+        width: Optional custom box width.
+    """
+    try:
+        sys.stdout.write("\r\033[K")
+        sys.stdout.flush()
+    except Exception:
+        pass
+
+    c = Colors
+    b = BOX_STYLES["rounded"]
+    box_w = max(width or get_terminal_width(default=68, max_width=72), 48)
+    inner_w = box_w - 4
+
+    hdr_title = f"{Symbols.WARN} CANCELED"
+    hdr_str = f" {hdr_title} "
+    hdr_vis = get_visible_length(hdr_str)
+    dashes = max(0, box_w - 3 - hdr_vis)
+
+    print()
+    print(
+        f"{colorize(b['tl'] + b['h'], c.WARNING)}"
+        f"{colorize(hdr_str, c.BOLD, c.BRIGHT_YELLOW)}"
+        f"{colorize(b['h'] * dashes + b['tr'], c.WARNING)}"
+    )
+
+    for line in wrap_text(message, inner_w):
+        pad = inner_w - get_visible_length(line)
+        print(
+            f"{colorize(b['v'], c.WARNING)} "
+            f"{colorize(line, c.BOLD, c.BRIGHT_WHITE)}"
+            f"{' ' * max(0, pad)} "
+            f"{colorize(b['v'], c.WARNING)}"
+        )
+
+    if details:
+        for d_line in wrap_text(details, inner_w):
+            pad = inner_w - get_visible_length(d_line)
+            print(
+                f"{colorize(b['v'], c.WARNING)} "
+                f"{colorize(d_line, c.MUTED)}"
+                f"{' ' * max(0, pad)} "
+                f"{colorize(b['v'], c.WARNING)}"
+            )
+
+    print(colorize(b["bl"] + b["h"] * (box_w - 2) + b["br"], c.WARNING))
+    print()
+
+
+interrupted = print_interrupted
+
+
 def print_alert(
     message: str,
     alert_type: str = "info",

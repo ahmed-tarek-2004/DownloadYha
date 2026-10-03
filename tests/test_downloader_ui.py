@@ -214,11 +214,15 @@ class TestUI(unittest.TestCase):
             ui.print_alert("Alert message", alert_type="warning")
             ui.print_divider(title="Section Divider")
             ui.print_step(1, 3, "Step Title", description="Step description")
+            ui.print_interrupted("Canceled message", "Clean exit details")
             output = mock_stdout.getvalue()
             self.assertIn("Success message", output)
             self.assertIn("Info message", output)
             self.assertIn("Warning message", output)
             self.assertIn("Error message", output)
+            self.assertIn("CANCELED", output)
+            self.assertIn("Canceled message", output)
+            self.assertIn("Clean exit details", output)
 
     def test_prompt_input(self):
         with patch("builtins.input", side_effect=["test_value"]):
