@@ -263,6 +263,27 @@ main() {
     chmod +x "${INSTALL_DIR}/${APP_NAME}"
     ok "Installed to ${INSTALL_DIR}/${APP_NAME}"
 
+    # Install Desktop GUI if requested (--gui)
+    if [[ "${1:-}" == "--gui" || "${INSTALL_GUI:-false}" == "true" ]]; then
+        local gui_name="downloadyha-gui"
+        local gui_asset="${gui_name}-${version}-linux-${arch}.tar.gz"
+        local gui_url="${RELEASES}/download/${version}/${gui_asset}"
+        local gui_path="${TMP_DIR}/${gui_asset}"
+
+        step "Downloading Desktop GUI asset: $gui_url"
+        download_file "$gui_url" "$gui_path"
+        verify_checksum "$gui_path" "$sums_path" "$gui_asset"
+        tar -xzf "$gui_path" -C "$TMP_DIR"
+
+        local gui_bin
+        gui_bin=$(find "$TMP_DIR" -type f -name "$gui_name" | head -n 1)
+        if [ -n "$gui_bin" ] && [ -f "$gui_bin" ]; then
+            cp "$gui_bin" "${INSTALL_DIR}/${gui_name}"
+            chmod +x "${INSTALL_DIR}/${gui_name}"
+            ok "Installed to ${INSTALL_DIR}/${gui_name}"
+        fi
+    fi
+
     # 8. Add to PATH
     add_to_path "$INSTALL_DIR"
 
