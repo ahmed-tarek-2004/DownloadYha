@@ -338,6 +338,22 @@ class TestCLISubcommands(unittest.TestCase):
             cli.main()
             mock_banner.assert_called_once()
 
+    @patch("downloadyha.cli.setup_logging")
+    @patch("downloadyha.cli.run_download_interactive", side_effect=KeyboardInterrupt)
+    def test_main_keyboard_interrupt(self, mock_interactive, mock_log):
+        with patch.object(sys, "argv", ["downloadyha"]):
+            with self.assertRaises(SystemExit) as cm:
+                cli.main()
+            self.assertEqual(cm.exception.code, 130)
+
+    @patch("downloadyha.cli.setup_logging")
+    @patch("downloadyha.cli.run_download_interactive", side_effect=EOFError)
+    def test_main_eof_error(self, mock_interactive, mock_log):
+        with patch.object(sys, "argv", ["downloadyha"]):
+            with self.assertRaises(SystemExit) as cm:
+                cli.main()
+            self.assertEqual(cm.exception.code, 130)
+
 
 if __name__ == "__main__":
     unittest.main()
