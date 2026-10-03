@@ -871,7 +871,7 @@ def main() -> None:
         if len(sys.argv) > 1:
             arg = sys.argv[1].strip().lower()
 
-            if arg == "gui":
+            if arg in ("gui", "--gui"):
                 handle_gui_command()
                 return
 
