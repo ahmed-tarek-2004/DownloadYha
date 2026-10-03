@@ -263,6 +263,32 @@ jobs:
             *.tar.gz
           if-no-files-found: error
           retention-days: 1
+  # Publish to pip
+  publish-pypi:
+    name: Build & Publish to PyPI
+    needs: [build-cli, build-gui]
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install build tool
+        run: pip install build
+
+      - name: Build sdist and wheel
+        run: python -m build
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1  
 
   release:
     name: Create Release
