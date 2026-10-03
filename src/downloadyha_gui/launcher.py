@@ -11,6 +11,19 @@ from pathlib import Path
 
 def check_dependencies():
     """Check if all required dependencies are installed."""
+    try:
+        import tkinter
+    except ImportError:
+        print("ERROR: Python Tkinter support is missing!")
+        if sys.platform.startswith("linux"):
+            print("\nPlease install Tkinter via your Linux package manager:")
+            print("  Debian/Ubuntu: sudo apt install python3-tk")
+            print("  Fedora/RHEL:   sudo dnf install python3-tkinter")
+            print("  Arch Linux:    sudo pacman -S tk")
+        else:
+            print("\nPlease reinstall Python with Tcl/Tk support enabled.")
+        return False
+
     missing = []
 
     try:

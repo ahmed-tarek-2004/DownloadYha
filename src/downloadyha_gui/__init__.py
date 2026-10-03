@@ -27,6 +27,10 @@ __license__ = "MIT"
 
 # BOOKMARK: Ahmed Tarek Zaher - Owner
 
-from .app import DownloadyhaGUI, main
+def __getattr__(name: str):
+    if name in ("DownloadyhaGUI", "main"):
+        from .app import DownloadyhaGUI, main
+        return {"DownloadyhaGUI": DownloadyhaGUI, "main": main}[name]
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 __all__ = ["DownloadyhaGUI", "main", "__version__"]
