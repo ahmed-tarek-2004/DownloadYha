@@ -41,6 +41,7 @@ try:
         get_video_qualities,
         is_playlist,
         is_playlist_url,
+        parse_time_str,
     )
     from downloadyha.ui import format_duration, format_number
 except ImportError:
@@ -59,6 +60,7 @@ except ImportError:
         get_video_qualities,
         is_playlist,
         is_playlist_url,
+        parse_time_str,
     )
     from downloadyha.ui import format_duration, format_number
 
@@ -308,8 +310,8 @@ class DownloadyhaGUI(ctk.CTk):
 
         # Window configuration
         self.title(f"Downloadyha v{__version__} - Video & Media Downloader")
-        self.geometry("960x780")
-        self.minsize(900, 720)
+        self.geometry("960x820")
+        self.minsize(900, 700)
         self.resizable(True, True)
 
         # Load user configuration
@@ -461,11 +463,11 @@ class DownloadyhaGUI(ctk.CTk):
         tab = self.tabview.tab("⬇️ Download")
         tab.grid_columnconfigure(0, weight=1)
         tab.grid_rowconfigure(0, weight=1)
-        tab.grid_propagate(True)
+        tab.grid_rowconfigure(1, weight=0)
 
-        # Main vertical container
-        container = ctk.CTkFrame(tab, fg_color="transparent")
-        container.grid(row=0, column=0, padx=10, pady=4, sticky="nsew")
+        # Main scrollable content container (row 0)
+        container = ctk.CTkScrollableFrame(tab, fg_color="transparent")
+        container.grid(row=0, column=0, padx=6, pady=(4, 2), sticky="nsew")
         container.grid_columnconfigure(0, weight=1)
 
         # Header (row 0)
@@ -632,9 +634,76 @@ class DownloadyhaGUI(ctk.CTk):
         )
         self.quality_menu.grid(row=0, column=1, sticky="ew")
 
-        # Destination Folder Section (row 6 & 7)
+        # Partial Section Clipping Toggle (row 6)
+        section_toggle_frame = ctk.CTkFrame(container, fg_color="transparent")
+        section_toggle_frame.grid(row=6, column=0, padx=10, pady=(4, 2), sticky="ew")
+
+        self.section_toggle_var = tk.BooleanVar(value=False)
+        self.section_toggle = ctk.CTkCheckBox(
+            section_toggle_frame,
+            text="✂️ Download specific section (clip)",
+            variable=self.section_toggle_var,
+            font=ctk.CTkFont(size=12, weight="bold"),
+            command=self._on_section_toggled,
+            fg_color=Theme.get_accent_color(),
+            hover_color=Theme.rgb_to_hex(Theme.CYBER_PURPLE),
+            checkmark_color="black"
+        )
+        self.section_toggle.grid(row=0, column=0, sticky="w")
+
+        # Collapsible Section Range Inputs (row 7, hidden by default)
+        self.section_frame = ctk.CTkFrame(container, fg_color=Theme.rgb_to_hex(Theme.CARD_BG_LIGHT), corner_radius=8)
+        self.section_frame.grid_columnconfigure(0, weight=1)
+        self.section_frame.grid_columnconfigure(1, weight=1)
+
+        # Start time box
+        start_box = ctk.CTkFrame(self.section_frame, fg_color="transparent")
+        start_box.grid(row=0, column=0, padx=(10, 5), pady=(6, 2), sticky="ew")
+        start_box.grid_columnconfigure(0, weight=1)
+        ctk.CTkLabel(
+            start_box,
+            text="Start Time:",
+            font=ctk.CTkFont(size=11, weight="bold")
+        ).grid(row=0, column=0, sticky="w")
+        self.start_time_entry = ctk.CTkEntry(
+            start_box,
+            placeholder_text="00:00 (e.g. 01:30)",
+            height=32,
+            font=ctk.CTkFont(size=11),
+            border_color=Theme.rgb_to_hex(Theme.CYBER_PURPLE)
+        )
+        self.start_time_entry.grid(row=1, column=0, sticky="ew", pady=(2, 0))
+
+        # End time box
+        end_box = ctk.CTkFrame(self.section_frame, fg_color="transparent")
+        end_box.grid(row=0, column=1, padx=(5, 10), pady=(6, 2), sticky="ew")
+        end_box.grid_columnconfigure(0, weight=1)
+        ctk.CTkLabel(
+            end_box,
+            text="End Time:",
+            font=ctk.CTkFont(size=11, weight="bold")
+        ).grid(row=0, column=0, sticky="w")
+        self.end_time_entry = ctk.CTkEntry(
+            end_box,
+            placeholder_text="Leave blank for end (e.g. 04:15)",
+            height=32,
+            font=ctk.CTkFont(size=11),
+            border_color=Theme.rgb_to_hex(Theme.CYBER_PURPLE)
+        )
+        self.end_time_entry.grid(row=1, column=0, sticky="ew", pady=(2, 0))
+
+        # Hint guide label
+        self.section_hint_label = ctk.CTkLabel(
+            self.section_frame,
+            text="💡 Formats: MM:SS, HH:MM:SS, or seconds (e.g., 01:30, 90, 01:15:30)",
+            font=ctk.CTkFont(size=10),
+            text_color=Theme.rgb_to_hex((140, 140, 160))
+        )
+        self.section_hint_label.grid(row=1, column=0, columnspan=2, padx=10, pady=(2, 6), sticky="w")
+
+        # Destination Folder Section (row 8 & 9)
         dest_label_frame = ctk.CTkFrame(container, fg_color="transparent")
-        dest_label_frame.grid(row=6, column=0, padx=10, pady=(4, 2), sticky="ew")
+        dest_label_frame.grid(row=8, column=0, padx=10, pady=(4, 2), sticky="ew")
 
         ctk.CTkLabel(
             dest_label_frame,
@@ -643,7 +712,7 @@ class DownloadyhaGUI(ctk.CTk):
         ).grid(row=0, column=0, sticky="w")
 
         dest_entry_frame = ctk.CTkFrame(container, fg_color="transparent")
-        dest_entry_frame.grid(row=7, column=0, padx=10, pady=(2, 6), sticky="ew")
+        dest_entry_frame.grid(row=9, column=0, padx=10, pady=(2, 6), sticky="ew")
         dest_entry_frame.grid_columnconfigure(0, weight=1)
 
         self.dest_entry = ctk.CTkEntry(
@@ -669,9 +738,9 @@ class DownloadyhaGUI(ctk.CTk):
         )
         browse_btn.grid(row=0, column=1)
 
-        # Progress Section (row 8)
+        # Progress Section (row 10)
         progress_frame = GlassCard(container, height=120)
-        progress_frame.grid(row=8, column=0, padx=10, pady=(6, 6), sticky="ew")
+        progress_frame.grid(row=10, column=0, padx=10, pady=(6, 6), sticky="ew")
         progress_frame.grid_columnconfigure(0, weight=1)
         progress_frame.grid_propagate(False)
 
@@ -726,10 +795,10 @@ class DownloadyhaGUI(ctk.CTk):
         )
         self.eta_label.grid(row=0, column=2, sticky="e")
 
-        # Buttons Section (row 9)
-        buttons_frame = ctk.CTkFrame(container, fg_color="transparent")
-        buttons_frame.grid(row=9, column=0, padx=10, pady=(4, 4), sticky="ew")
-        buttons_frame.grid_columnconfigure(0, weight=1)
+        # Fixed Action Buttons Bar (docked at bottom of tab on row 1)
+        buttons_frame = ctk.CTkFrame(tab, fg_color="transparent")
+        buttons_frame.grid(row=1, column=0, padx=10, pady=(6, 6), sticky="ew")
+        buttons_frame.grid_columnconfigure(0, weight=2)
         buttons_frame.grid_columnconfigure(1, weight=1)
         buttons_frame.grid_columnconfigure(2, weight=1)
 
@@ -917,6 +986,13 @@ class DownloadyhaGUI(ctk.CTk):
         """Handle media type change (Video vs Audio)."""
         self._update_quality_options()
 
+    def _on_section_toggled(self):
+        """Show or hide start/end time inputs based on section checkbox state."""
+        if self.section_toggle_var.get():
+            self.section_frame.grid(row=7, column=0, padx=10, pady=(2, 6), sticky="ew")
+        else:
+            self.section_frame.grid_forget()
+
     def _browse_destination(self):
         """Open folder picker dialog."""
         folder = filedialog.askdirectory(
@@ -954,6 +1030,37 @@ class DownloadyhaGUI(ctk.CTk):
                 messagebox.showerror("Error", f"Cannot create destination folder: {e}")
                 return
 
+        # Validate section clipping times if enabled
+        start_time_arg = None
+        end_time_arg = None
+        if self.section_toggle_var.get():
+            st_raw = self.start_time_entry.get().strip()
+            et_raw = self.end_time_entry.get().strip()
+
+            if st_raw:
+                try:
+                    st_val = parse_time_str(st_raw)
+                    start_time_arg = st_raw
+                except ValueError as e:
+                    messagebox.showerror("Invalid Start Time", f"Invalid start time format: {e}")
+                    return
+            else:
+                st_val = None
+
+            if et_raw:
+                try:
+                    et_val = parse_time_str(et_raw)
+                    end_time_arg = et_raw
+                except ValueError as e:
+                    messagebox.showerror("Invalid End Time", f"Invalid end time format: {e}")
+                    return
+            else:
+                et_val = None
+
+            if st_val is not None and et_val is not None and et_val <= st_val:
+                messagebox.showerror("Invalid Time Range", f"End time ({et_raw}) must be greater than start time ({st_raw}).")
+                return
+
         # Start download in background thread
         self.is_downloading = True
         self.cancel_requested = False
@@ -964,12 +1071,12 @@ class DownloadyhaGUI(ctk.CTk):
 
         self.current_download_thread = threading.Thread(
             target=self._download_worker,
-            args=(url, dest_path),
+            args=(url, dest_path, start_time_arg, end_time_arg),
             daemon=True
         )
         self.current_download_thread.start()
 
-    def _download_worker(self, url: str, dest_path: str):
+    def _download_worker(self, url: str, dest_path: str, start_time: Optional[str] = None, end_time: Optional[str] = None):
         """Background worker executing the download."""
         try:
             # Ensure FFmpeg is present for merging video/audio streams into a single file
@@ -1027,6 +1134,8 @@ class DownloadyhaGUI(ctk.CTk):
                     download_path=dest_path,
                     media_type=media_type,
                     quality=quality_arg,
+                    start_time=start_time,
+                    end_time=end_time,
                     progress_callback=progress_callback
                 )
             else:
@@ -1035,6 +1144,8 @@ class DownloadyhaGUI(ctk.CTk):
                         url=url,
                         download_path=dest_path,
                         height=quality,
+                        start_time=start_time,
+                        end_time=end_time,
                         progress_callback=progress_callback
                     )
                 else:
@@ -1042,6 +1153,8 @@ class DownloadyhaGUI(ctk.CTk):
                         url=url,
                         download_path=dest_path,
                         quality=quality,
+                        start_time=start_time,
+                        end_time=end_time,
                         progress_callback=progress_callback
                     )
 

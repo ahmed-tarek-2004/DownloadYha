@@ -94,6 +94,7 @@ class TestDownloadyhaGUILogic(unittest.TestCase):
         self.gui.media_info = None
         self.gui.last_fetched_url = ""
         self.gui.is_fetching_info = False
+        self.gui.is_downloading = False
         self.gui.available_video_qualities = []
         self.gui.media_type_var = MagicMock()
         self.gui.quality_var = MagicMock()
@@ -182,6 +183,41 @@ class TestDownloadyhaGUILogic(unittest.TestCase):
         self.assertEqual(self.gui.media_info, sample_playlist)
         self.gui.media_badge.configure.assert_called()
         self.gui.media_title_label.configure.assert_called_with(text="📑 Awesome Music Playlist")
+
+    def test_section_toggle_visibility(self):
+        """Test section time input container shows/hides on checkbox toggle."""
+        self.gui.section_toggle_var = MagicMock()
+        self.gui.section_frame = MagicMock()
+
+        # When toggle checked (True)
+        self.gui.section_toggle_var.get.return_value = True
+        self.gui._on_section_toggled()
+        self.gui.section_frame.grid.assert_called_with(row=7, column=0, padx=10, pady=(2, 6), sticky="ew")
+
+        # When toggle unchecked (False)
+        self.gui.section_toggle_var.get.return_value = False
+        self.gui._on_section_toggled()
+        self.gui.section_frame.grid_forget.assert_called_once()
+
+    @patch("downloadyha_gui.app.messagebox.showerror")
+    def test_start_download_invalid_time_range(self, mock_error):
+        """Test start_download prevents execution when end_time <= start_time."""
+        self.gui.url_entry = MagicMock()
+        self.gui.url_entry.get.return_value = "https://youtube.com/watch?v=123"
+        self.gui.dest_entry = MagicMock()
+        self.gui.dest_entry.get.return_value = "/tmp/downloads"
+        self.gui.section_toggle_var = MagicMock()
+        self.gui.section_toggle_var.get.return_value = True
+        self.gui.start_time_entry = MagicMock()
+        self.gui.start_time_entry.get.return_value = "03:00"
+        self.gui.end_time_entry = MagicMock()
+        self.gui.end_time_entry.get.return_value = "01:00"
+        self.gui.download_btn = MagicMock()
+        self.gui._set_ui_state = MagicMock()
+
+        self.gui._start_download()
+        mock_error.assert_called_once()
+        self.assertIn("End time (01:00) must be greater than start time (03:00)", mock_error.call_args[0][1])
 
 
 if __name__ == "__main__":

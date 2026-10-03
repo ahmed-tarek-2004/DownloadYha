@@ -36,11 +36,57 @@ from downloadyha.downloader import (
     get_yt_dlp_options,
     is_playlist,
     is_playlist_url,
+    parse_time_str,
     resolve_audio_quality,
     resolve_video_format,
     sanitize_filename,
     sanitize_folder_name,
 )
+
+
+class TestTimeParsingAndClipping(unittest.TestCase):
+    """Test parse_time_str utility and partial clipping downloads."""
+
+    def test_parse_time_str_none_and_empty(self):
+        self.assertIsNone(parse_time_str(None))
+        self.assertIsNone(parse_time_str(""))
+        self.assertIsNone(parse_time_str("   "))
+
+    def test_parse_time_str_numeric(self):
+        self.assertEqual(parse_time_str(90), 90.0)
+        self.assertEqual(parse_time_str(120.5), 120.5)
+        self.assertEqual(parse_time_str(0), 0.0)
+
+    def test_parse_time_str_seconds_string(self):
+        self.assertEqual(parse_time_str("90"), 90.0)
+        self.assertEqual(parse_time_str("90s"), 90.0)
+        self.assertEqual(parse_time_str("90S"), 90.0)
+        self.assertEqual(parse_time_str("45.5"), 45.5)
+
+    def test_parse_time_str_mm_ss(self):
+        self.assertEqual(parse_time_str("01:30"), 90.0)
+        self.assertEqual(parse_time_str("1:30"), 90.0)
+        self.assertEqual(parse_time_str("00:45.5"), 45.5)
+        self.assertEqual(parse_time_str("10:00"), 600.0)
+
+    def test_parse_time_str_hh_mm_ss(self):
+        self.assertEqual(parse_time_str("01:15:30"), 4530.0)
+        self.assertEqual(parse_time_str("00:01:30"), 90.0)
+        self.assertEqual(parse_time_str("2:00:00"), 7200.0)
+
+    def test_parse_time_str_invalid(self):
+        with self.assertRaises(ValueError):
+            parse_time_str(-10)
+        with self.assertRaises(ValueError):
+            parse_time_str("-01:30")
+        with self.assertRaises(ValueError):
+            parse_time_str("invalid")
+        with self.assertRaises(ValueError):
+            parse_time_str("01:60")  # invalid seconds >= 60
+        with self.assertRaises(ValueError):
+            parse_time_str("01:70:00")  # invalid minutes >= 60
+        with self.assertRaises(ValueError):
+            parse_time_str("1:2:3:4")  # too many parts
 
 
 class TestDownloaderHelpers(unittest.TestCase):
@@ -354,6 +400,66 @@ class TestDownloaderMocked(unittest.TestCase):
         self.assertTrue(res)
         self.assertEqual(res.download_type, "audio")
         self.assertTrue(res.is_playlist)
+
+    @patch("downloadyha.downloader.yt_dlp.YoutubeDL")
+    def test_download_partial_video_success(self, mock_ydl_class):
+        mock_ydl = MagicMock()
+        mock_ydl.__enter__.return_value = mock_ydl
+        mock_ydl.extract_info.return_value = {
+            "title": "Clipped Video",
+            "formats": [{"height": 1080}]
+        }
+        mock_ydl.download.return_value = 0
+        mock_ydl_class.return_value = mock_ydl
+
+        res = download_video(
+            "https://www.youtube.com/watch?v=123",
+            self.test_dir,
+            height=1080,
+            start_time="01:00",
+            end_time="02:30"
+        )
+        self.assertTrue(res)
+        self.assertEqual(res.download_type, "video")
+        # Second call is the actual download YoutubeDL instance
+        ydl_opts = mock_ydl_class.call_args_list[-1][0][0]
+        self.assertIn("download_ranges", ydl_opts)
+        self.assertTrue(ydl_opts.get("force_keyframes_at_cuts"))
+
+    @patch("downloadyha.downloader.yt_dlp.YoutubeDL")
+    def test_download_partial_audio_success(self, mock_ydl_class):
+        mock_ydl = MagicMock()
+        mock_ydl.__enter__.return_value = mock_ydl
+        mock_ydl.extract_info.return_value = {
+            "title": "Clipped Audio",
+            "formats": []
+        }
+        mock_ydl.download.return_value = 0
+        mock_ydl_class.return_value = mock_ydl
+
+        res = download_audio(
+            "https://www.youtube.com/watch?v=123",
+            self.test_dir,
+            quality="320",
+            start_time="30",
+            end_time="90"
+        )
+        self.assertTrue(res)
+        self.assertEqual(res.download_type, "audio")
+        # Second call is the actual download YoutubeDL instance
+        ydl_opts = mock_ydl_class.call_args_list[-1][0][0]
+        self.assertIn("download_ranges", ydl_opts)
+        self.assertTrue(ydl_opts.get("force_keyframes_at_cuts"))
+
+    def test_download_partial_invalid_time_range(self):
+        res = download_video(
+            "https://www.youtube.com/watch?v=123",
+            self.test_dir,
+            start_time="03:00",
+            end_time="01:00"
+        )
+        self.assertFalse(res)
+        self.assertIn("greater than start time", res.message)
 
 
 if __name__ == "__main__":

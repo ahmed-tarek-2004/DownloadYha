@@ -29,6 +29,7 @@ from .downloader import (
     get_media_info,
     is_playlist,
     is_playlist_url,
+    parse_time_str,
 )
 
 
@@ -490,6 +491,31 @@ class DownloadyhaGUI:
         self.quality_combo.current(0)
         self.quality_combo.pack(side=tk.LEFT, padx=(10, 0))
 
+        # Section clipping checkbox
+        self.section_toggle_var = tk.BooleanVar(value=False)
+        self.section_check = ttk.Checkbutton(
+            options_frame,
+            text="Download specific section (clip)",
+            variable=self.section_toggle_var,
+            command=self._on_section_toggle,
+        )
+        self.section_check.pack(anchor=tk.W, padx=10, pady=(5, 2))
+
+        # Section clipping inputs frame (hidden initially)
+        self.section_frame = ttk.Frame(options_frame)
+
+        ttk.Label(self.section_frame, text="Start Time:", font=("Segoe UI", 9)).pack(side=tk.LEFT, padx=(0, 5))
+        self.start_time_var = tk.StringVar()
+        self.start_time_entry = ttk.Entry(self.section_frame, textvariable=self.start_time_var, width=10, font=("Segoe UI", 9))
+        self.start_time_entry.pack(side=tk.LEFT, padx=(0, 15))
+
+        ttk.Label(self.section_frame, text="End Time:", font=("Segoe UI", 9)).pack(side=tk.LEFT, padx=(0, 5))
+        self.end_time_var = tk.StringVar()
+        self.end_time_entry = ttk.Entry(self.section_frame, textvariable=self.end_time_var, width=10, font=("Segoe UI", 9))
+        self.end_time_entry.pack(side=tk.LEFT, padx=(0, 10))
+
+        ttk.Label(self.section_frame, text="(e.g. 01:30, 90, 00:01:30)", font=("Segoe UI", 8), foreground="#7F8C8D").pack(side=tk.LEFT)
+
         # Download directory
         dir_frame = ttk.Frame(options_frame)
         dir_frame.pack(fill=tk.X, padx=10, pady=10)
@@ -720,6 +746,13 @@ class DownloadyhaGUI:
             )
             self.quality_combo.current(int(self.audio_quality_var.get()) - 1)
 
+    def _on_section_toggle(self) -> None:
+        """Show or hide section clipping inputs based on checkbox."""
+        if self.section_toggle_var.get():
+            self.section_frame.pack(fill=tk.X, padx=10, pady=(2, 6), after=self.section_check)
+        else:
+            self.section_frame.pack_forget()
+
     def _browse_directory(self) -> None:
         """Open a directory browser dialog."""
         current_dir = self.dir_var.get()
@@ -817,6 +850,37 @@ class DownloadyhaGUI:
 
         save_gui_settings(self.settings)
 
+        # Validate section clipping times if enabled
+        start_time = None
+        end_time = None
+        if self.section_toggle_var.get():
+            st_raw = self.start_time_var.get().strip()
+            et_raw = self.end_time_var.get().strip()
+
+            if st_raw:
+                try:
+                    st_val = parse_time_str(st_raw)
+                    start_time = st_raw
+                except ValueError as e:
+                    messagebox.showerror("Invalid Start Time", f"Invalid start time: {e}")
+                    return
+            else:
+                st_val = None
+
+            if et_raw:
+                try:
+                    et_val = parse_time_str(et_raw)
+                    end_time = et_raw
+                except ValueError as e:
+                    messagebox.showerror("Invalid End Time", f"Invalid end time: {e}")
+                    return
+            else:
+                et_val = None
+
+            if st_val is not None and et_val is not None and et_val <= st_val:
+                messagebox.showerror("Invalid Time Range", f"End time ({et_raw}) must be greater than start time ({st_raw}).")
+                return
+
         # Reset progress callback
         self._progress_callback.reset()
 
@@ -837,6 +901,8 @@ class DownloadyhaGUI:
                         url=url,
                         download_path=download_dir,
                         height=quality,
+                        start_time=start_time,
+                        end_time=end_time,
                         progress_callback=self._progress_callback,
                     )
                 else:
@@ -844,6 +910,8 @@ class DownloadyhaGUI:
                         url=url,
                         download_path=download_dir,
                         quality=quality,
+                        start_time=start_time,
+                        end_time=end_time,
                         progress_callback=self._progress_callback,
                     )
 

@@ -24,6 +24,7 @@ from .downloader import (
     get_playlist_entries,
     get_video_qualities,
     is_playlist,
+    parse_time_str,
 )
 from .logging import get_logger, setup_logging
 from .ui import (
@@ -65,9 +66,19 @@ def choose_download_folder() -> Optional[str]:
         return None
 
 
-def run_download_interactive() -> int:
+def run_download_interactive(
+    url: Optional[str] = None,
+    start_time: Optional[str] = None,
+    end_time: Optional[str] = None,
+    download_path: Optional[str] = None,
+    dl_type: Optional[str] = None,
+    quality: Optional[str] = None,
+) -> int:
     """
     Execute the interactive download workflow with modern UI.
+
+    Supports optional pre-populated parameters from CLI arguments
+    (e.g., start_time, end_time, url, download_path, dl_type, quality).
     """
     logger = get_logger("cli")
 
@@ -83,18 +94,26 @@ def run_download_interactive() -> int:
         return 1
 
     # Step 1: Input URL
-    print_step(1, 3, "Enter Media URL")
-    url = prompt_input("Paste Video or Playlist URL")
+    if not url:
+        print_step(1, 3, "Enter Media URL")
+        url = prompt_input("Paste Video or Playlist URL")
 
     if not url:
         error("URL cannot be empty.")
         return 1
 
     # Step 2: Select destination
-    print_step(2, 3, "Select Destination Folder")
-    download_path = choose_download_folder()
-    if download_path is None:
-        return 1
+    if not download_path:
+        print_step(2, 3, "Select Destination Folder")
+        download_path = choose_download_folder()
+        if download_path is None:
+            return 1
+    else:
+        try:
+            os.makedirs(download_path, exist_ok=True)
+        except Exception as e:
+            error(f"Could not create download folder: {e}")
+            return 1
 
     # Step 3: Fetch Metadata & Configure Download
     print_step(3, 3, "Analyzing Media & Selecting Quality")
@@ -126,7 +145,7 @@ def run_download_interactive() -> int:
             icon=Symbols.PLAYLIST
         )
 
-        dl_type_choice = prompt_choice(
+        dl_type_choice = dl_type or prompt_choice(
             title="Select Playlist Download Type",
             options=[
                 ("video", "Video Playlist (MP4)", "Download all videos in playlist"),
@@ -136,7 +155,7 @@ def run_download_interactive() -> int:
         )
 
         if dl_type_choice == "video":
-            quality_choice = prompt_choice(
+            quality_choice = quality or prompt_choice(
                 title="Select Maximum Video Quality for Playlist",
                 options=[
                     ("best", "Best Available", "Maximum resolution per video"),
@@ -153,11 +172,13 @@ def run_download_interactive() -> int:
                 url=url,
                 download_path=download_path,
                 media_type="video",
-                quality=quality_choice
+                quality=quality_choice,
+                start_time=start_time,
+                end_time=end_time
             )
 
         else:
-            audio_quality = prompt_choice(
+            audio_quality = quality or prompt_choice(
                 title="Select MP3 Bitrate for Playlist",
                 options=[
                     ("0", "Best Quality (VBR 0)", "~245 kbps Variable Bitrate"),
@@ -173,7 +194,9 @@ def run_download_interactive() -> int:
                 url=url,
                 download_path=download_path,
                 media_type="audio",
-                quality=audio_quality
+                quality=audio_quality,
+                start_time=start_time,
+                end_time=end_time
             )
 
         if res.get("success"):
@@ -210,7 +233,7 @@ def run_download_interactive() -> int:
             icon=Symbols.VIDEO
         )
 
-        dl_type = prompt_choice(
+        chosen_format = dl_type or prompt_choice(
             title="Choose Download Format",
             options=[
                 ("video", "Video (MP4)", "High quality video with audio merged"),
@@ -219,53 +242,103 @@ def run_download_interactive() -> int:
             default_index=0
         )
 
-        if dl_type == "video":
-            available_heights = get_video_qualities(info_dict)
-            height_options = []
-            for h in available_heights:
-                label = f"{h}p"
-                desc = "Full HD" if h >= 1080 else ("HD" if h >= 720 else "SD")
-                height_options.append((str(h), label, desc))
+        # Section clipping (start_time / end_time)
+        clip_start = start_time
+        clip_end = end_time
 
-            if not height_options:
-                height_options = [("1080", "1080p", "Best"), ("720", "720p", "HD")]
+        # If not supplied on command line, prompt interactively if user wants a clip
+        if clip_start is None and clip_end is None:
+            want_clip = prompt_confirm("Download a specific section only (clip)?", default=False)
+            if want_clip:
+                clip_start_raw = prompt_input("Start time [e.g. 01:30, 90, or 00:00]", default="00:00")
+                clip_end_raw = prompt_input("End time [e.g. 03:45, 225, or leave empty for end]", default="")
+                clip_start = clip_start_raw.strip() if clip_start_raw.strip() else None
+                clip_end = clip_end_raw.strip() if clip_end_raw.strip() else None
 
-            selected_height_str = prompt_choice(
-                title="Select Video Resolution",
-                options=height_options,
-                default_index=0
-            )
-            selected_height = int(selected_height_str)
+                # Validate timestamps
+                try:
+                    s_sec = parse_time_str(clip_start)
+                    e_sec = parse_time_str(clip_end)
+                    if s_sec is not None and e_sec is not None and e_sec <= s_sec:
+                        warning("End time must be greater than start time. Defaulting to full download.")
+                        clip_start = None
+                        clip_end = None
+                except ValueError as e:
+                    warning(f"{e} Defaulting to full download.")
+                    clip_start = None
+                    clip_end = None
 
+        if chosen_format == "video":
+            if quality:
+                selected_height = int(quality) if quality.isdigit() else 0
+            else:
+                available_heights = get_video_qualities(info_dict)
+                height_options = []
+                for h in available_heights:
+                    label = f"{h}p"
+                    desc = "Full HD" if h >= 1080 else ("HD" if h >= 720 else "SD")
+                    height_options.append((str(h), label, desc))
+
+                if not height_options:
+                    height_options = [("1080", "1080p", "Best"), ("720", "720p", "HD")]
+
+                selected_height_str = prompt_choice(
+                    title="Select Video Resolution",
+                    options=height_options,
+                    default_index=0
+                )
+                selected_height = int(selected_height_str)
+
+            section_note = f" [section: {clip_start or '00:00'} - {clip_end or 'end'}]" if (clip_start or clip_end) else ""
             print()
-            info(f"Downloading Video: {Colors.BOLD}{title}{Colors.RESET} ({selected_height}p)...")
-            success_status = download_video(url, download_path, selected_height)
+            info(f"Downloading Video: {Colors.BOLD}{title}{Colors.RESET} ({selected_height}p){section_note}...")
+            success_status = download_video(
+                url=url,
+                download_path=download_path,
+                height=selected_height,
+                start_time=clip_start,
+                end_time=clip_end
+            )
 
         else:
             # Audio format selection
-            selected_bitrate = prompt_choice(
-                title="Select MP3 Audio Quality",
-                options=[
-                    ("0", "Best (VBR 0)", "~245 kbps Variable Bitrate"),
-                    ("320", "320 kbps (High)", "Crisp high fidelity MP3"),
-                    ("192", "192 kbps (Standard)", "Standard streaming quality"),
-                    ("128", "128 kbps (Compact)", "Small file size"),
-                ],
-                default_index=0
+            if quality:
+                selected_bitrate = quality
+            else:
+                selected_bitrate = prompt_choice(
+                    title="Select MP3 Audio Quality",
+                    options=[
+                        ("0", "Best (VBR 0)", "~245 kbps Variable Bitrate"),
+                        ("320", "320 kbps (High)", "Crisp high fidelity MP3"),
+                        ("192", "192 kbps (Standard)", "Standard streaming quality"),
+                        ("128", "128 kbps (Compact)", "Small file size"),
+                    ],
+                    default_index=0
+                )
+
+            section_note = f" [section: {clip_start or '00:00'} - {clip_end or 'end'}]" if (clip_start or clip_end) else ""
+            print()
+            info(f"Downloading Audio: {Colors.BOLD}{title}{Colors.RESET}{section_note}...")
+            success_status = download_audio(
+                url=url,
+                download_path=download_path,
+                quality=selected_bitrate,
+                start_time=clip_start,
+                end_time=clip_end
             )
 
-            print()
-            info(f"Downloading Audio: {Colors.BOLD}{title}{Colors.RESET}...")
-            success_status = download_audio(url, download_path, selected_bitrate)
-
         if success_status:
+            summary_items = [
+                ("Title", title),
+                ("Format", chosen_format.upper()),
+                ("Saved Folder", download_path),
+            ]
+            if clip_start or clip_end:
+                summary_items.append(("Section", f"{clip_start or '00:00'} to {clip_end or 'end'}"))
+
             print_summary(
                 title="Download Successful",
-                items=[
-                    ("Title", title),
-                    ("Format", dl_type.upper()),
-                    ("Saved Folder", download_path),
-                ]
+                items=summary_items
             )
             return 0
         else:
@@ -280,6 +353,59 @@ def create_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog=__app_name__.lower(),
         description="A beautiful and fast Video, Audio & Playlist Downloader CLI for YouTube, TikTok & Social Media."
+    )
+
+    parser.add_argument(
+        "url",
+        nargs="?",
+        default=None,
+        help="Optional URL of the video, audio, or playlist to download"
+    )
+
+    parser.add_argument(
+        "-s", "--start-time",
+        dest="start_time",
+        type=str,
+        default=None,
+        help="Start time for partial video/audio download (e.g. '01:30', '90', '00:01:30')"
+    )
+
+    parser.add_argument(
+        "-e", "--end-time",
+        dest="end_time",
+        type=str,
+        default=None,
+        help="End time for partial video/audio download (e.g. '04:15', '255', '00:04:15')"
+    )
+
+    parser.add_argument(
+        "-o", "-d", "--output-dir", "--dir",
+        dest="output_dir",
+        type=str,
+        default=None,
+        help="Destination directory for downloads"
+    )
+
+    parser.add_argument(
+        "-f", "--format",
+        dest="format",
+        choices=["video", "audio"],
+        default=None,
+        help="Download format ('video' or 'audio')"
+    )
+
+    parser.add_argument(
+        "-q", "--quality",
+        dest="quality",
+        type=str,
+        default=None,
+        help="Video resolution (e.g., 1080, 720, best) or Audio bitrate (e.g., 320, 192, 0)"
+    )
+
+    parser.add_argument(
+        "--gui",
+        action="store_true",
+        help="Launch the Desktop GUI interface"
     )
 
     parser.add_argument(
@@ -396,11 +522,11 @@ def main() -> None:
     logger = get_logger("cli")
     logger.info(f"Downloadyha v{__version__} started")
 
-    # Command-line subcommands
+    # Command-line subcommands without flags
     if len(sys.argv) > 1:
         arg = sys.argv[1].strip().lower()
 
-        if arg in ("gui", "--gui"):
+        if arg == "gui":
             handle_gui_command()
             return
 
@@ -424,35 +550,42 @@ def main() -> None:
 
         elif arg in ("--help", "-h", "help"):
             init_terminal()
-            print_banner()
-            c = Colors
-            print(f"{c.BOLD}{c.BRIGHT_WHITE}Usage:{c.RESET}")
-            print(f"  {c.BRIGHT_CYAN}downloadyha{c.RESET}            Start interactive downloader (Video / Audio / Playlist)")
-            print(f"  {c.BRIGHT_CYAN}downloadyha gui{c.RESET}        Launch Desktop GUI interface")
-            print(f"  {c.BRIGHT_CYAN}downloadyha update{c.RESET}     Check for and install updates")
-            print(f"  {c.BRIGHT_CYAN}downloadyha repair{c.RESET}     Re-download and repair dependencies (FFmpeg / Deno)")
-            print(f"  {c.BRIGHT_CYAN}downloadyha uninstall{c.RESET}  Completely uninstall Downloadyha")
-            print(f"  {c.BRIGHT_CYAN}downloadyha --verify{c.RESET}   Verify dependencies status")
-            print(f"  {c.BRIGHT_CYAN}downloadyha --version{c.RESET}  Display version info")
-            print()
+            print_banner(__version__)
+            parser = create_parser()
+            parser.print_help()
             return
-
-        elif arg == "--verify":
-            init_terminal()
-            info("Verifying system dependencies...")
-            if verify_dependencies():
-                success("All dependencies are ready and operational.")
-                sys.exit(0)
-            else:
-                warning("Some dependencies are missing. Run 'downloadyha repair' to fix them.")
-                sys.exit(1)
 
         elif arg in ("--version", "-v"):
             print(f"Downloadyha {__version__}")
             return
 
-    # Interactive flow
-    exit_code = run_download_interactive()
+    # Parse standard command-line flags and arguments
+    parser = create_parser()
+    args = parser.parse_args()
+
+    if args.gui:
+        handle_gui_command()
+        return
+
+    if args.verify:
+        init_terminal()
+        info("Verifying system dependencies...")
+        if verify_dependencies():
+            success("All dependencies are ready and operational.")
+            sys.exit(0)
+        else:
+            warning("Some dependencies are missing. Run 'downloadyha repair' to fix them.")
+            sys.exit(1)
+
+    # Interactive flow with optional CLI arguments
+    exit_code = run_download_interactive(
+        url=args.url,
+        start_time=args.start_time,
+        end_time=args.end_time,
+        download_path=args.output_dir,
+        dl_type=args.format,
+        quality=args.quality,
+    )
     sys.exit(exit_code)
 
 

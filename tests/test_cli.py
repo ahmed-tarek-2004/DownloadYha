@@ -48,6 +48,38 @@ class TestCLIArgumentParser(unittest.TestCase):
         self.assertTrue(args.verify)
         self.assertTrue(args.verbose)
 
+    def test_create_parser_time_arguments(self):
+        parser = cli.create_parser()
+        args = parser.parse_args([
+            "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+            "-s", "01:30",
+            "-e", "02:45",
+            "-f", "video",
+            "-q", "1080",
+            "-o", "/path/to/downloads"
+        ])
+        self.assertEqual(args.url, "https://www.youtube.com/watch?v=dQw4w9WgXcQ")
+        self.assertEqual(args.start_time, "01:30")
+        self.assertEqual(args.end_time, "02:45")
+        self.assertEqual(args.format, "video")
+        self.assertEqual(args.quality, "1080")
+        self.assertEqual(args.output_dir, "/path/to/downloads")
+
+    def test_create_parser_long_flags(self):
+        parser = cli.create_parser()
+        args = parser.parse_args([
+            "--start-time", "90",
+            "--end-time", "180",
+            "--format", "audio",
+            "--quality", "320",
+            "--gui"
+        ])
+        self.assertEqual(args.start_time, "90")
+        self.assertEqual(args.end_time, "180")
+        self.assertEqual(args.format, "audio")
+        self.assertEqual(args.quality, "320")
+        self.assertTrue(args.gui)
+
 
 class TestCLIGUIDispatch(unittest.TestCase):
     """Test Desktop GUI launching dispatch logic in handle_gui_command()."""
@@ -211,7 +243,13 @@ class TestCLIInteractiveWorkflows(unittest.TestCase):
     ):
         result = cli.run_download_interactive()
         self.assertEqual(result, 0)
-        mock_dl.assert_called_once_with("https://youtube.com/watch?v=123", "/tmp/downloads", "320")
+        mock_dl.assert_called_once_with(
+            url="https://youtube.com/watch?v=123",
+            download_path="/tmp/downloads",
+            quality="320",
+            start_time=None,
+            end_time=None
+        )
 
     @patch("downloadyha.cli.init_terminal")
     @patch("downloadyha.cli.print_banner")
@@ -227,7 +265,41 @@ class TestCLIInteractiveWorkflows(unittest.TestCase):
     ):
         result = cli.run_download_interactive()
         self.assertEqual(result, 0)
-        mock_dl.assert_called_once_with("https://youtube.com/watch?v=123", "/tmp/downloads", 1080)
+        mock_dl.assert_called_once_with(
+            url="https://youtube.com/watch?v=123",
+            download_path="/tmp/downloads",
+            height=1080,
+            start_time=None,
+            end_time=None
+        )
+
+    @patch("downloadyha.cli.init_terminal")
+    @patch("downloadyha.cli.print_banner")
+    @patch("downloadyha.cli.updater.notify_update_available")
+    @patch("downloadyha.cli.check_dependencies", return_value=True)
+    @patch("downloadyha.cli.prompt_input", return_value="https://youtube.com/watch?v=123")
+    @patch("downloadyha.cli.choose_download_folder", return_value="/tmp/downloads")
+    @patch("downloadyha.cli.get_media_info", return_value={"title": "Video", "formats": [{"height": 1080}]})
+    @patch("downloadyha.cli.download_video", return_value=True)
+    def test_run_download_interactive_with_time_clipping_args(
+        self, mock_dl, mock_info, mock_folder, mock_prompt, mock_deps, mock_update, mock_banner, mock_init
+    ):
+        result = cli.run_download_interactive(
+            url="https://youtube.com/watch?v=123",
+            start_time="01:15",
+            end_time="02:30",
+            download_path="/tmp/downloads",
+            dl_type="video",
+            quality="1080"
+        )
+        self.assertEqual(result, 0)
+        mock_dl.assert_called_once_with(
+            url="https://youtube.com/watch?v=123",
+            download_path="/tmp/downloads",
+            height=1080,
+            start_time="01:15",
+            end_time="02:30"
+        )
 
     @patch("downloadyha.cli.init_terminal")
     @patch("downloadyha.cli.print_banner")
@@ -247,7 +319,9 @@ class TestCLIInteractiveWorkflows(unittest.TestCase):
             url="https://youtube.com/playlist?list=PL123",
             download_path="/tmp/downloads",
             media_type="video",
-            quality="1080"
+            quality="1080",
+            start_time=None,
+            end_time=None
         )
 
     @patch("downloadyha.cli.init_terminal")

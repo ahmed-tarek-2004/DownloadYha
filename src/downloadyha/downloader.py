@@ -24,6 +24,14 @@ from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
 from urllib.parse import parse_qs, urlparse
 
 import yt_dlp
+try:
+    from yt_dlp.utils import download_range_func
+except ImportError:
+    def download_range_func(chapters, ranges):
+        def _range_func(info_dict, ydl=None):
+            for start, end in ranges:
+                yield {"start_time": start, "end_time": end}
+        return _range_func
 
 from .dependencies import get_deno_path, get_ffmpeg_path
 from .logging import get_logger
@@ -257,6 +265,87 @@ def format_eta(seconds: Optional[Union[int, float]]) -> str:
     if hrs > 0:
         return f"{hrs:02d}:{mins:02d}:{secs:02d}"
     return f"{mins:02d}:{secs:02d}"
+
+
+def parse_time_str(val: Optional[Union[str, int, float]]) -> Optional[float]:
+    """
+    Parse a timestamp string or numeric value into total seconds as a float.
+
+    Supported formats:
+    - None or empty string -> None
+    - int or float -> float seconds (e.g., 90 -> 90.0, must be >= 0)
+    - "SS" or "SS.s" (e.g., "90", "90.5", "90s")
+    - "MM:SS" or "MM:SS.s" (e.g., "01:30", "1:30", "01:30.5")
+    - "HH:MM:SS" or "HH:MM:SS.s" (e.g., "01:15:30", "1:00:00")
+
+    Args:
+        val: Time string or numeric seconds.
+
+    Returns:
+        Float seconds or None if empty/None.
+
+    Raises:
+        ValueError: If format is invalid or timestamp is negative.
+    """
+    if val is None:
+        return None
+
+    if isinstance(val, (int, float)):
+        if val < 0:
+            raise ValueError(f"Timestamp cannot be negative: {val}")
+        return float(val)
+
+    s = str(val).strip().rstrip("sS").strip()
+    if not s:
+        return None
+
+    if s.startswith("-"):
+        raise ValueError(f"Timestamp cannot be negative: '{val}'")
+
+    parts = s.split(":")
+    if len(parts) == 1:
+        # Seconds only
+        try:
+            sec = float(parts[0])
+            if sec < 0:
+                raise ValueError(f"Timestamp cannot be negative: '{val}'")
+            return sec
+        except ValueError:
+            raise ValueError(
+                f"Invalid timestamp format: '{val}'. Expected MM:SS, HH:MM:SS, or seconds (e.g., '01:30' or '90')."
+            )
+
+    elif len(parts) == 2:
+        # MM:SS
+        try:
+            mins = int(parts[0])
+            secs = float(parts[1])
+            if mins < 0 or secs < 0 or secs >= 60:
+                raise ValueError(f"Invalid minutes/seconds in timestamp: '{val}'")
+            return mins * 60.0 + secs
+        except ValueError:
+            raise ValueError(
+                f"Invalid timestamp format: '{val}'. Expected MM:SS, HH:MM:SS, or seconds (e.g., '01:30' or '90')."
+            )
+
+    elif len(parts) == 3:
+        # HH:MM:SS
+        try:
+            hrs = int(parts[0])
+            mins = int(parts[1])
+            secs = float(parts[2])
+            if hrs < 0 or mins < 0 or mins >= 60 or secs < 0 or secs >= 60:
+                raise ValueError(f"Invalid hours/minutes/seconds in timestamp: '{val}'")
+            return hrs * 3600.0 + mins * 60.0 + secs
+        except ValueError:
+            raise ValueError(
+                f"Invalid timestamp format: '{val}'. Expected MM:SS, HH:MM:SS, or seconds (e.g., '01:30' or '90')."
+            )
+
+    else:
+        raise ValueError(
+            f"Invalid timestamp format: '{val}'. Expected MM:SS, HH:MM:SS, or seconds (e.g., '01:30' or '90')."
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -695,7 +784,9 @@ def download_media(
     media_type: str = "video",
     quality: Any = None,
     progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
-    output_format: str = "mp4"
+    output_format: str = "mp4",
+    start_time: Optional[Union[str, int, float]] = None,
+    end_time: Optional[Union[str, int, float]] = None
 ) -> DownloadResult:
     """
     Download media (single video, audio, or entire playlist) from a URL.
@@ -705,6 +796,7 @@ def download_media(
     - Saving playlists in organized subfolders with indexed filenames.
     - Merging video and audio into MP4/MKV.
     - Converting audio to MP3 with chosen quality/bitrate.
+    - Partial media clipping via start_time and end_time range selection.
     - Graceful error tolerance for individual failed playlist items.
 
     Args:
@@ -714,12 +806,47 @@ def download_media(
         quality: Video height (int/preset) or Audio bitrate string ("0", "320", "192", "128").
         progress_callback: Optional callback for UI progress updates.
         output_format: Video container format (default: "mp4").
+        start_time: Optional start timestamp (e.g., "01:30", "90", 90.0).
+        end_time: Optional end timestamp (e.g., "04:15", "255", 255.0).
 
     Returns:
         DownloadResult instance containing status and statistics.
     """
     logger = get_logger("downloader")
     media_type = media_type.lower().strip()
+
+    # Parse and validate section timestamps if provided
+    try:
+        start_sec = parse_time_str(start_time)
+        end_sec = parse_time_str(end_time)
+    except ValueError as e:
+        logger.error(f"Timestamp validation error: {e}")
+        return DownloadResult(
+            success=False,
+            message=str(e),
+            download_type=media_type,
+            is_playlist=False,
+            total_items=1,
+            completed_items=0,
+            failed_items=1,
+            errors=[str(e)],
+            download_directory=download_path
+        )
+
+    if start_sec is not None and end_sec is not None and end_sec <= start_sec:
+        err_msg = f"End time ({end_time}) must be greater than start time ({start_time})."
+        logger.error(err_msg)
+        return DownloadResult(
+            success=False,
+            message=err_msg,
+            download_type=media_type,
+            is_playlist=False,
+            total_items=1,
+            completed_items=0,
+            failed_items=1,
+            errors=[err_msg],
+            download_directory=download_path
+        )
 
     # Extract media metadata
     logger.info(f"Checking media info for download: url={url}, type={media_type}")
@@ -776,6 +903,19 @@ def download_media(
         "progress_hooks": [hook],
     }
 
+    # Configure partial download range if specified
+    if start_sec is not None or end_sec is not None:
+        s_val = start_sec if start_sec is not None else 0.0
+        e_val = end_sec if end_sec is not None else float("inf")
+        extra_options["download_ranges"] = download_range_func(None, [(s_val, e_val)])
+        extra_options["force_keyframes_at_cuts"] = True
+
+    clip_desc = ""
+    if start_sec is not None or end_sec is not None:
+        s_disp = str(start_time) if start_time is not None else "00:00"
+        e_disp = str(end_time) if end_time is not None else "end"
+        clip_desc = f" [section: {s_disp} - {e_disp}]"
+
     if media_type == "audio":
         audio_quality = resolve_audio_quality(quality)
         extra_options.update({
@@ -788,7 +928,7 @@ def download_media(
                 }
             ],
         })
-        desc_str = f"audio (MP3, quality: {audio_quality})"
+        desc_str = f"audio (MP3, quality: {audio_quality}){clip_desc}"
     else:
         # Video download
         height = int(quality) if (quality is not None and str(quality).isdigit()) else 0
@@ -797,7 +937,7 @@ def download_media(
             "format": video_format,
             "merge_output_format": output_format,
         })
-        desc_str = f"video (format: {output_format}, max height: {height or 'best'}p)"
+        desc_str = f"video (format: {output_format}, max height: {height or 'best'}p){clip_desc}"
 
     options = get_yt_dlp_options(extra_options, logger_instance=collector, auto_download_deps=True)
     if has_ffmpeg and "ffmpeg_location" not in options:
@@ -871,7 +1011,9 @@ def download_audio(
     url: str,
     download_path: str,
     quality: str = "0",
-    progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None
+    progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
+    start_time: Optional[Union[str, int, float]] = None,
+    end_time: Optional[Union[str, int, float]] = None
 ) -> DownloadResult:
     """
     Download audio (single media or playlist) as MP3.
@@ -881,6 +1023,8 @@ def download_audio(
         download_path: Directory to save the downloaded audio file(s).
         quality: Audio quality for MP3 conversion ("0", "320", "192", "128").
         progress_callback: Optional UI progress callback.
+        start_time: Optional start timestamp (e.g., "01:30", "90").
+        end_time: Optional end timestamp (e.g., "04:15", "255").
 
     Returns:
         DownloadResult instance (evaluates as True on success).
@@ -890,7 +1034,9 @@ def download_audio(
         download_path=download_path,
         media_type="audio",
         quality=quality,
-        progress_callback=progress_callback
+        progress_callback=progress_callback,
+        start_time=start_time,
+        end_time=end_time
     )
 
 
@@ -899,7 +1045,9 @@ def download_video(
     download_path: str,
     height: Optional[int] = None,
     progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
-    output_format: str = "mp4"
+    output_format: str = "mp4",
+    start_time: Optional[Union[str, int, float]] = None,
+    end_time: Optional[Union[str, int, float]] = None
 ) -> DownloadResult:
     """
     Download video (single video or playlist) with FFmpeg muxing into MP4/MKV.
@@ -910,6 +1058,8 @@ def download_video(
         height: Maximum video height resolution (e.g., 1080, 720, 0 for best).
         progress_callback: Optional UI progress callback.
         output_format: Container format ("mp4" or "mkv").
+        start_time: Optional start timestamp (e.g., "01:30", "90").
+        end_time: Optional end timestamp (e.g., "04:15", "255").
 
     Returns:
         DownloadResult instance (evaluates as True on success).
@@ -920,7 +1070,9 @@ def download_video(
         media_type="video",
         quality=height,
         progress_callback=progress_callback,
-        output_format=output_format
+        output_format=output_format,
+        start_time=start_time,
+        end_time=end_time
     )
 
 
@@ -930,7 +1082,9 @@ def download_playlist(
     media_type: str = "video",
     quality: Any = None,
     progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
-    output_format: str = "mp4"
+    output_format: str = "mp4",
+    start_time: Optional[Union[str, int, float]] = None,
+    end_time: Optional[Union[str, int, float]] = None
 ) -> DownloadResult:
     """
     Download an entire playlist as video or audio.
@@ -942,6 +1096,8 @@ def download_playlist(
         quality: Video height or audio bitrate.
         progress_callback: Optional UI progress callback.
         output_format: Video container format ("mp4" or "mkv").
+        start_time: Optional start timestamp.
+        end_time: Optional end timestamp.
 
     Returns:
         DownloadResult instance with full completion statistics.
@@ -952,7 +1108,9 @@ def download_playlist(
         media_type=media_type,
         quality=quality,
         progress_callback=progress_callback,
-        output_format=output_format
+        output_format=output_format,
+        start_time=start_time,
+        end_time=end_time
     )
 
 
@@ -961,7 +1119,9 @@ def download_playlist_video(
     download_path: str,
     height: Optional[int] = None,
     progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
-    output_format: str = "mp4"
+    output_format: str = "mp4",
+    start_time: Optional[Union[str, int, float]] = None,
+    end_time: Optional[Union[str, int, float]] = None
 ) -> DownloadResult:
     """
     Download an entire playlist as video files.
@@ -971,7 +1131,9 @@ def download_playlist_video(
         download_path=download_path,
         height=height,
         progress_callback=progress_callback,
-        output_format=output_format
+        output_format=output_format,
+        start_time=start_time,
+        end_time=end_time
     )
 
 
@@ -979,7 +1141,9 @@ def download_playlist_audio(
     url: str,
     download_path: str,
     quality: str = "0",
-    progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None
+    progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
+    start_time: Optional[Union[str, int, float]] = None,
+    end_time: Optional[Union[str, int, float]] = None
 ) -> DownloadResult:
     """
     Download an entire playlist as audio MP3 files.
@@ -988,5 +1152,7 @@ def download_playlist_audio(
         url=url,
         download_path=download_path,
         quality=quality,
-        progress_callback=progress_callback
+        progress_callback=progress_callback,
+        start_time=start_time,
+        end_time=end_time
     )
