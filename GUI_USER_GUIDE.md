@@ -13,6 +13,7 @@ Downloadyha Desktop GUI provides a user-friendly graphical interface for downloa
 - [Downloading Videos](#downloading-videos)
 - [Downloading Audio](#downloading-audio)
 - [Downloading Playlists](#downloading-playlists)
+- [Downloading Specific Sections (Clips)](#downloading-specific-sections-clips)
 - [Settings and Preferences](#settings-and-preferences)
 - [Troubleshooting](#troubleshooting)
 - [Keyboard Shortcuts](#keyboard-shortcuts)
@@ -316,6 +317,37 @@ Downloads/
     ├── 04 - Track Three.mp4
     └── ... (remaining items)
 ```
+
+---
+
+## Downloading Specific Sections (Clips)
+
+Downloadyha allows you to download only a specific portion or highlight of a video or audio track instead of the entire file.
+
+### Step-by-Step Guide
+
+**Step 1: Enter Video URL**
+1. Paste the YouTube video URL into the URL input field.
+2. The video metadata (title, channel, duration) will load automatically.
+
+**Step 2: Enable Section Clipping**
+1. Check the checkbox: **"✂️ Download specific section (clip)"**.
+2. The Start Time and End Time input fields will appear.
+
+**Step 3: Enter Timestamps**
+- **Start Time**: Enter where the clip begins (e.g., `01:30`, `90`, or `00:01:30`). Defaults to `00:00` if left blank.
+- **End Time**: Enter where the clip ends (e.g., `03:45`, `225`, or `00:03:45`). Leave empty to download through to the end of the video.
+
+**Supported Timestamp Formats**:
+- `MM:SS` (e.g., `01:30`)
+- `HH:MM:SS` (e.g., `01:15:30`)
+- Seconds (e.g., `90` or `90s`)
+- Decimals (e.g., `01:15.5`)
+
+**Step 4: Choose Quality & Start Download**
+1. Select **Video** or **Audio (MP3)** and your desired quality.
+2. Click **START DOWNLOAD**.
+3. Downloadyha streams and trims only the requested timeframe directly to your destination folder!
 
 ---
 

@@ -9,7 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Items for the next release go here
+- **Partial Video & Audio Clipping**: Download specific sections/highlights using start and end timestamps (`-s` / `--start-time`, `-e` / `--end-time`).
+- Timestamp parser supporting `MM:SS`, `HH:MM:SS`, total seconds (`90`, `90s`), and fractional seconds (`01:15.5`).
+- Desktop GUI section clipping controls with dynamic reveal checkbox and input validation.
+- Interactive CLI prompt for clipping single video and audio downloads.
+
+### Fixed
+
+- Fixed `tmp_dir: unbound variable` error in Linux installation script (`install.sh`).
+- Fixed SSL certificate validation failures during dependency downloads on Linux distributions lacking system CA bundles by adding multi-path bundle discovery and SHA-256 integrity verification in `network.py`.
+- Fixed Desktop GUI layout issue where toggling section clipping could push footer action buttons off-screen. Fixed by docking action buttons and implementing a scrollable form container.
 
 ## [1.0.0] - 2026-09-30
 

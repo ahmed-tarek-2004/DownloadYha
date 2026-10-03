@@ -1,12 +1,26 @@
 # Downloadyha
 
-A fast, modern, and beautiful YouTube downloader available in both **Desktop GUI** and **CLI** versions for **Videos**, **Audio (MP3)**, and **Full Playlists**. No Python, FFmpeg, Deno, or yt-dlp setup required.
+A fast, modern, and beautiful YouTube downloader available in both **Desktop GUI** and **CLI** versions for **Videos (up to 4K)**, **Audio (MP3)**, **Partial Video & Audio Clips (Highlights)**, and **Full Playlists**. No Python, FFmpeg, Deno, or yt-dlp setup required.
+
+---
+
+## 🌟 Key Features
+
+- ✂️ **Partial Video & Audio Clipping**: Download only the exact section you need by specifying Start and End times (`01:30`, `90`, `00:02:45`). Save bandwidth and disk space without downloading full multi-hour videos!
+- 🎨 **Modern Desktop GUI**: Sleek CustomTkinter interface with glassmorphism cards, light/dark themes, docked persistent action buttons, and scrollable controls.
+- 🔍 **Real-Time Metadata Fetching**: Automatically inspects video/playlist URLs to preview Title, Channel, Duration, and Type.
+- 🎯 **Dynamic Quality Detection**: Auto-detects and displays available resolutions (4K 2160p, 1440p, 1080p, 720p, 480p, 360p, etc.).
+- 🎵 **Audio MP3 Extractor**: One-click high-fidelity MP3 conversion with custom bitrates (320 kbps, 192 kbps, 128 kbps, or Best VBR).
+- 📑 **Full Playlist Downloads**: Batch download entire video or audio playlists with automated folder numbering and organization.
+- 📜 **Download History & Quick Open**: Track download history and open completed media files or destination folders directly with one click.
+- ⚡ **Interactive Terminal CLI**: Color-coded step-by-step wizard, live progress bars (speed, ETA, batch counter), and summary cards.
+- 📦 **Zero-Config Standalone**: Includes built-in self-repairing FFmpeg and Deno helper binaries with SHA-256 checksum verification.
 
 ---
 
 ## 🖥️ Desktop GUI - Installation & Quick Start
 
-The **Downloadyha Desktop GUI** provides a sleek graphical interface featuring real-time metadata fetching, dynamic quality selection (up to 4K), audio extraction, download history, and dark/light themes.
+The **Downloadyha Desktop GUI** provides a sleek graphical interface featuring real-time metadata inspection, dynamic quality selection (up to 4K), audio extraction, partial video clipping, download history, and dark/light themes.
 
 ### Option 1: Standalone Download (No Python Required — Recommended)
 
@@ -20,7 +34,7 @@ Download the pre-built standalone app for your operating system:
 #### 3-Step Windows Quick Start:
 1. **Download & Extract** `downloadyha-gui-windows.zip` to a folder of your choice (e.g. `Downloads` or `C:\Program Files\DownloadyhaGUI`).
 2. **Double-click** `downloadyha-gui.exe` to launch.
-3. **Paste any YouTube URL** — the app automatically fetches video details (Title, Channel, Duration) and populates the available video/audio resolutions!
+3. **Paste any YouTube URL** — the app automatically fetches video details (Title, Channel, Duration) and populates the available resolutions!
 
 ---
 
@@ -46,7 +60,7 @@ downloadyha-gui
 
 ## ⚡ CLI Version - Quick Install
 
-For terminal power-users, Downloadyha offers a rich, interactive CLI experience with color-coded steps, live progress bars, and batch playlist support.
+For terminal power-users, Downloadyha offers a rich, interactive CLI experience with color-coded steps, live progress bars, partial clipping support, and batch playlist downloads.
 
 ### Windows
 
@@ -74,26 +88,60 @@ downloadyha
 
 ---
 
-## 🌟 Key Features
+## ✂️ Partial Video & Audio Clipping (Highlights)
 
-### 🖥️ Desktop GUI
-- 🎨 **Modern Interface**: CustomTkinter UI with glassmorphism cards and smooth themes (Dark, Light, System).
-- 🔍 **Real-Time Metadata Fetching**: Automatically inspects video/playlist URLs to show Title, Channel, Duration, and Type.
-- 🎯 **Dynamic Quality Dropdown**: Automatically detects and lists exact available resolutions (4K 2160p, 1440p, 1080p, 720p, 480p, 360p, etc.).
-- 🎵 **Audio MP3 Extractor**: One-click MP3 conversion with custom bitrate presets (320 kbps, 192 kbps, 128 kbps).
-- 📑 **Full Playlist Downloads**: One-click batch downloading of entire video or audio playlists.
-- 📜 **Download History & Management**: Track recent downloads and open downloaded files or destination folders directly.
-- 🔄 **Non-Blocking Downloads**: Smooth multithreaded downloading with live progress indicators.
+Downloadyha allows you to download only a specific portion or highlight clip of a video or audio track instead of the entire file.
 
-### ⚡ Terminal CLI
-- 🎬 **Interactive Wizard**: Step-by-step guidance (`[1/3] Enter URL`, `[2/3] Folder`, `[3/3] Quality`).
-- 📊 **Rich Progress Bars**: Displays speed, percentage, ETA, and batch counters (`[3/15]`).
-- 📑 **Automated Playlist Indexing**: Organizes batch downloads into numbered subfolders.
-- 🔄 **Self-Updater & Repair**: Built-in update checker and dependency repair tools (`downloadyha update`, `downloadyha repair`).
+### Supported Timestamp Formats
+- `MM:SS` (e.g., `01:30` for 1 minute 30 seconds)
+- `HH:MM:SS` (e.g., `01:15:30` for 1 hour 15 minutes 30 seconds)
+- Total seconds (e.g., `90` or `90s`)
+- Decimals / fractions (e.g., `01:15.5` or `75.5`)
 
 ---
 
-## 🛠️ Available Commands
+### CLI Usage & Examples
+
+You can provide start and end timestamps directly via command-line arguments or follow the interactive wizard prompts.
+
+#### 1. Command-Line Arguments (Non-Interactive / Scripting):
+
+```bash
+# Download a 2-minute video clip (from 01:30 to 03:30) in 1080p Full HD
+downloadyha "https://www.youtube.com/watch?v=VIDEO_ID" -s 01:30 -e 03:30 -f video -q 1080
+
+# Extract a 45-second audio clip (from start to 00:45) as high-quality 320 kbps MP3
+downloadyha "https://www.youtube.com/watch?v=VIDEO_ID" -s 00:00 -e 00:45 -f audio -q 320
+
+# Download from minute 10:00 to the end of the video
+downloadyha "https://www.youtube.com/watch?v=VIDEO_ID" -s 10:00 -f video -q 720
+
+# Specify a custom download folder for the clip
+downloadyha "https://www.youtube.com/watch?v=VIDEO_ID" -s 00:30 -e 01:45 -d "C:\Users\User\Videos\Clips"
+```
+
+#### 2. Interactive Wizard:
+When running `downloadyha` interactively:
+1. Paste the URL and select your download folder.
+2. When prompted: `Download a specific section only (clip)? [y/N]:`, enter `y`.
+3. Enter your desired **Start Time** (e.g., `01:30`) and **End Time** (e.g., `03:45`, or leave blank for end of video).
+4. Choose video resolution or audio quality. Downloadyha streams and trims only the requested segment!
+
+---
+
+### Desktop GUI Usage
+
+1. Paste a video URL — video metadata will load automatically.
+2. Check the **"✂️ Download specific section (clip)"** box.
+3. Enter your **Start Time** (e.g. `00:30`) and **End Time** (e.g. `02:15`).
+4. Select your preferred format (🎥 Video or 🎵 Audio) and quality preset.
+5. Click **START DOWNLOAD**.
+
+---
+
+## 🛠️ Available Commands & CLI Options
+
+### Commands
 
 | Command | Type | Description |
 |---|---|---|
@@ -106,14 +154,46 @@ downloadyha
 | `downloadyha --verify` | Diagnostic | Verify that dependencies and helper binaries are operational |
 | `downloadyha --version` | Info | Print version information |
 
+### CLI Options & Flags
+
+| Flag | Short | Description | Example |
+|---|---|---|---|
+| `--start-time` | `-s` | Clip start timestamp (`MM:SS`, `HH:MM:SS`, or seconds) | `-s 01:30` |
+| `--end-time` | `-e` | Clip end timestamp (`MM:SS`, `HH:MM:SS`, or seconds) | `-e 04:15` |
+| `--format` | `-f` | Media format: `video` or `audio` | `-f video` |
+| `--quality` | `-q` | Video height (`1080`, `720`, `0` for best) or Audio bitrate (`320`, `192`, `128`, `0`) | `-q 1080` |
+| `--output-dir` / `--dir` | `-o` / `-d` | Custom destination directory | `-d ~/Videos` |
+| `--gui` | | Launch the graphical user interface | `downloadyha --gui` |
+| `--verify` | | Verify helper binary integrity and exit | `downloadyha --verify` |
+| `--verbose` | | Enable verbose debug logging | `downloadyha --verbose` |
+| `--version` | `-v` | Display Downloadyha version | `downloadyha -v` |
+| `--help` | `-h` | Display full help and argument list | `downloadyha -h` |
+
 ---
 
 ## ⚙️ Configuration
 
-Downloadyha stores your preferences (default download folder, background update checks) in a standard configuration file:
+Downloadyha stores user preferences (default download folder, background update checks) in a standard configuration file:
 
 - **Windows**: `%LOCALAPPDATA%\Downloadyha\config.json`
 - **Linux**: `~/.local/share/downloadyha/config.json`
+
+---
+
+## 🔄 Self-Updater & Repair
+
+Keep Downloadyha and all helper tools in top shape with built-in maintenance commands:
+
+```bash
+# Update Downloadyha to the latest release
+downloadyha update
+
+# Repair or re-download missing/corrupted dependencies (FFmpeg, Deno)
+downloadyha repair
+
+# Verify system readiness and dependencies
+downloadyha --verify
+```
 
 ---
 
@@ -129,11 +209,11 @@ For the standalone GUI ZIP, simply delete the extracted folder.
 
 ---
 
-## 🔒 Privacy
+## 🔒 Privacy & Security
 
-- 🚫 **Zero Telemetry**: No tracking, analytics, or personal data collection.
+- 🚫 **Zero Telemetry**: No tracking, analytics, telemetry, or personal data collection.
 - 🔒 **Direct Connection**: Downloads stream directly from YouTube to your local disk.
-- 🛡️ **Integrity Verification**: Released binaries and updates are verified against SHA-256 checksums.
+- 🛡️ **Integrity Verification**: Released binaries, helper tools, and updates are verified against SHA-256 checksums over secure TLS connections.
 
 ---
 
