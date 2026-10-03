@@ -62,3 +62,6 @@ __version__ = _resolve_version()
 __author__ = "Ahmed Tarek Zaher"
 __app_name__ = "Downloadyha"
 
+# Initialize network & SSL environment settings
+from . import network as _network  # noqa: F401
+

@@ -30,6 +30,7 @@ a = Analysis(
 
     # Include:
     # - yt-dlp data files (extractors, JS snippets)
+    # - certifi CA root bundle
     # - customtkinter assets (themes, images, fonts)
     # - PIL/Pillow assets (images, fonts)
     # - downloadyha versions manifest and GUI resources (icons)
@@ -37,9 +38,13 @@ a = Analysis(
         ("src/downloadyha/versions.json", "downloadyha"),
         ("src/downloadyha_gui/resources", "downloadyha_gui/resources"),
         ("assets/icons", "assets/icons"),
-    ] + collect_data_files("yt_dlp") + customtkinter_datas + pil_datas,
+    ] + collect_data_files("yt_dlp") + collect_data_files("certifi") + customtkinter_datas + pil_datas,
 
     hiddenimports=[
+        # SSL and CA bundle support
+        "certifi",
+        "ssl",
+        "downloadyha.network",
         # yt-dlp dynamic imports
         "yt_dlp.extractor",
         "yt_dlp.extractor._extractors",

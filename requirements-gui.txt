@@ -4,6 +4,7 @@
 # Core dependencies
 yt-dlp>=2026.8.19
 curl_cffi>=0.7.0
+certifi>=2024.0.0
 
 # GUI framework
 customtkinter>=5.2.0

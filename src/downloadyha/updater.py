@@ -29,6 +29,7 @@ from typing import Optional, Tuple
 
 from . import __version__
 from . import config
+from .network import download_url_to_file, open_url
 from .ui import Colors, Symbols, error, info, init_terminal, prompt_confirm, success, wait, warning
 
 
@@ -184,12 +185,12 @@ def _fetch_latest_release() -> Optional[dict]:
         req.add_header("Accept", "application/vnd.github+json")
         req.add_header("User-Agent", f"Downloadyha/{__version__}")
 
-        with urllib.request.urlopen(req, timeout=REQUEST_TIMEOUT) as resp:
+        with open_url(req, timeout=REQUEST_TIMEOUT) as resp:
             data = json.loads(resp.read().decode("utf-8"))
 
         return data
 
-    except (urllib.error.URLError, urllib.error.HTTPError, json.JSONDecodeError, OSError):
+    except Exception:
         return None
 
 
@@ -229,17 +230,14 @@ def check_for_updates(force: bool = False) -> Optional[str]:
 def _download_file(url: str, dest_path: Path) -> bool:
     """Download a file from url to dest_path."""
     try:
-        req = urllib.request.Request(url)
-        req.add_header("User-Agent", f"Downloadyha/{__version__}")
-
-        with urllib.request.urlopen(req, timeout=REQUEST_TIMEOUT) as resp:
-            dest_path.parent.mkdir(parents=True, exist_ok=True)
-            with dest_path.open("wb") as fh:
-                fh.write(resp.read())
-
+        download_url_to_file(
+            url=url,
+            dest_path=dest_path,
+            timeout=REQUEST_TIMEOUT,
+            headers={"User-Agent": f"Downloadyha/{__version__}"},
+        )
         return True
-
-    except (urllib.error.URLError, urllib.error.HTTPError, OSError):
+    except Exception:
         return False
 
 
@@ -266,7 +264,7 @@ def _fetch_checksum(version: str, artifact_name: str) -> Optional[str]:
         req = urllib.request.Request(url)
         req.add_header("User-Agent", f"Downloadyha/{__version__}")
 
-        with urllib.request.urlopen(req, timeout=REQUEST_TIMEOUT) as resp:
+        with open_url(req, timeout=REQUEST_TIMEOUT) as resp:
             content = resp.read().decode("utf-8")
 
         for line in content.splitlines():
@@ -282,7 +280,7 @@ def _fetch_checksum(version: str, artifact_name: str) -> Optional[str]:
 
         return None
 
-    except (urllib.error.URLError, urllib.error.HTTPError, OSError):
+    except Exception:
         return None
 
 

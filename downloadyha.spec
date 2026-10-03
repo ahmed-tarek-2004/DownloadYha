@@ -26,12 +26,16 @@ a = Analysis(
     # yt-dlp ships internal extractors and JS snippets as package data;
     # collect_data_files pulls them all in so the frozen executable can
     # still discover and use every extractor.
-    # Also include the dependency versions manifest.
+    # Also include the dependency versions manifest and certifi CA bundle.
     datas=[
         ("src/downloadyha/versions.json", "downloadyha"),
-    ] + collect_data_files("yt_dlp"),
+    ] + collect_data_files("yt_dlp") + collect_data_files("certifi"),
 
     hiddenimports=[
+        # SSL and CA bundle support
+        "certifi",
+        "ssl",
+        "downloadyha.network",
         # yt-dlp dynamically loads its extractor plug-ins at runtime via
         # importlib; PyInstaller cannot see these imports statically.
         "yt_dlp.extractor",

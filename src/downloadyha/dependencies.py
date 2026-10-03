@@ -22,6 +22,7 @@ import zipfile
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+from .network import download_url_to_file
 from .paths import (
     ensure_directories,
     get_bin_dir,
@@ -151,30 +152,15 @@ def _download_file(url: str, dest_path: Path) -> None:
     Raises:
         DownloadError: If the download fails.
     """
-    dest_path.parent.mkdir(parents=True, exist_ok=True)
-    temp_dest = dest_path.with_suffix(dest_path.suffix + ".download.tmp")
-
     try:
-        request = urllib.request.Request(
-            url,
+        download_url_to_file(
+            url=url,
+            dest_path=dest_path,
+            timeout=300,
             headers={"User-Agent": "Downloadyha-Dependency-Resolver/1.0"}
         )
-        with urllib.request.urlopen(request, timeout=300) as response:
-            with open(temp_dest, "wb") as f:
-                shutil.copyfileobj(response, f)
-
-        if temp_dest.exists():
-            if dest_path.exists():
-                dest_path.unlink()
-            temp_dest.rename(dest_path)
-    except urllib.error.URLError as e:
-        if temp_dest.exists():
-            temp_dest.unlink()
-        raise DownloadError(f"Failed to download {url}: {e}") from e
     except Exception as e:
-        if temp_dest.exists():
-            temp_dest.unlink()
-        raise DownloadError(f"Error while downloading {url}: {e}") from e
+        raise DownloadError(f"Failed to download {url}: {e}") from e
 
 
 def _extract_archive(archive_path: Path, extract_dir: Path, archive_type: str) -> None:

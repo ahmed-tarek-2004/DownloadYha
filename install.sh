@@ -21,6 +21,19 @@ INSTALL_DIR="${HOME}/.local/bin"
 API_BASE="https://api.github.com/repos/${REPO}"
 RELEASES="https://github.com/${REPO}/releases"
 
+# Global temp directory tracker for safe cleanup
+TMP_DIR=""
+
+cleanup() {
+    local exit_code=$?
+    if [ -n "${TMP_DIR:-}" ] && [ -d "${TMP_DIR:-}" ]; then
+        rm -rf "${TMP_DIR}"
+    fi
+    return $exit_code
+}
+
+trap cleanup EXIT INT TERM
+
 # ── Colors ───────────────────────────────────────────────────────────────────
 CYAN='\033[0;36m'
 GREEN='\033[0;32m'
@@ -215,12 +228,10 @@ main() {
     local sums_url="${RELEASES}/download/${version}/${sums_name}"
 
     # 4. Download to a temp directory
-    local tmp_dir
-    tmp_dir=$(mktemp -d -t downloadyha-install.XXXXXX)
-    trap 'rm -rf "$tmp_dir"' EXIT
+    TMP_DIR=$(mktemp -d -t downloadyha-install.XXXXXX)
 
-    local asset_path="${tmp_dir}/${asset_name}"
-    local sums_path="${tmp_dir}/${sums_name}"
+    local asset_path="${TMP_DIR}/${asset_name}"
+    local sums_path="${TMP_DIR}/${sums_name}"
 
     step "Downloading release asset: $asset_url"
     download_file "$asset_url" "$asset_path"
@@ -237,11 +248,11 @@ main() {
 
     # 7. Extract archive
     step "Extracting archive..."
-    tar -xzf "$asset_path" -C "$tmp_dir"
+    tar -xzf "$asset_path" -C "$TMP_DIR"
 
     # Find the binary (might be in a subdirectory after extraction)
     local binary
-    binary=$(find "$tmp_dir" -type f -name "$APP_NAME" | head -n 1)
+    binary=$(find "$TMP_DIR" -type f -name "$APP_NAME" | head -n 1)
 
     if [ -z "$binary" ] || [ ! -f "$binary" ]; then
         fail "Binary '${APP_NAME}' was not found in the archive after extraction."
