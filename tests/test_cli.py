@@ -80,6 +80,22 @@ class TestCLIArgumentParser(unittest.TestCase):
         self.assertEqual(args.quality, "320")
         self.assertTrue(args.gui)
 
+    def test_create_parser_maintenance_flags(self):
+        parser = cli.create_parser()
+        default_args = parser.parse_args([])
+        self.assertFalse(default_args.update)
+        self.assertFalse(default_args.uninstall)
+        self.assertFalse(default_args.repair)
+
+        update_args = parser.parse_args(["--update"])
+        self.assertTrue(update_args.update)
+
+        uninstall_args = parser.parse_args(["--uninstall"])
+        self.assertTrue(uninstall_args.uninstall)
+
+        repair_args = parser.parse_args(["--repair"])
+        self.assertTrue(repair_args.repair)
+
 
 class TestCLIGUIDispatch(unittest.TestCase):
     """Test Desktop GUI launching dispatch logic in handle_gui_command()."""
@@ -358,6 +374,13 @@ class TestCLISubcommands(unittest.TestCase):
             mock_update.assert_called_once()
 
     @patch("downloadyha.cli.setup_logging")
+    @patch("downloadyha.cli.updater.handle_update_command")
+    def test_main_update_flag(self, mock_update, mock_log):
+        with patch.object(sys, "argv", ["downloadyha", "--update"]):
+            cli.main()
+            mock_update.assert_called_once()
+
+    @patch("downloadyha.cli.setup_logging")
     @patch("downloadyha.cli.repair_dependencies", return_value=True)
     def test_main_repair_success(self, mock_repair, mock_log):
         with patch.object(sys, "argv", ["downloadyha", "repair"]):
@@ -375,9 +398,33 @@ class TestCLISubcommands(unittest.TestCase):
             self.assertEqual(cm.exception.code, 1)
 
     @patch("downloadyha.cli.setup_logging")
+    @patch("downloadyha.cli.repair_dependencies", return_value=True)
+    def test_main_repair_flag_success(self, mock_repair, mock_log):
+        with patch.object(sys, "argv", ["downloadyha", "--repair"]):
+            with self.assertRaises(SystemExit) as cm:
+                cli.main()
+            self.assertEqual(cm.exception.code, 0)
+            mock_repair.assert_called_once()
+
+    @patch("downloadyha.cli.setup_logging")
+    @patch("downloadyha.cli.repair_dependencies", return_value=False)
+    def test_main_repair_flag_failure(self, mock_repair, mock_log):
+        with patch.object(sys, "argv", ["downloadyha", "--repair"]):
+            with self.assertRaises(SystemExit) as cm:
+                cli.main()
+            self.assertEqual(cm.exception.code, 1)
+
+    @patch("downloadyha.cli.setup_logging")
     @patch("downloadyha.cli.uninstaller.handle_uninstall_command")
     def test_main_uninstall_command(self, mock_uninstall, mock_log):
         with patch.object(sys, "argv", ["downloadyha", "uninstall"]):
+            cli.main()
+            mock_uninstall.assert_called_once()
+
+    @patch("downloadyha.cli.setup_logging")
+    @patch("downloadyha.cli.uninstaller.handle_uninstall_command")
+    def test_main_uninstall_flag(self, mock_uninstall, mock_log):
+        with patch.object(sys, "argv", ["downloadyha", "--uninstall"]):
             cli.main()
             mock_uninstall.assert_called_once()
 

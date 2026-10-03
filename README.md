@@ -164,6 +164,9 @@ When running `downloadyha` interactively:
 | `--quality` | `-q` | Video height (`1080`, `720`, `0` for best) or Audio bitrate (`320`, `192`, `128`, `0`) | `-q 1080` |
 | `--output-dir` / `--dir` | `-o` / `-d` | Custom destination directory | `-d ~/Videos` |
 | `--gui` | | Launch the graphical user interface | `downloadyha --gui` |
+| `--update` | | Check for and install updates from GitHub Releases | `downloadyha --update` |
+| `--repair` | | Repair and reinstall bundled dependencies (FFmpeg, Deno) | `downloadyha --repair` |
+| `--uninstall` | | Completely uninstall Downloadyha and delete application data | `downloadyha --uninstall` |
 | `--verify` | | Verify helper binary integrity and exit | `downloadyha --verify` |
 | `--verbose` | | Enable verbose debug logging | `downloadyha --verbose` |
 | `--version` | `-v` | Display Downloadyha version | `downloadyha -v` |

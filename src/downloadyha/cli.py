@@ -409,6 +409,24 @@ def create_parser() -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
+        "--update",
+        action="store_true",
+        help="Check for and install updates from GitHub Releases"
+    )
+
+    parser.add_argument(
+        "--uninstall",
+        action="store_true",
+        help="Uninstall Downloadyha and remove all application data"
+    )
+
+    parser.add_argument(
+        "--repair",
+        action="store_true",
+        help="Repair and reinstall bundled dependencies (FFmpeg, Deno)"
+    )
+
+    parser.add_argument(
         "-v", "--version",
         action="version",
         version=f"%(prog)s {__version__}"
@@ -565,6 +583,24 @@ def main() -> None:
 
     if args.gui:
         handle_gui_command()
+        return
+
+    if args.update:
+        updater.handle_update_command()
+        return
+
+    if args.repair:
+        init_terminal()
+        info("Attempting to repair Downloadyha dependencies...")
+        if repair_dependencies():
+            success("Repair completed successfully. All dependencies are installed.")
+            sys.exit(0)
+        else:
+            error("Repair failed. Some dependencies could not be automatically downloaded.")
+            sys.exit(1)
+
+    if args.uninstall:
+        uninstaller.handle_uninstall_command()
         return
 
     if args.verify:
