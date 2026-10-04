@@ -5,27 +5,27 @@
     "version": "7.1",
     "windows": {
       "x86_64": {
-        "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip",
+        "url": "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip",
         "sha256": null,
         "archive_type": "zip",
-        "bin_path_in_archive": "ffmpeg-master-latest-win64-gpl/bin/ffmpeg.exe",
-        "probe_path_in_archive": "ffmpeg-master-latest-win64-gpl/bin/ffprobe.exe"
+        "bin_path_in_archive": "ffmpeg-*-essentials_build/bin/ffmpeg.exe",
+        "probe_path_in_archive": "ffmpeg-*-essentials_build/bin/ffprobe.exe"
       }
     },
     "linux": {
       "x86_64": {
-        "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz",
+        "url": "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz",
         "sha256": null,
         "archive_type": "tar.xz",
-        "bin_path_in_archive": "ffmpeg-master-latest-linux64-gpl/bin/ffmpeg",
-        "probe_path_in_archive": "ffmpeg-master-latest-linux64-gpl/bin/ffprobe"
+        "bin_path_in_archive": "ffmpeg-*-amd64-static/ffmpeg",
+        "probe_path_in_archive": "ffmpeg-*-amd64-static/ffprobe"
       },
       "aarch64": {
-        "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linuxarm64-gpl.tar.xz",
+        "url": "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-arm64-static.tar.xz",
         "sha256": null,
         "archive_type": "tar.xz",
-        "bin_path_in_archive": "ffmpeg-master-latest-linuxarm64-gpl/bin/ffmpeg",
-        "probe_path_in_archive": "ffmpeg-master-latest-linuxarm64-gpl/bin/ffprobe"
+        "bin_path_in_archive": "ffmpeg-*-arm64-static/ffmpeg",
+        "probe_path_in_archive": "ffmpeg-*-arm64-static/ffprobe"
       }
     }
   },
