@@ -237,7 +237,19 @@ def prompt_transcript_options(url: str) -> dict:
 
     # For format selection, let user choose from available formats
     if selected_sub['formats']:
-        format_options = [(fmt, fmt.upper(), f"{fmt} format") for fmt in selected_sub['formats']]
+        # Define recommended players map for helper text
+        players_map = {
+            "srt": "VLC, MPC-HC, or almost any media player",
+            "vtt": "Browser, VLC, or modern media players",
+            "ass": "VLC, MPC-HC, or Aegisub (advanced styling support)",
+            "lrc": "Music players (lyrics support)",
+        }
+
+        format_options = []
+        for fmt in selected_sub['formats']:
+            rec_player = players_map.get(fmt, "Standard media players")
+            format_options.append((fmt, fmt.upper(), f"{fmt} format ({rec_player})"))
+
         sub_format = prompt_choice(
             title="Select Subtitle Format",
             options=format_options,
