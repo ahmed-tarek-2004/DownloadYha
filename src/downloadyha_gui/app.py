@@ -43,6 +43,7 @@ try:
         is_playlist_url,
         parse_time_str,
     )
+    from downloadyha.subtitle_utils import get_available_subtitles
     from downloadyha.ui import format_duration, format_number
 except ImportError:
     # Fallback for direct execution during development
@@ -62,6 +63,7 @@ except ImportError:
         is_playlist_url,
         parse_time_str,
     )
+    from downloadyha.subtitle_utils import get_available_subtitles
     from downloadyha.ui import format_duration, format_number
 
 
@@ -726,13 +728,21 @@ class DownloadyhaGUI(ctk.CTk):
         lang_box = ctk.CTkFrame(self.transcript_frame, fg_color="transparent")
         lang_box.grid(row=0, column=0, padx=(10, 5), pady=(6, 2), sticky="ew")
         lang_box.grid_columnconfigure(0, weight=1)
-        ctk.CTkLabel(lang_box, text="Languages (e.g. en,ar):", font=ctk.CTkFont(size=11, weight="bold")).grid(row=0, column=0, sticky="w")
-        self.sub_langs_entry = ctk.CTkEntry(
-            lang_box, placeholder_text="en", height=32, font=ctk.CTkFont(size=11),
-            border_color=Theme.rgb_to_hex(Theme.CYBER_PURPLE)
+        ctk.CTkLabel(lang_box, text="Languages:", font=ctk.CTkFont(size=11, weight="bold")).grid(row=0, column=0, sticky="w")
+        self.sub_langs_var = tk.StringVar(value="en")
+        self.sub_langs_menu = ctk.CTkOptionMenu(
+            lang_box,
+            variable=self.sub_langs_var,
+            values=["en"],  # Default value, will be updated when subtitles are fetched
+            height=32,
+            font=ctk.CTkFont(size=11),
+            corner_radius=8,
+            fg_color=Theme.rgb_to_hex(Theme.CYBER_PURPLE),
+            button_color=Theme.rgb_to_hex(Theme.DEEP_PURPLE),
+            button_hover_color=Theme.rgb_to_hex(Theme.ELECTRIC_CYAN),
+            dropdown_fg_color=Theme.rgb_to_hex(Theme.CARD_BG_LIGHT)
         )
-        self.sub_langs_entry.grid(row=1, column=0, sticky="ew", pady=(2, 0))
-        self.sub_langs_entry.insert(0, "en")
+        self.sub_langs_menu.grid(row=1, column=0, sticky="ew", pady=(2, 0))
 
         fmt_box = ctk.CTkFrame(self.transcript_frame, fg_color="transparent")
         fmt_box.grid(row=0, column=1, padx=(5, 10), pady=(6, 2), sticky="ew")
@@ -1072,9 +1082,75 @@ class DownloadyhaGUI(ctk.CTk):
     def _on_transcript_toggled(self):
         """Show or hide transcript options based on checkbox state."""
         if self.transcript_toggle_var.get():
+            # Fetch available subtitles when transcript options are shown
+            self._fetch_and_populate_subtitles()
             self.transcript_frame.grid(row=9, column=0, padx=10, pady=(2, 6), sticky="ew")
         else:
             self.transcript_frame.grid_forget()
+
+    def _fetch_and_populate_subtitles(self):
+        """Fetch available subtitles and populate the language dropdown with suggestions."""
+        url = self.url_entry.get().strip()
+        if not url:
+            return
+
+        # Show fetching state
+        self.sub_langs_menu.configure(values=["Fetching..."])
+        self.sub_langs_var.set("Fetching...")
+
+        # Run in background thread to avoid freezing UI
+        def fetch_subtitles():
+            try:
+                subtitles = get_available_subtitles(url)
+                # Update UI on main thread
+                self.after(0, lambda: self._update_subtitle_options(subtitles))
+            except Exception as e:
+                print(f"Error fetching subtitles: {e}")
+                self.after(0, lambda: self.sub_langs_menu.configure(
+                    values=["Error fetching subtitles"]
+                ))
+
+        thread = threading.Thread(target=fetch_subtitles, daemon=True)
+        thread.start()
+
+    def _update_subtitle_options(self, subtitles):
+        """Update the subtitle language dropdown with fetched subtitle information."""
+        if not subtitles:
+            self.sub_langs_menu.configure(values=["en"])
+            self.sub_langs_var.set("en")
+            return
+
+        # Language code to name mapping (common language codes)
+        LANGUAGE_NAMES = {
+            'en': 'English', 'ar': 'Arabic', 'es': 'Spanish', 'fr': 'French',
+            'de': 'German', 'it': 'Italian', 'pt': 'Portuguese', 'ru': 'Russian',
+            'ja': 'Japanese', 'ko': 'Korean', 'zh': 'Chinese', 'zh-Hans': 'Chinese (Simplified)',
+            'zh-Hant': 'Chinese (Traditional)', 'hi': 'Hindi', 'bn': 'Bengali',
+            'pa': 'Punjabi', 'ta': 'Tamil', 'te': 'Telugu', 'mr': 'Marathi',
+            'gu': 'Gujarati', 'kn': 'Kannada', 'ml': 'Malayalam', 'ur': 'Urdu',
+            'fa': 'Persian', 'tr': 'Turkish', 'pl': 'Polish', 'nl': 'Dutch',
+            'sv': 'Swedish', 'da': 'Danish', 'no': 'Norwegian', 'fi': 'Finnish',
+            'cs': 'Czech', 'sk': 'Slovak', 'hu': 'Hungarian', 'ro': 'Romanian',
+            'bg': 'Bulgarian', 'hr': 'Croatian', 'sr': 'Serbian', 'sl': 'Slovenian',
+            'et': 'Estonian', 'lv': 'Latvian', 'lt': 'Lithuanian', 'el': 'Greek',
+            'he': 'Hebrew', 'vi': 'Vietnamese', 'th': 'Thai', 'id': 'Indonesian',
+            'ms': 'Malay', 'tl': 'Filipino', 'sw': 'Swahili', 'af': 'Afrikaans'
+        }
+
+        # Get unique language codes from subtitles
+        lang_codes = sorted(list(set([sub['lang'] for sub in subtitles])))
+
+        # Create display strings with both code and name
+        lang_options = []
+        for code in lang_codes:
+            name = LANGUAGE_NAMES.get(code, code.upper())  # Use code as fallback if name not found
+            lang_options.append(f"{code} ({name})")
+
+        # Update the dropdown menu
+        self.sub_langs_menu.configure(values=lang_options)
+        # Set to first option by default
+        if lang_options:
+            self.sub_langs_var.set(lang_options[0])
 
     def _browse_destination(self):
         """Open folder picker dialog."""
@@ -1212,10 +1288,13 @@ class DownloadyhaGUI(ctk.CTk):
             # Execute download
             subs_kwargs: Dict[str, Any] = {}
             if self.transcript_toggle_var.get():
+                # Extract language code from the selected option (format: "code (name)")
+                selected_option = self.sub_langs_var.get().strip()
+                lang_code = selected_option.split(' ')[0] if selected_option else "en"
                 subs_kwargs = {
                     "write_subtitles": True,
                     "write_auto_subs": self.auto_subs_var.get(),
-                    "sub_langs": self.sub_langs_entry.get().strip() or "en",
+                    "sub_langs": lang_code,
                     "sub_format": self.sub_format_var.get(),
                     "embed_subs": self.embed_subs_var.get(),
                 }

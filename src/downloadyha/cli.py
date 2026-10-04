@@ -27,6 +27,7 @@ from .downloader import (
     parse_time_str,
 )
 from .logging import get_logger, setup_logging
+from .subtitle_utils import get_available_subtitles
 from .ui import (
     Colors,
     Symbols,
@@ -67,25 +68,90 @@ def choose_download_folder() -> Optional[str]:
         return None
 
 
-def prompt_transcript_options() -> dict:
+def prompt_transcript_options(url: str) -> dict:
     """
     Interactively ask the user whether they want video transcripts
     (subtitles) downloaded, and with which settings.
     Returns a dict of subtitle options understood by the downloader.
+
+    Args:
+        url (str): The video URL to check for available subtitles.
     """
-    choice = prompt_choice(
+    # Language code to name mapping
+    LANGUAGE_NAMES = {
+        'en': 'English', 'ar': 'Arabic', 'es': 'Spanish', 'fr': 'French',
+        'de': 'German', 'it': 'Italian', 'pt': 'Portuguese', 'ru': 'Russian',
+        'ja': 'Japanese', 'ko': 'Korean', 'zh': 'Chinese', 'zh-Hans': 'Chinese (Simplified)',
+        'zh-Hant': 'Chinese (Traditional)', 'hi': 'Hindi', 'bn': 'Bengali',
+        'pa': 'Punjabi', 'ta': 'Tamil', 'te': 'Telugu', 'mr': 'Marathi',
+        'gu': 'Gujarati', 'kn': 'Kannada', 'ml': 'Malayalam', 'ur': 'Urdu',
+        'fa': 'Persian', 'tr': 'Turkish', 'pl': 'Polish', 'nl': 'Dutch',
+        'sv': 'Swedish', 'da': 'Danish', 'no': 'Norwegian', 'fi': 'Finnish',
+        'cs': 'Czech', 'sk': 'Slovak', 'hu': 'Hungarian', 'ro': 'Romanian',
+        'bg': 'Bulgarian', 'hr': 'Croatian', 'sr': 'Serbian', 'sl': 'Slovenian',
+        'et': 'Estonian', 'lv': 'Latvian', 'lt': 'Lithuanian', 'el': 'Greek',
+        'he': 'Hebrew', 'vi': 'Vietnamese', 'th': 'Thai', 'id': 'Indonesian',
+        'ms': 'Malay', 'tl': 'Filipino', 'sw': 'Swahili', 'af': 'Afrikaans',
+        'aa': 'Afar', 'ab': 'Abkhazian', 'af': 'Afrikaans', 'ak': 'Akan',
+        'sq': 'Albanian', 'am': 'Amharic', 'an': 'Aragonese', 'hy': 'Armenian',
+        'as': 'Assamese', 'av': 'Avaric', 'ae': 'Avestan', 'ay': 'Aymara',
+        'az': 'Azerbaijani', 'bm': 'Bambara', 'ba': 'Bashkir', 'eu': 'Basque',
+        'be': 'Belarusian', 'bh': 'Bihari', 'bi': 'Bislama', 'bs': 'Bosnian',
+        'br': 'Breton', 'my': 'Burmese', 'ca': 'Catalan', 'ch': 'Chamorro',
+        'ce': 'Chechen', 'ny': 'Chichewa', 'zh': 'Chinese', 'cv': 'Chuvash',
+        'kw': 'Cornish', 'co': 'Corsican', 'cr': 'Cree', 'hr': 'Croatian',
+        'cs': 'Czech', 'da': 'Danish', 'dv': 'Divehi', 'nl': 'Dutch',
+        'dz': 'Dzongkha', 'en': 'English', 'eo': 'Esperanto', 'et': 'Estonian',
+        'ee': 'Ewe', 'fo': 'Faroese', 'fj': 'Fijian', 'fi': 'Finnish',
+        'fr': 'French', 'ff': 'Fulah', 'gd': 'Gaelic', 'gl': 'Galician',
+        'lg': 'Ganda', 'ka': 'Georgian', 'de': 'German', 'ki': 'Gikuyu',
+        'el': 'Greek', 'kl': 'Greenlandic', 'gn': 'Guarani', 'gu': 'Gujarati',
+        'ht': 'Haitian', 'ha': 'Hausa', 'he': 'Hebrew', 'hz': 'Herero',
+        'hi': 'Hindi', 'ho': 'Hiri Motu', 'hu': 'Hungarian', 'is': 'Icelandic',
+        'io': 'Ido', 'ig': 'Igbo', 'id': 'Indonesian', 'ia': 'Interlingua',
+        'ie': 'Interlingue', 'iu': 'Inuktitut', 'ik': 'Inupiaq', 'ga': 'Irish',
+        'it': 'Italian', 'ja': 'Japanese', 'jv': 'Javanese', 'kn': 'Kannada',
+        'kr': 'Kanuri', 'ks': 'Kashmiri', 'kk': 'Kazakh', 'km': 'Khmer',
+        'ki': 'Kikuyu', 'rw': 'Kinyarwanda', 'ky': 'Kyrgyz', 'kv': 'Komi',
+        'kg': 'Kongo', 'ko': 'Korean', 'ku': 'Kurdish', 'kj': 'Kwanyama',
+        'lo': 'Lao', 'la': 'Latin', 'lv': 'Latvian', 'li': 'Limburgan',
+        'ln': 'Lingala', 'lt': 'Lithuanian', 'lu': 'Luba-Katanga',
+        'lb': 'Luxembourgish', 'mk': 'Macedonian', 'mg': 'Malagasy',
+        'ms': 'Malay', 'ml': 'Malayalam', 'mt': 'Maltese', 'gv': 'Manx',
+        'mi': 'Maori', 'mr': 'Marathi', 'mh': 'Marshallese', 'mn': 'Mongolian',
+        'na': 'Nauru', 'nv': 'Navajo', 'nd': 'North Ndebele', 'ng': 'Ndonga',
+        'ne': 'Nepali', 'no': 'Norwegian', 'nb': 'Norwegian Bokmål',
+        'nn': 'Norwegian Nynorsk', 'ii': 'Nuosu', 'nr': 'South Ndebele',
+        'oc': 'Occitan', 'oj': 'Ojibwa', 'cu': 'Old Church Slavonic',
+        'om': 'Oromo', 'or': 'Oriya', 'os': 'Ossetian', 'pa': 'Panjabi',
+        'pi': 'Pali', 'fa': 'Persian', 'pl': 'Polish', 'ps': 'Pashto',
+        'pt': 'Portuguese', 'qu': 'Quechua', 'rm': 'Romansh', 'rn': 'Rundi',
+        'ro': 'Romanian', 'ru': 'Russian', 'sm': 'Samoan', 'sg': 'Sango',
+        'sa': 'Sanskrit', 'sc': 'Sardinian', 'sr': 'Serbian', 'sn': 'Shona',
+        'sd': 'Sindhi', 'si': 'Sinhala', 'sk': 'Slovak', 'sl': 'Slovenian',
+        'so': 'Somali', 'st': 'Southern Sotho', 'es': 'Spanish', 'su': 'Sundanese',
+        'sw': 'Swahili', 'ss': 'Swati', 'sv': 'Swedish', 'tl': 'Tagalog',
+        'ty': 'Tahitian', 'tg': 'Tajik', 'ta': 'Tamil', 'tt': 'Tatar',
+        'te': 'Telugu', 'th': 'Thai', 'bo': 'Tibetan', 'ti': 'Tigrinya',
+        'to': 'Tonga', 'ts': 'Tsonga', 'tn': 'Tswana', 'tr': 'Turkish',
+        'tk': 'Turkmen', 'tw': 'Twi', 'ug': 'Uighur', 'uk': 'Ukrainian',
+        'ur': 'Urdu', 'uz': 'Uzbek', 've': 'Venda', 'vi': 'Vietnamese',
+        'vo': 'Volapük', 'wa': 'Walloon', 'cy': 'Welsh', 'wo': 'Wolof',
+        'fy': 'Western Frisian', 'xh': 'Xhosa', 'yi': 'Yiddish', 'yo': 'Yoruba',
+        'za': 'Zhuang', 'zu': 'Zulu'
+    }
+
+    # First ask if user wants subtitles at all
+    want_subtitles = prompt_choice(
         title="Download Video Transcripts (Subtitles)?",
         options=[
-            ("none", "No Transcripts", "Download media only"),
-            ("subs", "Subtitles Only", "Download subtitle files next to the media"),
-            ("auto", "Auto-Generated Subtitles", "Use auto-generated captions"),
-            ("both", "Subtitles + Auto-Generated", "Download both subtitle types"),
-            ("embed", "Embed Subtitles", "Embed subtitles into the video file"),
+            ("no", "No Subtitles", "Download media only (faster)"),
+            ("yes", "Yes, I want subtitles", "Fetch and select available subtitle tracks"),
         ],
         default_index=0
     )
 
-    if choice == "none":
+    if want_subtitles == "no":
         return {
             "write_subtitles": False,
             "write_auto_subs": False,
@@ -95,24 +161,93 @@ def prompt_transcript_options() -> dict:
             "convert_subs": None,
         }
 
-    write_subtitles = choice in ("subs", "both", "embed")
-    write_auto_subs = choice in ("auto", "both", "embed")
-    embed_subs = choice == "embed"
+    # User wants subtitles - now fetch them
+    print("Fetching available subtitles...")
+    available_subtitles = get_available_subtitles(url)
 
-    sub_langs = prompt_input(
-        "Subtitle language codes (comma-separated, e.g. 'en,ar' or 'all')",
-        default="en"
-    ).strip() or "en"
+    # If no subtitles available
+    if not available_subtitles:
+        warning("No subtitles found for this video. Continuing without subtitle options.")
+        return {
+            "write_subtitles": False,
+            "write_auto_subs": False,
+            "sub_langs": None,
+            "sub_format": "srt",
+            "embed_subs": False,
+            "convert_subs": None,
+        }
 
-    sub_format = prompt_choice(
-        title="Select Subtitle Format",
+    # Prepare subtitle choices for display with language names
+    subtitle_choices = [
+        ("none", "No subtitles", "Continue without subtitles")
+    ]
+
+    subtitle_map = {}
+
+    for index, sub in enumerate(available_subtitles):
+        key = f"subtitle_{index}"
+        lang_code = sub['lang']
+        lang_name = LANGUAGE_NAMES.get(lang_code, lang_code.upper())
+        type_label = "auto" if sub['is_auto'] else "manual"
+        formats_str = ', '.join(sorted(sub['formats']))
+        display = f"{lang_code} ({lang_name}) [{type_label}] [{formats_str}]"
+
+        subtitle_choices.append(
+            (key, display, "")
+        )
+
+        subtitle_map[key] = sub
+
+    # Let user select a subtitle
+    selected_key = prompt_choice(
+        title="Select Subtitle Track",
+        options=subtitle_choices,
+        default_index=0
+    )
+
+    # Handle no subtitles
+    if selected_key == "none":
+        return {
+            "write_subtitles": False,
+            "write_auto_subs": False,
+            "sub_langs": None,
+            "sub_format": "srt",
+            "embed_subs": False,
+            "convert_subs": None,
+        }
+
+    # Get selected subtitle info
+    selected_sub = subtitle_map[selected_key]
+
+    # Ask user what they want to do with the selected subtitle
+    action_choice = prompt_choice(
+        title="What would you like to do with this subtitle?",
         options=[
-            ("srt", "SRT", "Most compatible subtitle format"),
-            ("vtt", "VTT", "WebVTT subtitle format"),
-            ("ass", "ASS", "Styled/advanced subtitle format"),
+            ("download", "Download Subtitle File", "Save subtitle as a separate file"),
+            ("embed", "Embed Subtitles", "Embed subtitles into the video file"),
+            ("both", "Download and Embed", "Both download as file and embed in video"),
         ],
         default_index=0
     )
+
+    # Determine subtitle options based on selection
+    write_subtitles = action_choice in ("download", "both")
+    write_auto_subs = selected_sub['is_auto'] and action_choice in ("download", "both")
+    embed_subs = action_choice in ("embed", "both")
+
+    # For format selection, let user choose from available formats
+    if selected_sub['formats']:
+        format_options = [(fmt, fmt.upper(), f"{fmt} format") for fmt in selected_sub['formats']]
+        sub_format = prompt_choice(
+            title="Select Subtitle Format",
+            options=format_options,
+            default_index=0
+        )
+    else:
+        sub_format = "srt"  # fallback
+
+    # Language is determined by the selected subtitle
+    sub_langs = selected_sub['lang']
 
     return {
         "write_subtitles": write_subtitles,
@@ -219,7 +354,7 @@ def run_download_interactive(
             "convert_subs": convert_subs,
         }
         if not (write_subtitles or write_auto_subs or embed_subs or sub_langs):
-            transcripts = prompt_transcript_options()
+            transcripts = prompt_transcript_options(url)
 
         dl_type_choice = dl_type or prompt_choice(
             title="Select Playlist Download Type",
@@ -356,7 +491,7 @@ def run_download_interactive(
             "convert_subs": convert_subs,
         }
         if not (write_subtitles or write_auto_subs or embed_subs or sub_langs):
-            transcripts = prompt_transcript_options()
+            transcripts = prompt_transcript_options(url)
 
         if chosen_format == "video":
             if quality:
@@ -498,12 +633,12 @@ def create_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--write-subs",
         action="store_true",
-        help="Write subtitle files alongside the media"
+        help="Write subtitle files alongside the media (also enables auto-generated subs for compatibility)"
     )
     parser.add_argument(
         "--write-auto-subs",
         action="store_true",
-        help="Write automatically generated subtitle files"
+        help="Write automatically generated subtitle files (also enables regular subs for compatibility)"
     )
     parser.add_argument(
         "--sub-langs",

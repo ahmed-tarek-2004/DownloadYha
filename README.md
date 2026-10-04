@@ -193,7 +193,7 @@ downloadyha "https://www.youtube.com/watch?v=VIDEO_ID" -s 01:30 -e 03:45 -f vide
 2. In the **Subtitle Options** section:
    - Check **Write subtitle files** to download official subtitles
    - Check **Write auto-generated subtitles** for YouTube's auto-captions
-   - Enter **Languages** (e.g., `en,ar` or `all`)
+   - Select **Languages** from the dropdown menu (shows language codes with names, e.g., `en (English)`, `ar (Arabic)`)
    - Select **Format** (SRT, VTT, ASS, LRC)
    - Check **Embed subtitles in video** to burn subtitles into the video file
    - Check **Convert subtitles** and select target format if you want conversion

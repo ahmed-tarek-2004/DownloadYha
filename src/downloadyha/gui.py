@@ -532,7 +532,7 @@ class DownloadyhaGUI:
         # Write subtitles checkbox
         self.write_subs_check = ttk.Checkbutton(
             subtitle_frame,
-            text="Write subtitle files",
+            text="Write subtitle files (also tries auto-generated)",
             variable=self.write_subs_var,
             command=self._on_subtitle_options_change
         )
@@ -541,7 +541,7 @@ class DownloadyhaGUI:
         # Write auto-generated subtitles checkbox
         self.write_auto_subs_check = ttk.Checkbutton(
             subtitle_frame,
-            text="Write auto-generated subtitles",
+            text="Write auto-generated subtitles (also tries regular)",
             variable=self.write_auto_subs_var,
             command=self._on_subtitle_options_change
         )

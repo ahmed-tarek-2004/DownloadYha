@@ -930,10 +930,16 @@ def download_media(
 
     # Configure subtitle options if requested
     sub_desc = ""
-    if write_subtitles or write_auto_subs or embed_subs:
-        if write_subtitles:
+    if write_subtitles or write_auto_subs or embed_subs or convert_subs:
+        # Smart subtitle handling: if user requests any subtitle-related action,
+        # try to get both manual and automatic subtitles to maximize compatibility
+        # across different platforms (YouTube has manual, Facebook often has auto-generated)
+        effective_write_subs = write_subtitles or write_auto_subs or embed_subs or convert_subs
+        effective_write_auto_subs = write_subtitles or write_auto_subs or embed_subs or convert_subs
+
+        if effective_write_subs:
             extra_options["writesubtitles"] = True
-        if write_auto_subs:
+        if effective_write_auto_subs:
             extra_options["writeautomaticsub"] = True
         if sub_langs:
             extra_options["subtitleslangs"] = [lang.strip() for lang in sub_langs.split(",") if lang.strip()]
