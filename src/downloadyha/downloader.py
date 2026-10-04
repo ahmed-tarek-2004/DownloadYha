@@ -786,7 +786,13 @@ def download_media(
     progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
     output_format: str = "mp4",
     start_time: Optional[Union[str, int, float]] = None,
-    end_time: Optional[Union[str, int, float]] = None
+    end_time: Optional[Union[str, int, float]] = None,
+    write_subtitles: bool = False,
+    write_auto_subs: bool = False,
+    sub_langs: Optional[str] = None,
+    sub_format: str = "srt",
+    embed_subs: bool = False,
+    convert_subs: Optional[str] = None
 ) -> DownloadResult:
     """
     Download media (single video, audio, or entire playlist) from a URL.
@@ -808,6 +814,12 @@ def download_media(
         output_format: Video container format (default: "mp4").
         start_time: Optional start timestamp (e.g., "01:30", "90", 90.0).
         end_time: Optional end timestamp (e.g., "04:15", "255", 255.0).
+        write_subtitles: Whether to write subtitle files alongside the media.
+        write_auto_subs: Whether to write auto-generated subtitles.
+        sub_langs: Comma-separated subtitle language codes (e.g., "en,ar") or "all".
+        sub_format: Subtitle container format (e.g., "srt", "vtt", "ass").
+        embed_subs: Whether to embed subtitles into the video file.
+        convert_subs: Optional subtitle format conversion target (e.g., "srt").
 
     Returns:
         DownloadResult instance containing status and statistics.
@@ -916,6 +928,28 @@ def download_media(
         e_disp = str(end_time) if end_time is not None else "end"
         clip_desc = f" [section: {s_disp} - {e_disp}]"
 
+    # Configure subtitle options if requested
+    sub_desc = ""
+    if write_subtitles or write_auto_subs or embed_subs:
+        if write_subtitles:
+            extra_options["writesubtitles"] = True
+        if write_auto_subs:
+            extra_options["writeautomaticsub"] = True
+        if sub_langs:
+            extra_options["subtitleslangs"] = [lang.strip() for lang in sub_langs.split(",") if lang.strip()]
+        if sub_format:
+            extra_options["subtitlesformat"] = sub_format
+        if embed_subs:
+            extra_options["embedsubs"] = True
+        if convert_subs:
+            extra_options["postprocessors"] = extra_options.get("postprocessors", []) + [
+                {
+                    "key": "FFmpegSubtitlesConvertor",
+                    "format": convert_subs,
+                }
+            ]
+        sub_desc = " + subtitles" + (" (embedded)" if embed_subs else "")
+
     if media_type == "audio":
         audio_quality = resolve_audio_quality(quality)
         extra_options.update({
@@ -928,7 +962,7 @@ def download_media(
                 }
             ],
         })
-        desc_str = f"audio (MP3, quality: {audio_quality}){clip_desc}"
+        desc_str = f"audio (MP3, quality: {audio_quality}){clip_desc}{sub_desc}"
     else:
         # Video download
         height = int(quality) if (quality is not None and str(quality).isdigit()) else 0
@@ -937,7 +971,7 @@ def download_media(
             "format": video_format,
             "merge_output_format": output_format,
         })
-        desc_str = f"video (format: {output_format}, max height: {height or 'best'}p){clip_desc}"
+        desc_str = f"video (format: {output_format}, max height: {height or 'best'}p){clip_desc}{sub_desc}"
 
     options = get_yt_dlp_options(extra_options, logger_instance=collector, auto_download_deps=True)
     if has_ffmpeg and "ffmpeg_location" not in options:
@@ -1013,7 +1047,13 @@ def download_audio(
     quality: str = "0",
     progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
     start_time: Optional[Union[str, int, float]] = None,
-    end_time: Optional[Union[str, int, float]] = None
+    end_time: Optional[Union[str, int, float]] = None,
+    write_subtitles: bool = False,
+    write_auto_subs: bool = False,
+    sub_langs: Optional[str] = None,
+    sub_format: str = "srt",
+    embed_subs: bool = False,
+    convert_subs: Optional[str] = None
 ) -> DownloadResult:
     """
     Download audio (single media or playlist) as MP3.
@@ -1036,7 +1076,13 @@ def download_audio(
         quality=quality,
         progress_callback=progress_callback,
         start_time=start_time,
-        end_time=end_time
+        end_time=end_time,
+        write_subtitles=write_subtitles,
+        write_auto_subs=write_auto_subs,
+        sub_langs=sub_langs,
+        sub_format=sub_format,
+        embed_subs=embed_subs,
+        convert_subs=convert_subs
     )
 
 
@@ -1047,7 +1093,13 @@ def download_video(
     progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
     output_format: str = "mp4",
     start_time: Optional[Union[str, int, float]] = None,
-    end_time: Optional[Union[str, int, float]] = None
+    end_time: Optional[Union[str, int, float]] = None,
+    write_subtitles: bool = False,
+    write_auto_subs: bool = False,
+    sub_langs: Optional[str] = None,
+    sub_format: str = "srt",
+    embed_subs: bool = False,
+    convert_subs: Optional[str] = None
 ) -> DownloadResult:
     """
     Download video (single video or playlist) with FFmpeg muxing into MP4/MKV.
@@ -1060,6 +1112,12 @@ def download_video(
         output_format: Container format ("mp4" or "mkv").
         start_time: Optional start timestamp (e.g., "01:30", "90").
         end_time: Optional end timestamp (e.g., "04:15", "255").
+        write_subtitles: Whether to write subtitle files alongside the media.
+        write_auto_subs: Whether to write auto-generated subtitles.
+        sub_langs: Comma-separated subtitle language codes (e.g., "en,ar") or "all".
+        sub_format: Subtitle container format (e.g., "srt", "vtt", "ass").
+        embed_subs: Whether to embed subtitles into the video file.
+        convert_subs: Optional subtitle format conversion target (e.g., "srt").
 
     Returns:
         DownloadResult instance (evaluates as True on success).
@@ -1072,7 +1130,13 @@ def download_video(
         progress_callback=progress_callback,
         output_format=output_format,
         start_time=start_time,
-        end_time=end_time
+        end_time=end_time,
+        write_subtitles=write_subtitles,
+        write_auto_subs=write_auto_subs,
+        sub_langs=sub_langs,
+        sub_format=sub_format,
+        embed_subs=embed_subs,
+        convert_subs=convert_subs
     )
 
 
@@ -1084,7 +1148,13 @@ def download_playlist(
     progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
     output_format: str = "mp4",
     start_time: Optional[Union[str, int, float]] = None,
-    end_time: Optional[Union[str, int, float]] = None
+    end_time: Optional[Union[str, int, float]] = None,
+    write_subtitles: bool = False,
+    write_auto_subs: bool = False,
+    sub_langs: Optional[str] = None,
+    sub_format: str = "srt",
+    embed_subs: bool = False,
+    convert_subs: Optional[str] = None
 ) -> DownloadResult:
     """
     Download an entire playlist as video or audio.
@@ -1098,6 +1168,12 @@ def download_playlist(
         output_format: Video container format ("mp4" or "mkv").
         start_time: Optional start timestamp.
         end_time: Optional end timestamp.
+        write_subtitles: Whether to write subtitle files alongside the media.
+        write_auto_subs: Whether to write auto-generated subtitles.
+        sub_langs: Comma-separated subtitle language codes (e.g., "en,ar") or "all".
+        sub_format: Subtitle container format (e.g., "srt", "vtt", "ass").
+        embed_subs: Whether to embed subtitles into the video file.
+        convert_subs: Optional subtitle format conversion target (e.g., "srt").
 
     Returns:
         DownloadResult instance with full completion statistics.
@@ -1110,7 +1186,13 @@ def download_playlist(
         progress_callback=progress_callback,
         output_format=output_format,
         start_time=start_time,
-        end_time=end_time
+        end_time=end_time,
+        write_subtitles=write_subtitles,
+        write_auto_subs=write_auto_subs,
+        sub_langs=sub_langs,
+        sub_format=sub_format,
+        embed_subs=embed_subs,
+        convert_subs=convert_subs
     )
 
 
@@ -1121,7 +1203,13 @@ def download_playlist_video(
     progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
     output_format: str = "mp4",
     start_time: Optional[Union[str, int, float]] = None,
-    end_time: Optional[Union[str, int, float]] = None
+    end_time: Optional[Union[str, int, float]] = None,
+    write_subtitles: bool = False,
+    write_auto_subs: bool = False,
+    sub_langs: Optional[str] = None,
+    sub_format: str = "srt",
+    embed_subs: bool = False,
+    convert_subs: Optional[str] = None
 ) -> DownloadResult:
     """
     Download an entire playlist as video files.
@@ -1133,7 +1221,13 @@ def download_playlist_video(
         progress_callback=progress_callback,
         output_format=output_format,
         start_time=start_time,
-        end_time=end_time
+        end_time=end_time,
+        write_subtitles=write_subtitles,
+        write_auto_subs=write_auto_subs,
+        sub_langs=sub_langs,
+        sub_format=sub_format,
+        embed_subs=embed_subs,
+        convert_subs=convert_subs
     )
 
 
@@ -1143,7 +1237,13 @@ def download_playlist_audio(
     quality: str = "0",
     progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
     start_time: Optional[Union[str, int, float]] = None,
-    end_time: Optional[Union[str, int, float]] = None
+    end_time: Optional[Union[str, int, float]] = None,
+    write_subtitles: bool = False,
+    write_auto_subs: bool = False,
+    sub_langs: Optional[str] = None,
+    sub_format: str = "srt",
+    embed_subs: bool = False,
+    convert_subs: Optional[str] = None
 ) -> DownloadResult:
     """
     Download an entire playlist as audio MP3 files.
@@ -1154,5 +1254,11 @@ def download_playlist_audio(
         quality=quality,
         progress_callback=progress_callback,
         start_time=start_time,
-        end_time=end_time
+        end_time=end_time,
+        write_subtitles=write_subtitles,
+        write_auto_subs=write_auto_subs,
+        sub_langs=sub_langs,
+        sub_format=sub_format,
+        embed_subs=embed_subs,
+        convert_subs=convert_subs
     )

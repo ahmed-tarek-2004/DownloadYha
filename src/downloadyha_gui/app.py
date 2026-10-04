@@ -701,9 +701,85 @@ class DownloadyhaGUI(ctk.CTk):
         )
         self.section_hint_label.grid(row=1, column=0, columnspan=2, padx=10, pady=(2, 6), sticky="w")
 
-        # Destination Folder Section (row 8 & 9)
+        # Transcript (Subtitles) Toggle (row 8)
+        transcript_toggle_frame = ctk.CTkFrame(container, fg_color="transparent")
+        transcript_toggle_frame.grid(row=8, column=0, padx=10, pady=(2, 2), sticky="ew")
+
+        self.transcript_toggle_var = tk.BooleanVar(value=False)
+        self.transcript_toggle = ctk.CTkCheckBox(
+            transcript_toggle_frame,
+            text="📝 Download Video Transcripts (Subtitles)",
+            variable=self.transcript_toggle_var,
+            font=ctk.CTkFont(size=12, weight="bold"),
+            command=self._on_transcript_toggled,
+            fg_color=Theme.get_accent_color(),
+            hover_color=Theme.rgb_to_hex(Theme.CYBER_PURPLE),
+            checkmark_color="black"
+        )
+        self.transcript_toggle.grid(row=0, column=0, sticky="w")
+
+        # Collapsible Transcript Options (row 9, hidden by default)
+        self.transcript_frame = ctk.CTkFrame(container, fg_color=Theme.rgb_to_hex(Theme.CARD_BG_LIGHT), corner_radius=8)
+        self.transcript_frame.grid_columnconfigure(0, weight=1)
+        self.transcript_frame.grid_columnconfigure(1, weight=1)
+
+        lang_box = ctk.CTkFrame(self.transcript_frame, fg_color="transparent")
+        lang_box.grid(row=0, column=0, padx=(10, 5), pady=(6, 2), sticky="ew")
+        lang_box.grid_columnconfigure(0, weight=1)
+        ctk.CTkLabel(lang_box, text="Languages (e.g. en,ar):", font=ctk.CTkFont(size=11, weight="bold")).grid(row=0, column=0, sticky="w")
+        self.sub_langs_entry = ctk.CTkEntry(
+            lang_box, placeholder_text="en", height=32, font=ctk.CTkFont(size=11),
+            border_color=Theme.rgb_to_hex(Theme.CYBER_PURPLE)
+        )
+        self.sub_langs_entry.grid(row=1, column=0, sticky="ew", pady=(2, 0))
+        self.sub_langs_entry.insert(0, "en")
+
+        fmt_box = ctk.CTkFrame(self.transcript_frame, fg_color="transparent")
+        fmt_box.grid(row=0, column=1, padx=(5, 10), pady=(6, 2), sticky="ew")
+        fmt_box.grid_columnconfigure(0, weight=1)
+        ctk.CTkLabel(fmt_box, text="Format:", font=ctk.CTkFont(size=11, weight="bold")).grid(row=0, column=0, sticky="w")
+        self.sub_format_var = tk.StringVar(value="srt")
+        self.sub_format_menu = ctk.CTkOptionMenu(
+            fmt_box,
+            variable=self.sub_format_var,
+            values=["srt", "vtt", "ass"],
+            font=ctk.CTkFont(size=11),
+            height=32,
+            corner_radius=8,
+            fg_color=Theme.rgb_to_hex(Theme.CYBER_PURPLE),
+            button_color=Theme.rgb_to_hex(Theme.DEEP_PURPLE),
+            button_hover_color=Theme.rgb_to_hex(Theme.ELECTRIC_CYAN),
+            dropdown_fg_color=Theme.rgb_to_hex(Theme.CARD_BG_LIGHT)
+        )
+        self.sub_format_menu.grid(row=1, column=0, sticky="ew", pady=(2, 0))
+
+        self.auto_subs_var = tk.BooleanVar(value=False)
+        self.auto_subs_check = ctk.CTkCheckBox(
+            self.transcript_frame,
+            text="Use auto-generated subtitles",
+            variable=self.auto_subs_var,
+            font=ctk.CTkFont(size=11),
+            fg_color=Theme.get_accent_color(),
+            hover_color=Theme.rgb_to_hex(Theme.CYBER_PURPLE),
+            checkmark_color="black"
+        )
+        self.auto_subs_check.grid(row=1, column=0, padx=10, pady=(4, 6), sticky="w")
+
+        self.embed_subs_var = tk.BooleanVar(value=False)
+        self.embed_subs_check = ctk.CTkCheckBox(
+            self.transcript_frame,
+            text="Embed in video",
+            variable=self.embed_subs_var,
+            font=ctk.CTkFont(size=11),
+            fg_color=Theme.get_accent_color(),
+            hover_color=Theme.rgb_to_hex(Theme.CYBER_PURPLE),
+            checkmark_color="black"
+        )
+        self.embed_subs_check.grid(row=1, column=1, padx=10, pady=(4, 6), sticky="w")
+
+        # Destination Folder Section (row 10 & 11)
         dest_label_frame = ctk.CTkFrame(container, fg_color="transparent")
-        dest_label_frame.grid(row=8, column=0, padx=10, pady=(4, 2), sticky="ew")
+        dest_label_frame.grid(row=10, column=0, padx=10, pady=(4, 2), sticky="ew")
 
         ctk.CTkLabel(
             dest_label_frame,
@@ -712,7 +788,7 @@ class DownloadyhaGUI(ctk.CTk):
         ).grid(row=0, column=0, sticky="w")
 
         dest_entry_frame = ctk.CTkFrame(container, fg_color="transparent")
-        dest_entry_frame.grid(row=9, column=0, padx=10, pady=(2, 6), sticky="ew")
+        dest_entry_frame.grid(row=11, column=0, padx=10, pady=(2, 6), sticky="ew")
         dest_entry_frame.grid_columnconfigure(0, weight=1)
 
         self.dest_entry = ctk.CTkEntry(
@@ -738,9 +814,9 @@ class DownloadyhaGUI(ctk.CTk):
         )
         browse_btn.grid(row=0, column=1)
 
-        # Progress Section (row 10)
+        # Progress Section (row 12)
         progress_frame = GlassCard(container, height=120)
-        progress_frame.grid(row=10, column=0, padx=10, pady=(6, 6), sticky="ew")
+        progress_frame.grid(row=12, column=0, padx=10, pady=(6, 6), sticky="ew")
         progress_frame.grid_columnconfigure(0, weight=1)
         progress_frame.grid_propagate(False)
 
@@ -993,6 +1069,13 @@ class DownloadyhaGUI(ctk.CTk):
         else:
             self.section_frame.grid_forget()
 
+    def _on_transcript_toggled(self):
+        """Show or hide transcript options based on checkbox state."""
+        if self.transcript_toggle_var.get():
+            self.transcript_frame.grid(row=9, column=0, padx=10, pady=(2, 6), sticky="ew")
+        else:
+            self.transcript_frame.grid_forget()
+
     def _browse_destination(self):
         """Open folder picker dialog."""
         folder = filedialog.askdirectory(
@@ -1127,6 +1210,16 @@ class DownloadyhaGUI(ctk.CTk):
                     self.after(0, self._update_status, "Processing and merging streams...")
 
             # Execute download
+            subs_kwargs: Dict[str, Any] = {}
+            if self.transcript_toggle_var.get():
+                subs_kwargs = {
+                    "write_subtitles": True,
+                    "write_auto_subs": self.auto_subs_var.get(),
+                    "sub_langs": self.sub_langs_entry.get().strip() or "en",
+                    "sub_format": self.sub_format_var.get(),
+                    "embed_subs": self.embed_subs_var.get(),
+                }
+
             if is_pl:
                 quality_arg = str(quality) if (media_type == "video" and quality > 0) else ("best" if media_type == "video" else quality)
                 result = download_playlist(
@@ -1136,7 +1229,8 @@ class DownloadyhaGUI(ctk.CTk):
                     quality=quality_arg,
                     start_time=start_time,
                     end_time=end_time,
-                    progress_callback=progress_callback
+                    progress_callback=progress_callback,
+                    **subs_kwargs
                 )
             else:
                 if media_type == "video":
@@ -1146,7 +1240,8 @@ class DownloadyhaGUI(ctk.CTk):
                         height=quality,
                         start_time=start_time,
                         end_time=end_time,
-                        progress_callback=progress_callback
+                        progress_callback=progress_callback,
+                        **subs_kwargs
                     )
                 else:
                     result = download_audio(
@@ -1155,7 +1250,8 @@ class DownloadyhaGUI(ctk.CTk):
                         quality=quality,
                         start_time=start_time,
                         end_time=end_time,
-                        progress_callback=progress_callback
+                        progress_callback=progress_callback,
+                        **subs_kwargs
                     )
 
             # Handle result

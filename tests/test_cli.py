@@ -264,7 +264,13 @@ class TestCLIInteractiveWorkflows(unittest.TestCase):
             download_path="/tmp/downloads",
             quality="320",
             start_time=None,
-            end_time=None
+            end_time=None,
+            write_subtitles=False,
+            write_auto_subs=False,
+            sub_langs=None,
+            sub_format="srt",
+            embed_subs=False,
+            convert_subs=None
         )
 
     @patch("downloadyha.cli.init_terminal")
@@ -286,7 +292,13 @@ class TestCLIInteractiveWorkflows(unittest.TestCase):
             download_path="/tmp/downloads",
             height=1080,
             start_time=None,
-            end_time=None
+            end_time=None,
+            write_subtitles=False,
+            write_auto_subs=False,
+            sub_langs=None,
+            sub_format="srt",
+            embed_subs=False,
+            convert_subs=None
         )
 
     @patch("downloadyha.cli.init_terminal")
@@ -314,7 +326,13 @@ class TestCLIInteractiveWorkflows(unittest.TestCase):
             download_path="/tmp/downloads",
             height=1080,
             start_time="01:15",
-            end_time="02:30"
+            end_time="02:30",
+            write_subtitles=False,
+            write_auto_subs=False,
+            sub_langs=None,
+            sub_format="srt",
+            embed_subs=False,
+            convert_subs=None
         )
 
     @patch("downloadyha.cli.init_terminal")
@@ -337,7 +355,13 @@ class TestCLIInteractiveWorkflows(unittest.TestCase):
             media_type="video",
             quality="1080",
             start_time=None,
-            end_time=None
+            end_time=None,
+            write_subtitles=False,
+            write_auto_subs=False,
+            sub_langs=None,
+            sub_format="srt",
+            embed_subs=False,
+            convert_subs=None
         )
 
     @patch("downloadyha.cli.init_terminal")
@@ -478,6 +502,39 @@ class TestCLISubcommands(unittest.TestCase):
                 cli.main()
             self.assertEqual(cm.exception.code, 130)
             mock_print_interrupted.assert_called_once()
+
+
+class TestCLISubtitleArguments(unittest.TestCase):
+    """Test CLI subtitle argument parsing."""
+
+    def test_create_parser_subtitle_args(self):
+        parser = cli.create_parser()
+        args = parser.parse_args([
+            "https://www.youtube.com/watch?v=test",
+            "--write-subs",
+            "--write-auto-subs",
+            "--sub-langs", "en,es",
+            "--sub-format", "vtt",
+            "--embed-subs",
+            "--convert-subs", "srt"
+        ])
+        self.assertEqual(args.url, "https://www.youtube.com/watch?v=test")
+        self.assertTrue(args.write_subs)
+        self.assertTrue(args.write_auto_subs)
+        self.assertEqual(args.sub_langs, "en,es")
+        self.assertEqual(args.sub_format, "vtt")
+        self.assertTrue(args.embed_subs)
+        self.assertEqual(args.convert_subs, "srt")
+
+    def test_create_parser_subtitle_args_defaults(self):
+        parser = cli.create_parser()
+        args = parser.parse_args(["https://www.youtube.com/watch?v=test"])
+        self.assertFalse(args.write_subs)
+        self.assertFalse(args.write_auto_subs)
+        self.assertIsNone(args.sub_langs)
+        self.assertEqual(args.sub_format, "srt")
+        self.assertFalse(args.embed_subs)
+        self.assertIsNone(args.convert_subs)
 
 
 if __name__ == "__main__":

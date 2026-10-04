@@ -82,4 +82,5 @@ downloadyha-*
 *.bak
 *~.nib
 next_step.md
+PROJECT_SUMMARY.md
 .claude/

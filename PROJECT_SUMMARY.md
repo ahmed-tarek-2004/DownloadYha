@@ -1,383 +1,90 @@
-# Downloadyha - Standalone Distribution Project
+# Downloadyha Project Summary
 
 ## Overview
+Downloadyha is a modern, cross-platform downloader for videos, audio, and playlists from YouTube and other social media platforms. It provides both a Command Line Interface (CLI) and a Desktop Graphical User Interface (GUI). The tool is designed to be zero-configuration, bundling required dependencies (FFmpeg, Deno) and handling their automatic download and verification.
 
-This project has been completely redesigned from a script-based Python application into a **true standalone cross-platform CLI application** that requires **zero manual dependency installation**.
+## Key Features
+- **Partial Downloads (Clipping)**: Download specific sections of media using start/end timestamps.
+- **Playlist Support**: Download entire playlists as video or audio with organized folder structure.
+- **Format Selection**: Choose video resolution (up to 4K) or audio bitrate (MP3).
+- **Subtitle Handling**: Download, embed, and convert subtitles.
+- **Modern UI**: 
+  - CLI: Interactive wizard with color-coded steps, progress bars, and summary cards.
+  - GUI: CustomTkinter-based interface with light/dark themes, real-time progress, and settings persistence.
+- **Self-Maintenance**: Commands for update, repair, dependency verification, and uninstallation.
+- **Privacy Focused**: No telemetry, direct connections, SHA-256 verification of binaries.
 
-**Repository:** https://github.com/ahmed-tarek-2004/DownloadYha
+## Architecture
+The project follows a modular structure separating concerns into distinct modules:
 
----
+### Core Modules (`src/downloadyha/`)
+- `__init__.py`: Package metadata and version resolution.
+- `__main__.py`: Entry point that launches the CLI.
+- `cli.py`: Main CLI implementation (argument parsing, interactive workflow).
+- `downloader.py`: Core download logic using yt-dlp, handling video/audio/playlist downloads, progress hooks, and result structures.
+- `gui.py`: Desktop GUI implementation using tkinter/CustomTkinter.
+- `config.py`: User configuration management (platform-specific config.json).
+- `dependencies.py`: Dependency resolution, automatic download, and verification (FFmpeg, Deno, yt-dlp).
+- `network.py`: HTTP utilities for downloading dependency binaries.
+- `platform.py`: Platform detection helpers.
+- `paths.py`: Directory resolution for binaries, logs, cache, etc.
+- `logging.py`: Logging configuration.
+- `uninstaller.py`: Uninstallation logic.
+- `updater.py`: Self-update mechanism via GitHub Releases.
 
-## What Changed
+### GUI Module (`src/downloadyha_gui/`)
+- Contains the standalone GUI launcher and resources (icon).
 
-### Before
-- Required manual installation of Python, pip, FFmpeg, Deno, yt-dlp
-- Script-based execution
-- Complex setup for end users
-
-### After
-- **Single-command installation**
-- **Standalone executable** (no Python required)
-- **Auto-managed dependencies** (FFmpeg, Deno download automatically)
-- **Self-updating** via GitHub Releases
-- **Cross-platform support** (Windows x64, Linux x64, Linux ARM64)
-
----
-
-## Installation
-
-### Windows
-
-**PowerShell:**
-```powershell
-irm https://raw.githubusercontent.com/ahmed-tarek-2004/DownloadYha/master/install.ps1 | iex
-```
-
-**Command Prompt (CMD):**
-```cmd
-powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.com/ahmed-tarek-2004/DownloadYha/master/install.ps1 | iex"
-```
-
-### Linux
-```bash
-curl -fsSL https://raw.githubusercontent.com/ahmed-tarek-2004/DownloadYha/master/install.sh | bash
-```
-
-After installation:
-```bash
-downloadyha
-```
-
----
-
-## Project Structure
-
-```
-downloadyha/
-├── src/downloadyha/
-│   ├── __init__.py           # Version info
-│   ├── __main__.py           # Entry point
-│   ├── cli.py                # CLI interface with commands
-│   ├── downloader.py         # YouTube download logic (yt-dlp)
-│   ├── dependencies.py       # Auto-download FFmpeg/Deno
-│   ├── paths.py              # Cross-platform paths
-│   ├── platform.py           # OS/architecture detection
-│   ├── config.py             # User configuration management
-│   ├── updater.py            # Self-update from GitHub Releases
-│   ├── logging.py            # Structured logging
-│   └── versions.json         # Dependency version manifest
-│
-├── scripts/
-│   ├── build-windows.ps1     # Build script for Windows
-│   ├── build-linux.sh        # Build script for Linux
-│   ├── install.ps1           # Windows installer
-│   └── install.sh            # Linux installer
-│
-├── .github/workflows/
-│   └── release.yml           # CI/CD pipeline
-│
-├── tests/
-│   └── test_updater.py       # Unit tests
-│
-├── downloadyha.spec          # PyInstaller configuration
-├── pyproject.toml            # Python project metadata
-├── README.md                 # User documentation
-├── CHANGELOG.md              # Version history
-├── CONTRIBUTING.md           # Developer guide
-└── LICENSE                   # MIT License
-```
-
----
-
-## Commands
-
-| Command | Description |
-|---------|-------------|
-| `downloadyha` | Start the interactive YouTube downloader |
-| `downloadyha update` | Check for and install updates |
-| `downloadyha repair` | Repair/reinstall dependencies (FFmpeg, Deno) |
-| `downloadyha --verify` | Verify all dependencies are available |
-| `downloadyha --help` | Show help message |
-| `downloadyha --version` | Show version |
-
----
-
-## Features
-
-### Core Functionality
-- ✅ YouTube video/audio downloads via yt-dlp
-- ✅ Audio quality selection (Best, 128, 192, 320 kbps)
-- ✅ Dynamic video quality selection
-- ✅ Custom download directory
-- ✅ MP3 conversion via FFmpeg
-- ✅ Video+audio merging via FFmpeg
-- ✅ Deno JavaScript runtime for yt-dlp
-- ✅ EJS remote components from GitHub
-
-### Distribution
-- ✅ Standalone executables (PyInstaller)
-- ✅ Auto-managed dependencies (FFmpeg, Deno)
-- ✅ SHA-256 verification for all downloads
-- ✅ Cross-platform path management
-- ✅ One-command installers (Windows/Linux)
-- ✅ GitHub Releases distribution
-- ✅ Self-update mechanism (24-hour cache)
-- ✅ Repair command for broken installations
-
----
+## Workflow
+1. **Entry Point**: Execution starts via `downloadyha` CLI command or `downloadyha-gui` GUI executable.
+2. **Dependency Check**: On startup, the application verifies required dependencies (FFmpeg, Deno, yt-dlp) and can auto-download missing ones.
+3. **User Interaction**:
+   - **CLI**: Presents an interactive step-by-step wizard (URL input, destination folder, quality/format selection, optional clipping).
+   - **GUI**: User enters URL, selects options via form, and starts download.
+4. **Processing**:
+   - Metadata extraction via yt-dlp to determine if URL is a single video or playlist.
+   - Based on user selections, appropriate downloader function is called (`download_video`, `download_audio`, `download_playlist`).
+   - yt-dlp is configured with selected options (format, output template, post-processing for MP3/audio extraction, subtitle handling, range selection for clipping).
+   - Progress hooks relay real-time updates to CLI/GUI.
+5. **Completion**: Structured `DownloadResult` is returned, indicating success/failure and providing statistics.
 
 ## Dependency Management
-
-### How It Works
-
-1. **First Run**: When you run `downloadyha` for the first time, it automatically:
-   - Checks for FFmpeg in `~/.local/share/downloadyha/bin/` (Linux) or `%LOCALAPPDATA%\Downloadyha\bin\` (Windows)
-   - If not found, downloads from official GitHub releases
-   - Verifies SHA-256 checksums (if configured in versions.json)
-   - Sets executable permissions (Linux)
-   - Falls back to system-installed binaries if available
-
-2. **Storage Locations**:
-   - **Windows**: `%LOCALAPPDATA%\Downloadyha\`
-   - **Linux**: `~/.local/share/downloadyha/`
-
-3. **Managed Dependencies**:
-   - FFmpeg (audio/video processing)
-   - FFprobe (media information)
-   - Deno (JavaScript runtime for yt-dlp)
-   - yt-dlp (bundled in executable)
-
-### Version Manifest
-
-Dependencies are defined in `src/downloadyha/versions.json`:
-```json
-{
-  "downloadyha": "1.0.0",
-  "yt_dlp": "2026.8.19",
-  "ffmpeg": {
-    "version": "7.1",
-    "windows": { "x86_64": { "url": "...", "sha256": null } },
-    "linux": { "x86_64": { "url": "..." }, "aarch64": { "url": "..." } }
-  },
-  "deno": {
-    "version": "2.1.4",
-    "windows": { "x86_64": { "url": "..." } },
-    "linux": { "x86_64": { "url": "..." }, "aarch64": { "url": "..." } }
-  }
-}
-```
-
----
-
-## Building from Source
-
-### Prerequisites
-- Python 3.10+
-- pip
-
-### Steps
-
-1. **Clone the repository**:
-```bash
-git clone https://github.com/ahmed-tarek-2004/DownloadYha.git
-cd DownloadYha
-```
-
-2. **Install dependencies**:
-```bash
-pip install -e ".[dev]"
-```
-
-3. **Build executable**:
-
-**Windows:**
-```powershell
-.\build-windows.ps1
-```
-
-**Linux:**
-```bash
-chmod +x build-linux.sh
-./build-linux.sh
-```
-
-4. **Output**:
-   - Windows: `dist/downloadyha.exe`
-   - Linux: `dist/downloadyha`
-
----
-
-## Creating a Release
-
-### Automated via GitHub Actions
-
-1. **Update version** in:
-   - `src/downloadyha/__init__.py` (`__version__`)
-   - `pyproject.toml` (`version`)
-   - `src/downloadyha/versions.json` (`downloadyha`)
-
-2. **Create and push a tag**:
-```bash
-git tag v1.0.0
-git push origin v1.0.0
-```
-
-3. **GitHub Actions automatically**:
-   - Builds for Windows x64, Linux x64, Linux ARM64
-   - Creates archives (`.zip` for Windows, `.tar.gz` for Linux)
-   - Generates SHA256SUMS
-   - Creates GitHub Release with all artifacts
-
-### Release Assets
-
-The workflow produces:
-- `downloadyha-windows-x86_64.zip`
-- `downloadyha-linux-x86_64.tar.gz`
-- `downloadyha-linux-arm64.tar.gz`
-- `SHA256SUMS`
-
----
-
-## Update Mechanism
-
-### How It Works
-
-1. **Update Check**: On startup, checks GitHub Releases API (cached for 24 hours)
-2. **User Notification**: If newer version available, shows non-intrusive message
-3. **Manual Update**: User runs `downloadyha update`
-4. **Download**: Fetches appropriate platform binary from GitHub Releases
-5. **Verification**: Validates SHA-256 checksum before installation
-6. **Safe Replace**: Atomically replaces current executable
-7. **Config Preservation**: User configuration is never deleted
-
-### Update Cache
-
-Update checks are cached in:
-- **Windows**: `%LOCALAPPDATA%\Downloadyha\cache\last_update_check.txt`
-- **Linux**: `~/.cache/downloadyha/last_update_check.txt`
-
----
+- Bundled binaries for FFmpeg and Deno are stored in the platform-specific app data directory under `bin/`.
+- The `dependencies.py` module handles:
+  - Locating binaries in the app directory or system PATH.
+  - Automatic download from configured URLs (specified in `versions.json`) with SHA-256 verification.
+  - Extraction and placement of executables.
+  - Making binaries executable on POSIX systems.
+- yt-dlp is expected to be available via the Python package installation.
 
 ## Configuration
-
-User configuration is stored in `config.json`:
-- **Windows**: `%LOCALAPPDATA%\Downloadyha\config.json`
-- **Linux**: `~/.config/downloadyha/config.json`
-
-```json
-{
-  "download_directory": "C:\\Users\\username\\Downloads",
-  "check_updates": true
-}
-```
-
----
+- User preferences (default download directory, theme, update checks, quality preferences) are saved in a `config.json` file located in:
+  - Windows: `%LOCALAPPDATA%\Downloadyha\config.json`
+  - Linux: `~/.config/downloadyha/config.json`
+- The config is loaded at startup and saved on changes; missing keys are filled with defaults.
 
 ## Logging
+- Application logs are written to a file in the platform-specific log directory (`logs/`) when enabled.
+- Logging levels can be adjusted via the `--verbose` flag.
 
-Logs are stored in:
-- **Windows**: `%LOCALAPPDATA%\Downloadyha\logs\`
-- **Linux**: `~/.local/share/downloadyha/logs/`
+## Self-Update and Repair
+- **Update**: Checks GitHub Releases for the latest version and downloads/installs updates.
+- **Repair**: Forces re-download and verification of FFmpeg and Deno binaries.
+- **Verify**: Checks availability and integrity of all dependencies.
 
-Log format: `downloadyha_YYYYMMDD_HHMMSS.log`
+## Installation and Usage
+### CLI Installation
+- **Windows**: PowerShell script (`irm https://raw.githubusercontent.com/ahmed-tarek-2004/DownloadYha/master/install.ps1 | iex`)
+- **Linux**: Bash script (`curl -fsSL https://raw.githubusercontent.com/ahmed-tarek-2004/DownloadYha/master/install.sh | bash`)
+- After installation, run `downloadyha` in terminal.
 
----
+### GUI Installation
+- **Option 1 (Recommended)**: Download pre-built standalone binaries from GitHub Releases.
+- **Option 2**: Install via Python/pip: `pip install "downloadyha[gui]"` then run `downloadyha-gui`.
 
-## Security
-
-### Download Security
-- All downloads use HTTPS only
-- SHA-256 verification for binaries (when configured)
-- No execution before verification
-- Atomic file operations (temp file → rename)
-
-### Update Security
-- GitHub Releases API for version checking
-- Checksum verification before executable replacement
-- User consent required for updates
-
----
-
-## Platform Support
-
-| Platform | Architecture | Status |
-|----------|-------------|--------|
-| Windows 10/11 | x64 | ✅ Fully Supported |
-| Linux | x64 | ✅ Fully Supported |
-| Linux | ARM64 | ✅ Supported (cross-compiled) |
-
----
-
-## Troubleshooting
-
-### Dependencies Not Found
-```bash
-downloadyha repair
-```
-
-### Update Issues
-```bash
-# Manually check version
-downloadyha --version
-
-# Force dependency reinstall
-downloadyha repair
-```
-
-### PATH Issues
-- **Windows**: Restart terminal after installation
-- **Linux**: Run `source ~/.bashrc` (or your shell profile)
-
----
-
-## Development
-
-### Running Tests
-```bash
-pip install -e ".[dev]"
-python -m pytest tests/
-```
-
-### Code Structure
-- Entry point: `src/downloadyha/__main__.py` → `cli.main()`
-- CLI commands: `src/downloadyha/cli.py`
-- Download logic: `src/downloadyha/downloader.py`
-- Dependency resolver: `src/downloadyha/dependencies.py`
-
----
-
-## Technology Stack
-
-- **Language**: Python 3.10+
-- **Packaging**: PyInstaller (standalone executables)
-- **YouTube Extraction**: yt-dlp
-- **Media Processing**: FFmpeg/FFprobe
-- **JavaScript Runtime**: Deno
-- **CI/CD**: GitHub Actions
-- **Distribution**: GitHub Releases
-
----
+## Extensibility
+- The CLI and GUI share the same downloader backend, making it easy to add new features (e.g., additional metadata extraction, new output formats).
+- Adding new dependency types would involve extending `dependencies.py` with download/verification logic.
 
 ## License
-
-MIT License - see `LICENSE` file
-
----
-
-## Author
-
-Ahmed Tarek (@ahmed-tarek-2004)
-
----
-
-## Next Steps
-
-1. **Test the build locally**: Run `.\build-windows.ps1` or `./build-linux.sh`
-2. **Test the installer locally**: Test with a fresh Windows/Linux VM
-3. **Create first release**: Tag and push `v1.0.0`
-4. **Test installers**: After release, test the install commands
-5. **Update documentation**: Add screenshots, demo GIF to README if desired
-
----
-
-**Project completed on:** 2026-09-30
+Distributed under the MIT License. See `LICENSE` file for details.

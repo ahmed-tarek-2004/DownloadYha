@@ -303,6 +303,15 @@ class DownloadyhaGUI:
         self._is_downloading = False
         self._media_info: Optional[Dict[str, Any]] = None
 
+        # Subtitle settings
+        self.write_subs_var = tk.BooleanVar(value=self.settings.get("write_subs", False))
+        self.write_auto_subs_var = tk.BooleanVar(value=self.settings.get("write_auto_subs", False))
+        self.sub_langs_var = tk.StringVar(value=self.settings.get("sub_langs", "en"))
+        self.sub_format_var = tk.StringVar(value=self.settings.get("sub_format", "srt"))
+        self.embed_subs_var = tk.BooleanVar(value=self.settings.get("embed_subs", False))
+        self.convert_subs_var = tk.BooleanVar(value=self.settings.get("convert_subs", False))
+        self.convert_subs_format_var = tk.StringVar(value=self.settings.get("convert_subs_format", "srt"))
+
         # Apply saved window geometry
         geometry = self.settings.get("window_geometry", "700x600")
         self.root.geometry(geometry)
@@ -515,6 +524,81 @@ class DownloadyhaGUI:
         self.end_time_entry.pack(side=tk.LEFT, padx=(0, 10))
 
         ttk.Label(self.section_frame, text="(e.g. 01:30, 90, 00:01:30)", font=("Segoe UI", 8), foreground="#7F8C8D").pack(side=tk.LEFT)
+
+        # Subtitle options
+        subtitle_frame = ttk.LabelFrame(options_frame, text="Subtitle Options", style="Card.TLabelframe")
+        subtitle_frame.pack(fill=tk.X, padx=10, pady=10)
+
+        # Write subtitles checkbox
+        self.write_subs_check = ttk.Checkbutton(
+            subtitle_frame,
+            text="Write subtitle files",
+            variable=self.write_subs_var,
+            command=self._on_subtitle_options_change
+        )
+        self.write_subs_check.pack(anchor=tk.W, padx=10, pady=5)
+
+        # Write auto-generated subtitles checkbox
+        self.write_auto_subs_check = ttk.Checkbutton(
+            subtitle_frame,
+            text="Write auto-generated subtitles",
+            variable=self.write_auto_subs_var,
+            command=self._on_subtitle_options_change
+        )
+        self.write_auto_subs_check.pack(anchor=tk.W, padx=10, pady=2)
+
+        # Subtitle languages
+        lang_frame = ttk.Frame(subtitle_frame)
+        lang_frame.pack(fill=tk.X, padx=10, pady=5)
+        ttk.Label(lang_frame, text="Languages:", font=("Segoe UI", 9)).pack(side=tk.LEFT)
+        self.sub_langs_entry = ttk.Entry(lang_frame, textvariable=self.sub_langs_var, width=15, font=("Segoe UI", 9))
+        self.sub_langs_entry.pack(side=tk.LEFT, padx=(10, 0))
+        ttk.Label(lang_frame, text="(e.g. en,ar or 'all')", font=("Segoe UI", 8), foreground="#7F8C8D").pack(side=tk.LEFT)
+
+        # Subtitle format
+        format_frame = ttk.Frame(subtitle_frame)
+        format_frame.pack(fill=tk.X, padx=10, pady=5)
+        ttk.Label(format_frame, text="Format:", font=("Segoe UI", 9)).pack(side=tk.LEFT)
+        self.sub_format_combo = ttk.Combobox(
+            format_frame,
+            textvariable=self.sub_format_var,
+            values=["srt", "vtt", "ass", "lrc"],
+            state="readonly",
+            width=10,
+            font=("Segoe UI", 9)
+        )
+        self.sub_format_combo.pack(side=tk.LEFT, padx=(10, 0))
+
+        # Embed subtitles checkbox
+        self.embed_subs_check = ttk.Checkbutton(
+            subtitle_frame,
+            text="Embed subtitles in video",
+            variable=self.embed_subs_var,
+            command=self._on_subtitle_options_change
+        )
+        self.embed_subs_check.pack(anchor=tk.W, padx=10, pady=(5, 2))
+
+        # Convert subtitles checkbox
+        self.convert_subs_check = ttk.Checkbutton(
+            subtitle_frame,
+            text="Convert subtitles",
+            variable=self.convert_subs_var,
+            command=self._on_subtitle_options_change
+        )
+        self.convert_subs_check.pack(anchor=tk.W, padx=10, pady=2)
+
+        # Convert to format
+        self.convert_format_frame = ttk.Frame(subtitle_frame)
+        ttk.Label(self.convert_format_frame, text="Convert to:", font=("Segoe UI", 9)).pack(side=tk.LEFT)
+        self.convert_subs_format_combo = ttk.Combobox(
+            self.convert_format_frame,
+            textvariable=self.convert_subs_format_var,
+            values=["srt", "vtt", "ass", "lrc"],
+            state="readonly",
+            width=10,
+            font=("Segoe UI", 9)
+        )
+        self.convert_subs_format_combo.pack(side=tk.LEFT, padx=(10, 0))
 
         # Download directory
         dir_frame = ttk.Frame(options_frame)
@@ -753,6 +837,13 @@ class DownloadyhaGUI:
         else:
             self.section_frame.pack_forget()
 
+    def _on_subtitle_options_change(self) -> None:
+        """Show or hide subtitle conversion options based on checkbox state."""
+        if self.convert_subs_var.get():
+            self.convert_format_frame.pack(fill=tk.X, padx=10, pady=(2, 6), after=self.convert_subs_check)
+        else:
+            self.convert_format_frame.pack_forget()
+
     def _browse_directory(self) -> None:
         """Open a directory browser dialog."""
         current_dir = self.dir_var.get()
@@ -881,6 +972,14 @@ class DownloadyhaGUI:
                 messagebox.showerror("Invalid Time Range", f"End time ({et_raw}) must be greater than start time ({st_raw}).")
                 return
 
+        # Get subtitle options
+        write_subtitles = self.write_subs_var.get()
+        write_auto_subs = self.write_auto_subs_var.get()
+        sub_langs = self.sub_langs_var.get().strip() if self.sub_langs_var.get().strip() else None
+        sub_format = self.sub_format_var.get()
+        embed_subs = self.embed_subs_var.get()
+        convert_subs = self.convert_subs_format_var.get() if self.convert_subs_var.get() else None
+
         # Reset progress callback
         self._progress_callback.reset()
 
@@ -904,6 +1003,12 @@ class DownloadyhaGUI:
                         start_time=start_time,
                         end_time=end_time,
                         progress_callback=self._progress_callback,
+                        write_subtitles=write_subtitles,
+                        write_auto_subs=write_auto_subs,
+                        sub_langs=sub_langs,
+                        sub_format=sub_format,
+                        embed_subs=embed_subs,
+                        convert_subs=convert_subs,
                     )
                 else:
                     result = download_audio(
@@ -913,6 +1018,12 @@ class DownloadyhaGUI:
                         start_time=start_time,
                         end_time=end_time,
                         progress_callback=self._progress_callback,
+                        write_subtitles=write_subtitles,
+                        write_auto_subs=write_auto_subs,
+                        sub_langs=sub_langs,
+                        sub_format=sub_format,
+                        embed_subs=embed_subs,
+                        convert_subs=convert_subs,
                     )
 
                 self.root.after(0, lambda: self._on_download_complete(result))
@@ -1056,8 +1167,22 @@ class DownloadyhaGUI:
 
             self._progress_callback.cancel()
 
-        # Save window geometry
+        # Save settings
+        self.settings["theme"] = self._current_theme
         self.settings["window_geometry"] = self.root.geometry()
+        self.settings["download_directory"] = self.dir_var.get()
+        self.settings["last_video_quality"] = self.video_quality_var.get()
+        self.settings["last_audio_quality"] = self.audio_quality_var.get()
+
+        # Save subtitle settings
+        self.settings["write_subs"] = self.write_subs_var.get()
+        self.settings["write_auto_subs"] = self.write_auto_subs_var.get()
+        self.settings["sub_langs"] = self.sub_langs_var.get()
+        self.settings["sub_format"] = self.sub_format_var.get()
+        self.settings["embed_subs"] = self.embed_subs_var.get()
+        self.settings["convert_subs"] = self.convert_subs_var.get()
+        self.settings["convert_subs_format"] = self.convert_subs_format_var.get()
+
         save_gui_settings(self.settings)
 
         self.root.destroy()

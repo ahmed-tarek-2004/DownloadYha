@@ -67,6 +67,63 @@ def choose_download_folder() -> Optional[str]:
         return None
 
 
+def prompt_transcript_options() -> dict:
+    """
+    Interactively ask the user whether they want video transcripts
+    (subtitles) downloaded, and with which settings.
+    Returns a dict of subtitle options understood by the downloader.
+    """
+    choice = prompt_choice(
+        title="Download Video Transcripts (Subtitles)?",
+        options=[
+            ("none", "No Transcripts", "Download media only"),
+            ("subs", "Subtitles Only", "Download subtitle files next to the media"),
+            ("auto", "Auto-Generated Subtitles", "Use auto-generated captions"),
+            ("both", "Subtitles + Auto-Generated", "Download both subtitle types"),
+            ("embed", "Embed Subtitles", "Embed subtitles into the video file"),
+        ],
+        default_index=0
+    )
+
+    if choice == "none":
+        return {
+            "write_subtitles": False,
+            "write_auto_subs": False,
+            "sub_langs": None,
+            "sub_format": "srt",
+            "embed_subs": False,
+            "convert_subs": None,
+        }
+
+    write_subtitles = choice in ("subs", "both", "embed")
+    write_auto_subs = choice in ("auto", "both", "embed")
+    embed_subs = choice == "embed"
+
+    sub_langs = prompt_input(
+        "Subtitle language codes (comma-separated, e.g. 'en,ar' or 'all')",
+        default="en"
+    ).strip() or "en"
+
+    sub_format = prompt_choice(
+        title="Select Subtitle Format",
+        options=[
+            ("srt", "SRT", "Most compatible subtitle format"),
+            ("vtt", "VTT", "WebVTT subtitle format"),
+            ("ass", "ASS", "Styled/advanced subtitle format"),
+        ],
+        default_index=0
+    )
+
+    return {
+        "write_subtitles": write_subtitles,
+        "write_auto_subs": write_auto_subs,
+        "sub_langs": sub_langs,
+        "sub_format": sub_format,
+        "embed_subs": embed_subs,
+        "convert_subs": None,
+    }
+
+
 def run_download_interactive(
     url: Optional[str] = None,
     start_time: Optional[str] = None,
@@ -74,6 +131,12 @@ def run_download_interactive(
     download_path: Optional[str] = None,
     dl_type: Optional[str] = None,
     quality: Optional[str] = None,
+    write_subtitles: bool = False,
+    write_auto_subs: bool = False,
+    sub_langs: Optional[str] = None,
+    sub_format: str = "srt",
+    embed_subs: bool = False,
+    convert_subs: Optional[str] = None
 ) -> int:
     """
     Execute the interactive download workflow with modern UI.
@@ -146,6 +209,18 @@ def run_download_interactive(
             icon=Symbols.PLAYLIST
         )
 
+        # Transcript (subtitle) options - prompt unless provided via CLI args
+        transcripts = {
+            "write_subtitles": write_subtitles,
+            "write_auto_subs": write_auto_subs,
+            "sub_langs": sub_langs,
+            "sub_format": sub_format,
+            "embed_subs": embed_subs,
+            "convert_subs": convert_subs,
+        }
+        if not (write_subtitles or write_auto_subs or embed_subs or sub_langs):
+            transcripts = prompt_transcript_options()
+
         dl_type_choice = dl_type or prompt_choice(
             title="Select Playlist Download Type",
             options=[
@@ -175,7 +250,8 @@ def run_download_interactive(
                 media_type="video",
                 quality=quality_choice,
                 start_time=start_time,
-                end_time=end_time
+                end_time=end_time,
+                **transcripts
             )
 
         else:
@@ -197,7 +273,8 @@ def run_download_interactive(
                 media_type="audio",
                 quality=audio_quality,
                 start_time=start_time,
-                end_time=end_time
+                end_time=end_time,
+                **transcripts
             )
 
         if res.get("success"):
@@ -269,6 +346,18 @@ def run_download_interactive(
                     clip_start = None
                     clip_end = None
 
+        # Transcript (subtitle) options - prompt unless provided via CLI args
+        transcripts = {
+            "write_subtitles": write_subtitles,
+            "write_auto_subs": write_auto_subs,
+            "sub_langs": sub_langs,
+            "sub_format": sub_format,
+            "embed_subs": embed_subs,
+            "convert_subs": convert_subs,
+        }
+        if not (write_subtitles or write_auto_subs or embed_subs or sub_langs):
+            transcripts = prompt_transcript_options()
+
         if chosen_format == "video":
             if quality:
                 selected_height = int(quality) if quality.isdigit() else 0
@@ -298,7 +387,8 @@ def run_download_interactive(
                 download_path=download_path,
                 height=selected_height,
                 start_time=clip_start,
-                end_time=clip_end
+                end_time=clip_end,
+                **transcripts
             )
 
         else:
@@ -325,7 +415,8 @@ def run_download_interactive(
                 download_path=download_path,
                 quality=selected_bitrate,
                 start_time=clip_start,
-                end_time=clip_end
+                end_time=clip_end,
+                **transcripts
             )
 
         if success_status:
@@ -401,6 +492,41 @@ def create_parser() -> argparse.ArgumentParser:
         type=str,
         default=None,
         help="Video resolution (e.g., 1080, 720, best) or Audio bitrate (e.g., 320, 192, 0)"
+    )
+
+    # Subtitle options
+    parser.add_argument(
+        "--write-subs",
+        action="store_true",
+        help="Write subtitle files alongside the media"
+    )
+    parser.add_argument(
+        "--write-auto-subs",
+        action="store_true",
+        help="Write automatically generated subtitle files"
+    )
+    parser.add_argument(
+        "--sub-langs",
+        type=str,
+        default=None,
+        help="Languages of subtitles to download (comma-separated, e.g. 'en,ar')"
+    )
+    parser.add_argument(
+        "--sub-format",
+        type=str,
+        default="srt",
+        help="Subtitle format (e.g., srt, vtt, ass)"
+    )
+    parser.add_argument(
+        "--embed-subs",
+        action="store_true",
+        help="Embed subtitles in the video (only for mp4, webm, mkv)"
+    )
+    parser.add_argument(
+        "--convert-subs",
+        type=str,
+        default=None,
+        help="Convert subtitles to another format after extraction (e.g., srt)"
     )
 
     parser.add_argument(
@@ -623,6 +749,12 @@ def main() -> None:
             download_path=args.output_dir,
             dl_type=args.format,
             quality=args.quality,
+            write_subtitles=args.write_subs,
+            write_auto_subs=args.write_auto_subs,
+            sub_langs=args.sub_langs,
+            sub_format=args.sub_format,
+            embed_subs=args.embed_subs,
+            convert_subs=args.convert_subs,
         )
         sys.exit(exit_code)
 
