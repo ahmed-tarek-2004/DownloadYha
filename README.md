@@ -16,6 +16,10 @@ A fast, modern, and beautiful YouTube downloader available in both **Desktop GUI
 - 📝 **Subtitle & Transcript Support**: Download, embed, and convert subtitles in multiple formats (SRT, VTT, ASS, LRC) with language selection and auto-generated caption support.
 - ⚡ **Interactive Terminal CLI**: Color-coded step-by-step wizard, live progress bars (speed, ETA, batch counter), and summary cards.
 - 📦 **Zero-Config Standalone**: Includes built-in self-repairing FFmpeg and Deno helper binaries with SHA-256 checksum verification.
+- ⚡ **Enhanced Download Experience**: Real-time progress indicators for all dependency downloads with percentage, size, speed, and ETA.
+- 💾 **Optimized Dependency Size**: Uses smaller FFmpeg builds (~40MB vs ~150MB) for faster installation.
+- ⚡ **Enhanced Download Experience**: Real-time progress indicators for all dependency downloads with percentage, size, speed, and ETA.
+- 💾 **Optimized Dependency Size**: Uses smaller FFmpeg builds (~40MB vs ~150MB) for faster installation.
 
 ---
 
