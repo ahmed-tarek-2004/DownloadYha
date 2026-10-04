@@ -13,6 +13,7 @@ A fast, modern, and beautiful YouTube downloader available in both **Desktop GUI
 - 🎵 **Audio MP3 Extractor**: One-click high-fidelity MP3 conversion with custom bitrates (320 kbps, 192 kbps, 128 kbps, or Best VBR).
 - 📑 **Full Playlist Downloads**: Batch download entire video or audio playlists with automated folder numbering and organization.
 - 📜 **Download History & Quick Open**: Track download history and open completed media files or destination folders directly with one click.
+- 📝 **Subtitle & Transcript Support**: Download, embed, and convert subtitles in multiple formats (SRT, VTT, ASS, LRC) with language selection and auto-generated caption support.
 - ⚡ **Interactive Terminal CLI**: Color-coded step-by-step wizard, live progress bars (speed, ETA, batch counter), and summary cards.
 - 📦 **Zero-Config Standalone**: Includes built-in self-repairing FFmpeg and Deno helper binaries with SHA-256 checksum verification.
 
@@ -139,6 +140,80 @@ When running `downloadyha` interactively:
 
 ---
 
+## 📝 Subtitle & Transcript Support
+
+Downloadyha provides comprehensive subtitle handling for videos and playlists:
+
+### Subtitle Options
+
+| Option | Description |
+|--------|-------------|
+| **Write Subtitles** | Download official subtitle tracks alongside the media |
+| **Write Auto-Generated Subtitles** | Download YouTube's auto-generated captions |
+| **Embed Subtitles** | Embed subtitles directly into the video file (MP4, MKV, WebM) |
+| **Subtitle Languages** | Specify comma-separated language codes (e.g., `en,ar,es`) or `all` for all available |
+| **Subtitle Format** | Choose output format: `srt` (default), `vtt`, `ass`, `lrc` |
+| **Convert Subtitles** | Convert downloaded subtitles to a different format |
+
+### Supported Subtitle Formats
+
+- **SRT** — Most widely compatible subtitle format
+- **VTT** — WebVTT format for web playback
+- **ASS** — Advanced SubStation Alpha with styling support
+- **LRC** — Lyrics/synchronized text format
+
+### CLI Usage & Examples
+
+```bash
+# Download video with official English subtitles (SRT)
+downloadyha "https://www.youtube.com/watch?v=VIDEO_ID" -f video -q 1080 --write-subs --sub-langs en
+
+# Download video with auto-generated subtitles in Arabic
+downloadyha "https://www.youtube.com/watch?v=VIDEO_ID" -f video -q 720 --write-auto-subs --sub-langs ar
+
+# Download video with both official and auto-generated subtitles in multiple languages
+downloadyha "https://www.youtube.com/watch?v=VIDEO_ID" -f video -q 1080 --write-subs --write-auto-subs --sub-langs "en,ar,es"
+
+# Download video with subtitles embedded into the MP4 file
+downloadyha "https://www.youtube.com/watch?v=VIDEO_ID" -f video -q 1080 --write-subs --sub-langs en --embed-subs
+
+# Download audio with subtitle file (useful for podcasts with transcripts)
+downloadyha "https://www.youtube.com/watch?v=VIDEO_ID" -f audio -q 320 --write-subs --sub-langs en
+
+# Convert subtitles to VTT format after download
+downloadyha "https://www.youtube.com/watch?v=VIDEO_ID" -f video -q 1080 --write-subs --sub-langs en --convert-subs vtt
+
+# Combine clipping with subtitles
+downloadyha "https://www.youtube.com/watch?v=VIDEO_ID" -s 01:30 -e 03:45 -f video -q 1080 --write-subs --sub-langs en --embed-subs
+```
+
+### Desktop GUI Usage
+
+1. Paste a video URL and click **Fetch Info** to load metadata.
+2. In the **Subtitle Options** section:
+   - Check **Write subtitle files** to download official subtitles
+   - Check **Write auto-generated subtitles** for YouTube's auto-captions
+   - Enter **Languages** (e.g., `en,ar` or `all`)
+   - Select **Format** (SRT, VTT, ASS, LRC)
+   - Check **Embed subtitles in video** to burn subtitles into the video file
+   - Check **Convert subtitles** and select target format if you want conversion
+3. Select Video/Audio format and quality
+4. Click **Download**
+
+### Playlist Subtitle Support
+
+Subtitle options work seamlessly with playlist downloads:
+
+```bash
+# Download entire playlist as video with English subtitles embedded
+downloadyha "https://www.youtube.com/playlist?list=PLAYLIST_ID" -f video -q 1080 --write-subs --sub-langs en --embed-subs
+
+# Download playlist as audio with subtitle files
+downloadyha "https://www.youtube.com/playlist?list=PLAYLIST_ID" -f audio -q 192 --write-subs --sub-langs "en,es"
+```
+
+---
+
 ## 🛠️ Available Commands & CLI Options
 
 ### Commands
@@ -163,6 +238,12 @@ When running `downloadyha` interactively:
 | `--format` | `-f` | Media format: `video` or `audio` | `-f video` |
 | `--quality` | `-q` | Video height (`1080`, `720`, `0` for best) or Audio bitrate (`320`, `192`, `128`, `0`) | `-q 1080` |
 | `--output-dir` / `--dir` | `-o` / `-d` | Custom destination directory | `-d ~/Videos` |
+| `--write-subs` | | Write official subtitle files alongside the media | `--write-subs` |
+| `--write-auto-subs` | | Write auto-generated subtitle files | `--write-auto-subs` |
+| `--sub-langs` | | Subtitle languages (comma-separated, e.g. `en,ar` or `all`) | `--sub-langs "en,es"` |
+| `--sub-format` | | Subtitle format: `srt`, `vtt`, `ass`, `lrc` (default: `srt`) | `--sub-format vtt` |
+| `--embed-subs` | | Embed subtitles into the video file (MP4, MKV, WebM) | `--embed-subs` |
+| `--convert-subs` | | Convert subtitles to another format after download | `--convert-subs srt` |
 | `--gui` | | Launch the graphical user interface | `downloadyha --gui` |
 | `--update` | | Check for and install updates from GitHub Releases | `downloadyha --update` |
 | `--repair` | | Repair and reinstall bundled dependencies (FFmpeg, Deno) | `downloadyha --repair` |

@@ -7,7 +7,7 @@ Downloadyha is a modern, cross-platform downloader for videos, audio, and playli
 - **Partial Downloads (Clipping)**: Download specific sections of media using start/end timestamps.
 - **Playlist Support**: Download entire playlists as video or audio with organized folder structure.
 - **Format Selection**: Choose video resolution (up to 4K) or audio bitrate (MP3).
-- **Subtitle Handling**: Download, embed, and convert subtitles.
+- **Subtitle Handling**: Download, embed, and convert subtitles in multiple formats (SRT, VTT, ASS, LRC) with language selection, auto-generated caption support, and format conversion.
 - **Modern UI**: 
   - CLI: Interactive wizard with color-coded steps, progress bars, and summary cards.
   - GUI: CustomTkinter-based interface with light/dark themes, real-time progress, and settings persistence.

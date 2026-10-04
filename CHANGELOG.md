@@ -13,6 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Timestamp parser supporting `MM:SS`, `HH:MM:SS`, total seconds (`90`, `90s`), and fractional seconds (`01:15.5`).
 - Desktop GUI section clipping controls with dynamic reveal checkbox and input validation.
 - Interactive CLI prompt for clipping single video and audio downloads.
+- **Subtitle & Transcript Support**: Download, embed, and convert subtitles in multiple formats (SRT, VTT, ASS, LRC) with language selection and auto-generated caption support.
+- Subtitle options: write official subtitles (`--write-subs`), auto-generated captions (`--write-auto-subs`), embed in video (`--embed-subs`), language selection (`--sub-langs`), format selection (`--sub-format`), and format conversion (`--convert-subs`).
+- Desktop GUI subtitle controls with checkboxes for all options, language input, format dropdown, and embed/convert toggles.
+- Interactive CLI subtitle prompts with format and language selection.
+- Full playlist subtitle support for both video and audio playlist downloads.
 
 ### Fixed
 
