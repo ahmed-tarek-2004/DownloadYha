@@ -13,6 +13,7 @@ import os
 import shutil
 import ssl
 import sys
+import time
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -198,19 +199,24 @@ def download_url_to_file(
     dest_path: Path,
     timeout: int = 300,
     headers: Optional[Dict[str, str]] = None,
+    show_progress: bool = True,
 ) -> None:
     """
     Download a file from a URL to destination path atomically with robust SSL.
+    Optionally shows download progress for large files.
 
     Args:
         url: Remote URL to download.
         dest_path: Final destination path.
         timeout: Request timeout in seconds.
         headers: Optional HTTP headers.
+        show_progress: Whether to show download progress.
 
     Raises:
         urllib.error.URLError / OSError: If the download fails.
     """
+    from .ui import print_download, clear_progress_line, Colors
+
     dest_path.parent.mkdir(parents=True, exist_ok=True)
     temp_dest = dest_path.with_suffix(dest_path.suffix + ".download.tmp")
 
@@ -222,8 +228,61 @@ def download_url_to_file(
         req = urllib.request.Request(url, headers=req_headers)
 
         with open_url(req, timeout=timeout) as response:
-            with open(temp_dest, "wb") as f:
-                shutil.copyfileobj(response, f)
+            # Get file size if available
+            file_size = None
+            try:
+                file_size = int(response.headers.get("Content-Length", 0))
+            except (ValueError, TypeError):
+                pass
+
+            # Show progress if requested and we have a size
+            if show_progress and file_size > 0:
+                downloaded = 0
+                start_time = time.time()
+                last_update = start_time
+
+                # Initial progress message
+                print_download(f"Downloading...", f"0% (0 MB / {file_size // (1024*1024)} MB)")
+
+                with open(temp_dest, "wb") as f:
+                    while True:
+                        chunk = response.read(8192)  # 8KB chunks
+                        if not chunk:
+                            break
+                        f.write(chunk)
+                        downloaded += len(chunk)
+
+                        # Update progress every 0.5 seconds to avoid too frequent updates
+                        now = time.time()
+                        if now - last_update >= 0.5:
+                            percent = (downloaded / file_size) * 100
+                            speed = downloaded / (now - start_time) if now > start_time else 0
+                            eta = (file_size - downloaded) / speed if speed > 0 else 0
+
+                            from .ui import format_speed, format_bytes
+                            speed_str = format_speed(speed)
+                            eta_str = f"{int(eta//60):02d}:{int(eta)%60:02d}" if eta > 0 else "00:00"
+                            downloaded_str = format_bytes(downloaded)
+                            total_str = format_bytes(file_size)
+
+                            clear_progress_line()
+                            print_download(
+                                f"Downloading...",
+                                f"{percent:.1f}% ({downloaded_str} / {total_str}) {speed_str} ETA {eta_str}"
+                            )
+                            last_update = now
+
+                # Final progress update
+                clear_progress_line()
+                from .ui import format_bytes
+                print_download(
+                    "Download complete",
+                    f"100% ({format_bytes(file_size)} / {format_bytes(file_size)})"
+                )
+            else:
+                # Original behavior for small files or when progress is disabled
+                with open(temp_dest, "wb") as f:
+                    shutil.copyfileobj(response, f)
 
         if temp_dest.exists():
             if dest_path.exists():

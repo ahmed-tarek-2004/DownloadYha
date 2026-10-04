@@ -235,6 +235,7 @@ def _download_file(url: str, dest_path: Path) -> bool:
             dest_path=dest_path,
             timeout=REQUEST_TIMEOUT,
             headers={"User-Agent": f"Downloadyha/{__version__}"},
+            show_progress=True
         )
         return True
     except Exception:

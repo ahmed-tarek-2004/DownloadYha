@@ -157,7 +157,8 @@ def _download_file(url: str, dest_path: Path) -> None:
             url=url,
             dest_path=dest_path,
             timeout=300,
-            headers={"User-Agent": "Downloadyha-Dependency-Resolver/1.0"}
+            headers={"User-Agent": "Downloadyha-Dependency-Resolver/1.0"},
+            show_progress=True
         )
     except Exception as e:
         raise DownloadError(f"Failed to download {url}: {e}") from e
