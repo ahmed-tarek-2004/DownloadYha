@@ -207,7 +207,7 @@ def map_ytdlp_exception(e: Exception, url: str) -> DownloadyhaException:
 DEFAULT_USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
     "AppleWebKit/537.36 (KHTML, like Gecko) "
-    "Chrome/124.0.0.0 Safari/537.36"
+    "Chrome/125.0.0.0 Safari/537.36"
 )
 
 DEFAULT_HTTP_HEADERS = {
@@ -246,7 +246,17 @@ def build_serverless_ytdlp_options(
         "no_color": True,
         "logtostderr": False,
         "http_headers": DEFAULT_HTTP_HEADERS.copy(),
-        "format_sort": ["res", "fps", "codec:h264", "size", "br"],
+        # Don't force format_sort - let yt-dlp choose available formats
+        # "format_sort": ["res", "fps", "codec:h264", "size", "br"],
+        # YouTube-specific options for better extraction
+        "extractor_args": {
+            "youtube": {
+                "player_client": ["android", "web"],
+                "player_skip": ["webpage", "configs"],
+            }
+        },
+        # Prevent yt-dlp from trying to select a default format for download
+        "format": "bestvideo+bestaudio/best",
     }
 
     # If local Deno is present in runtime environment, hook it for JS solving

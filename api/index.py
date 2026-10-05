@@ -226,14 +226,21 @@ async def get_media_info_get(
 
 
 @app.post("/api/formats", tags=["Metadata"], summary="Get Available Resolutions and Formats")
-async def get_formats_endpoint(req: MediaInfoRequest):
+@app.get("/api/formats", tags=["Metadata"], summary="Get Available Resolutions and Formats (GET)")
+async def get_formats_endpoint(
+    req: Optional[MediaInfoRequest] = None,
+    url: Optional[str] = Query(None, description="Media URL")
+):
     """
     Extract available video resolutions (4K, 1440p, 1080p, 720p, 480p, 360p) and detailed stream formats.
     """
-    info = get_structured_media_info(req.url, include_subtitles=False)
+    target_url = req.url if req else url
+    if not target_url:
+        raise HTTPException(status_code=400, detail="URL is required")
+    info = get_structured_media_info(target_url, include_subtitles=False)
     return {
         "success": True,
-        "url": req.url,
+        "url": target_url,
         "title": info.title,
         "available_resolutions": info.available_resolutions,
         "available_audio_qualities": info.available_audio_qualities,
@@ -243,14 +250,21 @@ async def get_formats_endpoint(req: MediaInfoRequest):
 
 
 @app.post("/api/subtitles", tags=["Subtitles"], summary="Get Available Subtitle and Caption Tracks")
-async def get_subtitles_endpoint(req: MediaInfoRequest):
+@app.get("/api/subtitles", tags=["Subtitles"], summary="Get Available Subtitle and Caption Tracks (GET)")
+async def get_subtitles_endpoint(
+    req: Optional[MediaInfoRequest] = None,
+    url: Optional[str] = Query(None, description="Media URL")
+):
     """
     List all official subtitles and auto-generated captions with language codes and formats (SRT, VTT, ASS, LRC).
     """
-    info = get_structured_media_info(req.url, include_subtitles=True)
+    target_url = req.url if req else url
+    if not target_url:
+        raise HTTPException(status_code=400, detail="URL is required")
+    info = get_structured_media_info(target_url, include_subtitles=True)
     return {
         "success": True,
-        "url": req.url,
+        "url": target_url,
         "title": info.title,
         "subtitles_count": len(info.subtitles),
         "subtitles": info.subtitles,

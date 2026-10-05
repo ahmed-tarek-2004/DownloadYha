@@ -2,13 +2,13 @@
 # Install with: pip install -r requirements-gui.txt
 
 # Core dependencies
-yt-dlp>=2026.8.19
-curl_cffi>=0.7.0
-certifi>=2024.0.0
+yt-dlp>=2024.12.30
+curl_cffi>=0.8.0
+certifi>=2024.7.0
 
 # GUI framework
-customtkinter>=5.2.0
+customtkinter>=5.2.2
 
 # Additional UI support
-pillow>=10.0.0
-packaging>=23.0
+pillow>=10.2.0
+packaging>=24.0

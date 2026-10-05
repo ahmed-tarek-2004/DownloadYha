@@ -3,7 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Downloadyha API - Serverless Media Downloader & Metadata Engine</title>
+  <title>Downloadyha - Universal Serverless Media Downloader & API</title>
+  <meta name="description" content="High-performance serverless media extraction, video & audio downloader, multi-resolution stream resolver, and subtitle engine for YouTube, Shorts, TikTok, Instagram, and more.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
 
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -34,7 +36,7 @@
   <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
@@ -47,24 +49,24 @@
       font-family: 'JetBrains Mono', monospace;
     }
 
-    /* Glassmorphism Classes */
+    /* Glassmorphism */
     .glass-card {
-      background: rgba(15, 23, 42, 0.75);
+      background: rgba(15, 23, 42, 0.78);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
       border: 1px solid rgba(255, 255, 255, 0.08);
     }
     .light .glass-card {
-      background: rgba(255, 255, 255, 0.85);
+      background: rgba(255, 255, 255, 0.88);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
-      border: 1px solid rgba(226, 232, 240, 0.8);
-      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+      border: 1px solid rgba(226, 232, 240, 0.9);
+      box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.06);
     }
 
     .glass-input {
-      background: rgba(10, 15, 29, 0.7);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(10, 15, 29, 0.75);
+      border: 1px solid rgba(255, 255, 255, 0.12);
     }
     .light .glass-input {
       background: #ffffff;
@@ -72,10 +74,10 @@
     }
 
     .glow-accent {
-      background: radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.18) 0%, transparent 70%);
+      background: radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.22) 0%, transparent 70%);
     }
     .light .glow-accent {
-      background: radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.08) 0%, transparent 70%);
+      background: radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.1) 0%, transparent 70%);
     }
 
     /* Custom scrollbars */
@@ -91,23 +93,35 @@
       border-radius: 9999px;
     }
     ::-webkit-scrollbar-thumb:hover {
-      background: rgba(99, 102, 241, 0.7);
+      background: rgba(99, 102, 241, 0.8);
     }
 
     /* Toast animation */
-    @keyframes slideIn {
+    @keyframes slideInUp {
       from { transform: translateY(100%) scale(0.95); opacity: 0; }
       to { transform: translateY(0) scale(1); opacity: 1; }
     }
     .animate-toast {
-      animation: slideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      animation: slideInUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .btn-gradient {
+      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .btn-gradient:hover {
+      filter: brightness(1.1);
+      transform: translateY(-1px);
+    }
+    .btn-gradient:active {
+      transform: translateY(0);
     }
   </style>
 </head>
 <body class="bg-[#090d16] text-slate-100 min-h-screen relative selection:bg-indigo-500 selection:text-white transition-colors duration-300">
 
   <!-- Background decorative glows -->
-  <div class="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[500px] glow-accent pointer-events-none -z-10"></div>
+  <div class="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[550px] glow-accent pointer-events-none -z-10"></div>
   <div class="fixed -top-40 right-10 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl pointer-events-none -z-10"></div>
   <div class="fixed top-80 -left-20 w-96 h-96 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none -z-10"></div>
   <div class="fixed bottom-10 right-1/4 w-96 h-96 bg-cyan-600/10 rounded-full blur-3xl pointer-events-none -z-10"></div>
@@ -116,25 +130,25 @@
   <div id="toastContainer" class="fixed bottom-6 right-6 z-50 flex flex-col gap-2 max-w-md w-full pointer-events-none"></div>
 
   <!-- Navigation Header -->
-  <header class="border-b border-white/5 dark:border-white/5 light:border-slate-200 backdrop-blur-md sticky top-0 z-40 bg-[#090d16]/80 dark:bg-[#090d16]/80 light:bg-white/80 transition-colors">
+  <header class="border-b border-white/5 dark:border-white/5 light:border-slate-200 backdrop-blur-md sticky top-0 z-40 bg-[#090d16]/80 dark:bg-[#090d16]/80 light:bg-white/85 transition-colors">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
 
       <!-- Brand Logo & Name -->
-      <div class="flex items-center space-x-3">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-violet-500 to-cyan-400 flex items-center justify-center shadow-lg shadow-indigo-500/20 ring-1 ring-white/20">
+      <div class="flex items-center space-x-3 cursor-pointer" onclick="switchView('inspector')">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-violet-500 to-cyan-400 flex items-center justify-center shadow-lg shadow-indigo-500/25 ring-1 ring-white/20">
           <i data-lucide="download" class="w-5 h-5 text-white"></i>
         </div>
         <div>
           <div class="flex items-center space-x-2">
-            <span class="font-extrabold text-lg tracking-tight bg-gradient-to-r from-white via-indigo-200 to-cyan-300 dark:from-white dark:via-indigo-200 dark:to-cyan-300 light:from-slate-900 light:via-indigo-700 light:to-cyan-600 bg-clip-text text-transparent">
+            <span class="font-black text-xl tracking-tight bg-gradient-to-r from-white via-indigo-200 to-cyan-300 dark:from-white dark:via-indigo-200 dark:to-cyan-300 light:from-slate-900 light:via-indigo-700 light:to-cyan-600 bg-clip-text text-transparent">
               Downloadyha
             </span>
-            <span class="px-2 py-0.5 text-[11px] font-semibold rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-              API v1.0
+            <span class="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+              Web & API v1.0
             </span>
           </div>
           <p class="text-[11px] text-slate-400 dark:text-slate-400 light:text-slate-500 font-medium hidden sm:block">
-            Serverless Media Extraction & Direct Streaming
+            Fast Serverless Media Downloader & Stream Resolver
           </p>
         </div>
       </div>
@@ -142,22 +156,27 @@
       <!-- Action Items & Status -->
       <div class="flex items-center space-x-2 sm:space-x-3">
         <!-- Live Health Status Badge -->
-        <div id="healthBadge" class="flex items-center space-x-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium">
+        <div id="healthBadge" class="flex items-center space-x-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium cursor-pointer" onclick="checkHealth()" title="Click to refresh health check">
           <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
           <span id="healthStatusText">Checking API...</span>
         </div>
 
         <!-- Swagger Docs Link -->
-        <a href="/docs" target="_blank" class="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-medium text-slate-300 dark:text-slate-300 light:text-slate-700 hover:text-white light:hover:text-black bg-white/5 light:bg-slate-100 hover:bg-white/10 light:hover:bg-slate-200 border border-white/10 light:border-slate-300 rounded-lg transition">
+        <a id="navSwaggerLink" href="/docs" target="_blank" class="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-medium text-slate-300 dark:text-slate-300 light:text-slate-700 hover:text-white light:hover:text-black bg-white/5 light:bg-slate-100 hover:bg-white/10 light:hover:bg-slate-200 border border-white/10 light:border-slate-300 rounded-lg transition">
           <i data-lucide="book-open" class="w-3.5 h-3.5 text-indigo-400"></i>
           <span class="hidden md:inline">Swagger</span><span>Docs</span>
         </a>
 
         <!-- Redoc Link -->
-        <a href="/redoc" target="_blank" class="hidden sm:flex items-center space-x-1.5 px-3 py-1.5 text-xs font-medium text-slate-300 dark:text-slate-300 light:text-slate-700 hover:text-white light:hover:text-black bg-white/5 light:bg-slate-100 hover:bg-white/10 light:hover:bg-slate-200 border border-white/10 light:border-slate-300 rounded-lg transition">
+        <a id="navRedocLink" href="/redoc" target="_blank" class="hidden sm:flex items-center space-x-1.5 px-3 py-1.5 text-xs font-medium text-slate-300 dark:text-slate-300 light:text-slate-700 hover:text-white light:hover:text-black bg-white/5 light:bg-slate-100 hover:bg-white/10 light:hover:bg-slate-200 border border-white/10 light:border-slate-300 rounded-lg transition">
           <i data-lucide="file-text" class="w-3.5 h-3.5 text-purple-400"></i>
           <span>Redoc</span>
         </a>
+
+        <!-- API Server Config Settings Button -->
+        <button onclick="toggleApiSettingsModal()" title="Configure Backend API URL" class="p-2 rounded-lg bg-white/5 light:bg-slate-100 hover:bg-white/10 light:hover:bg-slate-200 border border-white/10 light:border-slate-300 text-slate-300 light:text-slate-700 transition">
+          <i data-lucide="settings" class="w-4 h-4 text-indigo-400"></i>
+        </button>
 
         <!-- Theme Toggle Button -->
         <button onclick="toggleTheme()" id="themeToggleBtn" aria-label="Toggle Theme" class="p-2 rounded-lg bg-white/5 light:bg-slate-100 hover:bg-white/10 light:hover:bg-slate-200 border border-white/10 light:border-slate-300 text-slate-300 light:text-slate-700 transition">
@@ -171,22 +190,69 @@
   <!-- Navigation Tabs (Dashboard Views) -->
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
     <div class="flex items-center space-x-2 border-b border-white/5 dark:border-white/5 light:border-slate-200 pb-2 overflow-x-auto">
-      <button onclick="switchView('inspector')" id="tabInspector" class="nav-tab active-tab px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg bg-indigo-600 text-white shadow-md shadow-indigo-600/30 flex items-center space-x-2 transition">
+      <button onclick="switchView('inspector')" id="tabInspector" class="nav-tab active-tab px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg bg-indigo-600 text-white shadow-md shadow-indigo-600/30 flex items-center space-x-2 transition flex-shrink-0">
         <i data-lucide="search" class="w-4 h-4"></i>
-        <span>URL Inspector & Resolver</span>
+        <span>URL Inspector & Downloader</span>
       </button>
-      <button onclick="switchView('subtitles')" id="tabSubtitles" class="nav-tab px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg text-slate-400 dark:text-slate-400 light:text-slate-600 hover:text-white light:hover:text-slate-900 hover:bg-white/5 light:hover:bg-slate-100 flex items-center space-x-2 transition">
+      <button onclick="switchView('subtitles')" id="tabSubtitles" class="nav-tab px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg text-slate-400 dark:text-slate-400 light:text-slate-600 hover:text-white light:hover:text-slate-900 hover:bg-white/5 light:hover:bg-slate-100 flex items-center space-x-2 transition flex-shrink-0">
         <i data-lucide="subtitles" class="w-4 h-4"></i>
-        <span>Subtitles Explorer</span>
+        <span>Subtitles & Captions</span>
       </button>
-      <button onclick="switchView('playlist')" id="tabPlaylist" class="nav-tab px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg text-slate-400 dark:text-slate-400 light:text-slate-600 hover:text-white light:hover:text-slate-900 hover:bg-white/5 light:hover:bg-slate-100 flex items-center space-x-2 transition">
+      <button onclick="switchView('playlist')" id="tabPlaylist" class="nav-tab px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg text-slate-400 dark:text-slate-400 light:text-slate-600 hover:text-white light:hover:text-slate-900 hover:bg-white/5 light:hover:bg-slate-100 flex items-center space-x-2 transition flex-shrink-0">
         <i data-lucide="list-music" class="w-4 h-4"></i>
-        <span>Playlist Explorer</span>
+        <span>Playlist Batch Resolver</span>
       </button>
-      <button onclick="switchView('playground')" id="tabPlayground" class="nav-tab px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg text-slate-400 dark:text-slate-400 light:text-slate-600 hover:text-white light:hover:text-slate-900 hover:bg-white/5 light:hover:bg-slate-100 flex items-center space-x-2 transition">
+      <button onclick="switchView('history')" id="tabHistory" class="nav-tab px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg text-slate-400 dark:text-slate-400 light:text-slate-600 hover:text-white light:hover:text-slate-900 hover:bg-white/5 light:hover:bg-slate-100 flex items-center space-x-2 transition flex-shrink-0">
+        <i data-lucide="history" class="w-4 h-4"></i>
+        <span>Download History</span>
+      </button>
+      <button onclick="switchView('playground')" id="tabPlayground" class="nav-tab px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg text-slate-400 dark:text-slate-400 light:text-slate-600 hover:text-white light:hover:text-slate-900 hover:bg-white/5 light:hover:bg-slate-100 flex items-center space-x-2 transition flex-shrink-0">
         <i data-lucide="terminal" class="w-4 h-4"></i>
-        <span>Endpoint Tester & cURL</span>
+        <span>API Playground & cURL</span>
       </button>
+    </div>
+  </div>
+
+  <!-- Backend API Notice & Connection Banner (Visible when on Live Server or Backend Offline) -->
+  <div id="backendNoticeBanner" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 hidden">
+    <div class="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+      <div class="flex items-center space-x-2">
+        <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-400 flex-shrink-0"></i>
+        <span>
+          <strong>Backend Server Notice:</strong> Web UI is connected to <code id="activeApiBaseLabel" class="bg-black/30 px-1.5 py-0.5 rounded font-mono text-amber-200">http://127.0.0.1:8000</code>. If requests fail, start FastAPI via: <code class="bg-black/30 px-1.5 py-0.5 rounded font-mono text-amber-100">uvicorn api.index:app --reload --port 8000</code>
+        </span>
+      </div>
+      <button onclick="toggleApiSettingsModal()" class="px-2.5 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 font-semibold rounded-lg text-xs transition flex-shrink-0">
+        Change Endpoint
+      </button>
+    </div>
+  </div>
+
+  <!-- Backend API Settings Modal -->
+  <div id="apiSettingsModal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="glass-card max-w-md w-full rounded-2xl p-6 shadow-2xl border border-white/10 space-y-4">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+          <i data-lucide="settings" class="w-5 h-5 text-indigo-400"></i>
+          <h3 class="text-base font-bold text-white dark:text-white light:text-slate-900">Backend API Settings</h3>
+        </div>
+        <button onclick="toggleApiSettingsModal()" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-4 h-4"></i></button>
+      </div>
+      <p class="text-xs text-slate-400 leading-relaxed">
+        Specify the FastAPI backend server URL for API requests. Leave blank for same-origin (e.g. Vercel deployment), or set to <code class="text-indigo-300">http://127.0.0.1:8000</code> when running frontend on VS Code Live Server.
+      </p>
+      <div class="space-y-2">
+        <label class="text-xs font-semibold text-slate-300">API Base URL</label>
+        <input type="text" id="customApiBaseInput" placeholder="http://127.0.0.1:8000 or blank for relative" class="glass-input w-full px-3.5 py-2.5 rounded-xl text-sm text-white font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500">
+      </div>
+      <div class="flex items-center justify-end space-x-2 pt-2">
+        <button onclick="resetApiBaseUrl()" class="px-3 py-2 text-xs font-semibold text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 rounded-xl transition">
+          Reset Default
+        </button>
+        <button onclick="saveCustomApiBaseUrl()" class="px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-xl shadow-lg transition">
+          Save Settings
+        </button>
+      </div>
     </div>
   </div>
 
@@ -194,22 +260,22 @@
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8">
 
     <!-- ===================================================================== -->
-    <!-- VIEW 1: URL INSPECTOR & RESOLVER                                      -->
+    <!-- VIEW 1: URL INSPECTOR & DOWNLOADER                                    -->
     <!-- ===================================================================== -->
     <div id="viewInspector" class="space-y-8">
 
-      <!-- Card 1: URL Inspector & Metadata Fetcher Header -->
+      <!-- Hero & URL Input Card -->
       <section class="glass-card rounded-2xl p-6 sm:p-8 relative overflow-hidden shadow-2xl">
         <div class="max-w-3xl">
           <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-semibold mb-3">
             <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
-            <span>Universal Media Inspector</span>
+            <span>Universal Media Downloader & Stream Engine</span>
           </div>
-          <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white dark:text-white light:text-slate-900 mb-2">
-            Inspect Media & Resolve Direct Streams
+          <h1 class="text-2xl sm:text-4xl font-black tracking-tight text-white dark:text-white light:text-slate-900 mb-2">
+            Download Any Video & Audio Anywhere
           </h1>
-          <p class="text-sm sm:text-base text-slate-400 dark:text-slate-400 light:text-slate-600 mb-6">
-            Input any media URL to extract full video/audio specifications, available resolutions up to 4K, audio bitrates, subtitles, and direct CDN streaming links.
+          <p class="text-sm sm:text-base text-slate-400 dark:text-slate-400 light:text-slate-600 mb-6 leading-relaxed">
+            Directly download full HD/4K videos, high-bitrate MP3s, highlight clips with timestamp trimming, and subtitles across YouTube, Shorts, TikTok, Instagram Reels, Facebook, Twitter/X, and more.
           </p>
         </div>
 
@@ -226,23 +292,30 @@
                 name="url"
                 placeholder="Paste YouTube, Shorts, TikTok, Instagram, Twitter/X, Facebook, Reddit URL..."
                 required
-                class="glass-input w-full pl-11 pr-24 py-3.5 rounded-xl text-white dark:text-white light:text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition text-sm sm:text-base"
+                oninput="handleUrlInputLive(this.value)"
+                class="glass-input w-full pl-11 pr-28 py-4 rounded-xl text-white dark:text-white light:text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition text-sm sm:text-base"
                 value="https://www.youtube.com/watch?v=dQw4w9WgXcQ"
               >
-              <button
-                type="button"
-                onclick="pasteClipboard()"
-                class="absolute inset-y-1.5 right-1.5 px-3 flex items-center text-xs font-medium text-slate-400 dark:text-slate-400 light:text-slate-600 hover:text-white light:hover:text-black bg-white/5 light:bg-slate-100 hover:bg-white/10 rounded-lg transition"
-              >
-                <i data-lucide="clipboard" class="w-3.5 h-3.5 mr-1"></i> Paste
-              </button>
+              <div class="absolute inset-y-2 right-2 flex items-center gap-1">
+                <span id="livePlatformBadge" class="hidden px-2 py-1 text-[10px] font-bold rounded-md bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                  YouTube
+                </span>
+                <button
+                  type="button"
+                  onclick="pasteClipboard()"
+                  class="px-2.5 py-1.5 flex items-center text-xs font-medium text-slate-400 dark:text-slate-400 light:text-slate-600 hover:text-white light:hover:text-black bg-white/5 light:bg-slate-100 hover:bg-white/10 rounded-lg transition"
+                  title="Paste from clipboard"
+                >
+                  <i data-lucide="clipboard" class="w-3.5 h-3.5 mr-1"></i> Paste
+                </button>
+              </div>
             </div>
 
             <div class="flex items-center gap-2">
               <button
                 type="submit"
                 id="fetchBtn"
-                class="w-full sm:w-auto px-6 py-3.5 bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-sm font-bold rounded-xl shadow-lg shadow-indigo-600/30 hover:shadow-indigo-600/40 transition flex items-center justify-center space-x-2 ring-1 ring-white/20"
+                class="w-full sm:w-auto px-7 py-4 btn-gradient text-white text-sm font-bold rounded-xl shadow-lg shadow-indigo-600/30 transition flex items-center justify-center space-x-2 ring-1 ring-white/20"
               >
                 <i data-lucide="search" class="w-4 h-4"></i>
                 <span>Inspect Media</span>
@@ -250,16 +323,18 @@
             </div>
           </div>
 
-          <!-- Platform Pill Tags -->
-          <div class="flex flex-wrap items-center gap-2 pt-2 text-xs text-slate-400 dark:text-slate-400 light:text-slate-600">
-            <span class="font-semibold text-slate-300 dark:text-slate-300 light:text-slate-700">Supported:</span>
-            <span class="px-2 py-0.5 rounded bg-white/5 dark:bg-white/5 light:bg-slate-100 border border-white/5 dark:border-white/5 light:border-slate-200">YouTube & Shorts</span>
-            <span class="px-2 py-0.5 rounded bg-white/5 dark:bg-white/5 light:bg-slate-100 border border-white/5 dark:border-white/5 light:border-slate-200">TikTok</span>
-            <span class="px-2 py-0.5 rounded bg-white/5 dark:bg-white/5 light:bg-slate-100 border border-white/5 dark:border-white/5 light:border-slate-200">Instagram</span>
-            <span class="px-2 py-0.5 rounded bg-white/5 dark:bg-white/5 light:bg-slate-100 border border-white/5 dark:border-white/5 light:border-slate-200">Facebook</span>
-            <span class="px-2 py-0.5 rounded bg-white/5 dark:bg-white/5 light:bg-slate-100 border border-white/5 dark:border-white/5 light:border-slate-200">Twitter/X</span>
-            <span class="px-2 py-0.5 rounded bg-white/5 dark:bg-white/5 light:bg-slate-100 border border-white/5 dark:border-white/5 light:border-slate-200">Reddit</span>
-            <span class="px-2 py-0.5 rounded bg-white/5 dark:bg-white/5 light:bg-slate-100 border border-white/5 dark:border-white/5 light:border-slate-200">SoundCloud</span>
+          <!-- Quick Samples & Platforms -->
+          <div class="flex flex-wrap items-center justify-between gap-2 pt-2 text-xs text-slate-400 dark:text-slate-400 light:text-slate-600">
+            <div class="flex flex-wrap items-center gap-1.5">
+              <span class="font-semibold text-slate-300 dark:text-slate-300 light:text-slate-700 mr-1">Quick Samples:</span>
+              <button type="button" onclick="setSampleUrl('https://www.youtube.com/watch?v=dQw4w9WgXcQ')" class="px-2 py-0.5 rounded-md bg-white/5 hover:bg-indigo-500/20 text-indigo-300 border border-white/5 hover:border-indigo-500/30 transition">Rickroll 🎵</button>
+              <button type="button" onclick="setSampleUrl('https://www.youtube.com/shorts/3A2Z0xV3H60')" class="px-2 py-0.5 rounded-md bg-white/5 hover:bg-indigo-500/20 text-indigo-300 border border-white/5 hover:border-indigo-500/30 transition">YouTube Short 📱</button>
+              <button type="button" onclick="setSampleUrl('https://www.youtube.com/playlist?list=PLrEnWoR732-BHrPp_QLTQhGWcyg67PCZO')" class="px-2 py-0.5 rounded-md bg-white/5 hover:bg-indigo-500/20 text-indigo-300 border border-white/5 hover:border-indigo-500/30 transition">Sample Playlist 📑</button>
+            </div>
+
+            <div class="flex items-center space-x-2 text-[11px] text-slate-500">
+              <span>Supports: YouTube • TikTok • Instagram • X • FB • SoundCloud</span>
+            </div>
           </div>
         </form>
       </section>
@@ -277,9 +352,9 @@
               <div class="absolute bottom-2.5 right-2.5 px-2.5 py-1 rounded-md bg-black/80 backdrop-blur-md text-[11px] font-mono text-white font-bold" id="mediaDuration">
                 00:00
               </div>
-              <div id="playlistBadge" class="hidden absolute top-2.5 left-2.5 px-3 py-1 rounded-full bg-indigo-600/90 backdrop-blur-md text-[11px] font-bold text-white shadow-lg flex items-center space-x-1.5">
+              <div id="playlistBadge" class="hidden absolute top-2.5 left-2.5 px-3 py-1 rounded-full bg-indigo-600/90 backdrop-blur-md text-[11px] font-bold text-white shadow-lg flex items-center space-x-1.5 cursor-pointer" onclick="openPlaylistFromInspector()">
                 <i data-lucide="list-music" class="w-3.5 h-3.5"></i>
-                <span>Playlist (<span id="playlistCount">0</span> items)</span>
+                <span>Playlist (<span id="playlistCount">0</span> items) ➔</span>
               </div>
               <div id="platformBadge" class="absolute top-2.5 right-2.5 px-2.5 py-0.5 rounded-full bg-slate-900/80 backdrop-blur-md text-[10px] font-semibold text-indigo-300 border border-indigo-500/30">
                 YouTube
@@ -323,7 +398,7 @@
             <div class="pt-3 border-t border-white/5 dark:border-white/5 light:border-slate-200 flex items-center justify-between text-xs text-slate-400">
               <span>ID: <code id="mediaId" class="text-indigo-300 font-mono text-[11px] bg-indigo-500/10 px-1.5 py-0.5 rounded">id</code></span>
               <a id="mediaWebpage" href="#" target="_blank" class="text-indigo-400 hover:text-indigo-300 font-medium flex items-center">
-                <span>Original Link</span>
+                <span>Original Source</span>
                 <i data-lucide="external-link" class="w-3.5 h-3.5 ml-1"></i>
               </a>
             </div>
@@ -337,16 +412,16 @@
 
             <div class="flex items-center justify-between border-b border-white/5 dark:border-white/5 light:border-slate-200 pb-4">
               <div class="flex items-center space-x-2.5">
-                <div class="w-7 h-7 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center">
+                <div class="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center">
                   <i data-lucide="sliders-horizontal" class="w-4 h-4"></i>
                 </div>
                 <div>
-                  <h3 class="text-lg font-bold text-white dark:text-white light:text-slate-900">Stream & Download Resolver</h3>
-                  <p class="text-xs text-slate-400 dark:text-slate-400 light:text-slate-500">Configure parameters to resolve direct streaming media</p>
+                  <h3 class="text-lg font-bold text-white dark:text-white light:text-slate-900">Download & Stream Resolver</h3>
+                  <p class="text-xs text-slate-400 dark:text-slate-400 light:text-slate-500">Configure parameters to resolve and download media directly</p>
                 </div>
               </div>
               <span class="px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-[11px] font-bold border border-emerald-500/20">
-                Direct CDN
+                Direct CDN & Proxy
               </span>
             </div>
 
@@ -430,7 +505,7 @@
                   </div>
 
                   <!-- Live Clip Validation Feedback Badge -->
-                  <div id="clipValidationFeedback" class="text-xs p-2 rounded-lg hidden"></div>
+                  <div id="clipValidationFeedback" class="text-xs p-2.5 rounded-lg hidden"></div>
                 </div>
               </div>
 
@@ -475,10 +550,10 @@
               <button
                 type="submit"
                 id="resolveBtn"
-                class="w-full py-4 bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-sm rounded-xl shadow-xl shadow-indigo-600/25 transition flex items-center justify-center space-x-2 ring-1 ring-white/20"
+                class="w-full py-4 btn-gradient text-white font-bold text-sm rounded-xl shadow-xl shadow-indigo-600/25 transition flex items-center justify-center space-x-2 ring-1 ring-white/20"
               >
                 <i data-lucide="zap" class="w-4 h-4"></i>
-                <span>Resolve Stream / Direct Download Link</span>
+                <span>Resolve Stream & Direct Download</span>
               </button>
             </form>
 
@@ -491,15 +566,15 @@
       <div id="resolvedOutputSection" class="hidden glass-card rounded-2xl p-6 sm:p-8 space-y-6 border-indigo-500/30">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 dark:border-white/10 light:border-slate-200 pb-4">
           <div class="flex items-center space-x-3">
-            <div class="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center ring-1 ring-emerald-500/30">
-              <i data-lucide="check-circle-2" class="w-5 h-5"></i>
+            <div class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center ring-1 ring-emerald-500/30">
+              <i data-lucide="check-circle-2" class="w-6 h-6"></i>
             </div>
             <div>
               <h3 class="text-base sm:text-lg font-bold text-white dark:text-white light:text-slate-900">
                 Direct Stream Resolved Successfully
               </h3>
               <p class="text-xs text-slate-400 dark:text-slate-400 light:text-slate-500" id="resolvedMetaSummary">
-                Media stream CDN URL ready for in-browser playback and high-speed downloading.
+                Media stream ready for immediate in-browser playback and direct local file saving.
               </p>
             </div>
           </div>
@@ -507,7 +582,7 @@
           <div class="flex items-center space-x-2">
             <button onclick="copyDirectUrl()" class="flex items-center space-x-1.5 px-3 py-2 text-xs font-semibold text-indigo-300 dark:text-indigo-300 light:text-indigo-600 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 rounded-lg transition">
               <i data-lucide="copy" class="w-3.5 h-3.5"></i>
-              <span id="copyBtnText">Copy Stream URL</span>
+              <span id="copyBtnText">Copy CDN URL</span>
             </button>
             <button onclick="copyCurlSnippet()" class="flex items-center space-x-1.5 px-3 py-2 text-xs font-semibold text-slate-300 dark:text-slate-300 light:text-slate-600 bg-white/5 light:bg-slate-100 hover:bg-white/10 border border-white/10 light:border-slate-300 rounded-lg transition">
               <i data-lucide="terminal" class="w-3.5 h-3.5 text-purple-400"></i>
@@ -528,15 +603,24 @@
           </div>
         </div>
 
-        <!-- Action Links & Metadata Summary Row -->
+        <!-- Primary Action Download Buttons Grid -->
         <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 pt-2">
-          <a id="directDownloadLink" href="#" target="_blank" download class="sm:col-span-8 py-3.5 px-6 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm rounded-xl text-center shadow-lg shadow-emerald-600/25 transition flex items-center justify-center space-x-2 ring-1 ring-white/20">
-            <i data-lucide="download-cloud" class="w-4 h-4"></i>
-            <span>Download Media File Directly</span>
+          <!-- 1. Direct File Download Endpoint (Proxy Streaming Attachment) -->
+          <a id="directDownloadFileBtn" href="#" class="sm:col-span-6 py-4 px-6 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm rounded-xl text-center shadow-lg shadow-emerald-600/25 transition flex items-center justify-center space-x-2 ring-1 ring-white/20">
+            <i data-lucide="download-cloud" class="w-5 h-5"></i>
+            <span>Save File to Device (Attachment)</span>
           </a>
-          <button onclick="openRawStreamUrl()" class="sm:col-span-4 py-3.5 px-4 bg-slate-800 dark:bg-slate-800 light:bg-slate-100 hover:bg-slate-700 text-slate-200 dark:text-slate-200 light:text-slate-800 text-xs font-semibold rounded-xl border border-white/10 dark:border-white/10 light:border-slate-300 transition flex items-center justify-center space-x-2">
-            <i data-lucide="external-link" class="w-3.5 h-3.5 text-indigo-400"></i>
-            <span>Open Stream in New Tab</span>
+
+          <!-- 2. Direct CDN Redirect Download -->
+          <a id="directCdnDownloadBtn" href="#" target="_blank" class="sm:col-span-3 py-4 px-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs sm:text-sm rounded-xl text-center shadow-lg shadow-indigo-600/25 transition flex items-center justify-center space-x-2 ring-1 ring-white/20">
+            <i data-lucide="external-link" class="w-4 h-4"></i>
+            <span>Direct CDN Stream</span>
+          </a>
+
+          <!-- 3. Copy Link Action -->
+          <button onclick="copyDirectDownloadLink()" class="sm:col-span-3 py-4 px-4 bg-slate-800 dark:bg-slate-800 light:bg-slate-100 hover:bg-slate-700 text-slate-200 dark:text-slate-200 light:text-slate-800 text-xs sm:text-sm font-semibold rounded-xl border border-white/10 dark:border-white/10 light:border-slate-300 transition flex items-center justify-center space-x-2">
+            <i data-lucide="copy" class="w-4 h-4 text-indigo-400"></i>
+            <span>Copy Download Link</span>
           </button>
         </div>
 
@@ -545,7 +629,7 @@
           <summary class="cursor-pointer hover:text-slate-300 font-medium py-1">View Full Direct CDN Link & Stream Headers</summary>
           <div class="mt-2 space-y-2">
             <input type="text" id="rawUrlInput" readonly class="glass-input w-full p-2.5 rounded-lg text-[11px] font-mono text-indigo-300 select-all" value="">
-            <p class="text-[10px] text-slate-500">Note: Streaming links are signed with temporary tokens from CDN providers and may expire within a few hours.</p>
+            <p class="text-[10px] text-slate-500">Note: Direct CDN links are signed with temporary tokens and valid for high-speed transfer.</p>
           </div>
         </details>
 
@@ -555,28 +639,44 @@
 
 
     <!-- ===================================================================== -->
-    <!-- VIEW 2: SUBTITLES EXPLORER                                            -->
+    <!-- VIEW 2: SUBTITLES & TRANSCRIPTS EXPLORER                              -->
     <!-- ===================================================================== -->
     <div id="viewSubtitles" class="hidden space-y-6">
       <section class="glass-card rounded-2xl p-6 sm:p-8 space-y-6">
-        <div class="border-b border-white/5 dark:border-white/5 light:border-slate-200 pb-4">
-          <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold mb-2">
-            <i data-lucide="subtitles" class="w-3.5 h-3.5"></i>
-            <span>Card 4: Subtitles & Captions Explorer</span>
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 dark:border-white/5 light:border-slate-200 pb-4">
+          <div>
+            <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold mb-2">
+              <i data-lucide="subtitles" class="w-3.5 h-3.5"></i>
+              <span>Multi-Language Subtitles Engine</span>
+            </div>
+            <h2 class="text-xl sm:text-2xl font-bold text-white dark:text-white light:text-slate-900">
+              Subtitles, Captions & Transcripts
+            </h2>
+            <p class="text-xs sm:text-sm text-slate-400 dark:text-slate-400 light:text-slate-600 mt-1">
+              Download official and auto-generated captions in SRT, VTT, ASS, or LRC format.
+            </p>
           </div>
-          <h2 class="text-xl sm:text-2xl font-bold text-white dark:text-white light:text-slate-900">
-            Multi-Language Subtitles & Auto-Caption Tracks
-          </h2>
-          <p class="text-xs sm:text-sm text-slate-400 dark:text-slate-400 light:text-slate-600 mt-1">
-            Inspect available official subtitle tracks, auto-generated captions, and download in SRT, VTT, ASS, or LRC format.
-          </p>
+
+          <div class="flex items-center space-x-2">
+            <label class="text-xs text-slate-400 font-medium">Download Format:</label>
+            <select id="globalSubFormat" onchange="refreshSubtitlesTable()" class="glass-input px-3 py-1.5 rounded-lg text-xs font-semibold text-indigo-300">
+              <option value="srt">SRT (SubRip)</option>
+              <option value="vtt">VTT (WebVTT)</option>
+              <option value="ass">ASS (SubStation)</option>
+              <option value="lrc">LRC (Lyrics)</option>
+            </select>
+          </div>
         </div>
 
         <!-- Subtitles Table / Grid -->
         <div id="subtitlesListContainer" class="space-y-3">
-          <div class="p-8 text-center text-slate-400 dark:text-slate-400 light:text-slate-500 text-sm">
-            <i data-lucide="subtitles" class="w-8 h-8 mx-auto text-slate-500 mb-2"></i>
-            <p>Please inspect a media URL in the <strong>Inspector tab</strong> first to explore its subtitle tracks.</p>
+          <div class="p-12 text-center text-slate-400 dark:text-slate-400 light:text-slate-500 text-sm">
+            <i data-lucide="subtitles" class="w-10 h-10 mx-auto text-slate-500 mb-3 opacity-60"></i>
+            <p class="font-medium text-base text-slate-300 dark:text-slate-300 light:text-slate-700">No Subtitles Loaded Yet</p>
+            <p class="text-xs text-slate-500 mt-1">Please inspect a media URL in the <strong>Inspector tab</strong> to explore its subtitle tracks.</p>
+            <button onclick="switchView('inspector')" class="mt-4 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold transition">
+              Go to Inspector
+            </button>
           </div>
         </div>
       </section>
@@ -584,47 +684,58 @@
 
 
     <!-- ===================================================================== -->
-    <!-- VIEW 3: PLAYLIST EXPLORER                                             -->
+    <!-- VIEW 3: PLAYLIST BATCH RESOLVER                                       -->
     <!-- ===================================================================== -->
     <div id="viewPlaylist" class="hidden space-y-6">
       <section class="glass-card rounded-2xl p-6 sm:p-8 space-y-6">
         <div class="border-b border-white/5 dark:border-white/5 light:border-slate-200 pb-4">
           <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-semibold mb-2">
             <i data-lucide="list-music" class="w-3.5 h-3.5"></i>
-            <span>Card 5: Playlist Inspector & Explorer</span>
+            <span>Batch Playlist Resolver</span>
           </div>
           <h2 class="text-xl sm:text-2xl font-bold text-white dark:text-white light:text-slate-900">
-            Playlist Batch Inspector
+            Playlist Batch Inspection & Stream Resolver
           </h2>
           <p class="text-xs sm:text-sm text-slate-400 dark:text-slate-400 light:text-slate-600 mt-1">
-            Fetch all videos inside YouTube or media playlists, view thumbnails, metadata, and resolve individual items.
+            Extract entire playlists, inspect metadata, and resolve direct download links for all videos with indexed names (<code class="text-indigo-400">01 - Title.mp4</code>).
           </p>
         </div>
 
         <!-- Playlist Form -->
-        <form onsubmit="handleFetchPlaylist(event)" class="flex flex-col sm:flex-row gap-3">
-          <input
-            type="text"
-            id="playlistUrlInput"
-            placeholder="Paste Playlist URL (e.g. https://www.youtube.com/playlist?list=...)"
-            required
-            class="glass-input flex-grow px-4 py-3 rounded-xl text-white dark:text-white light:text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          >
-          <button
-            type="submit"
-            id="fetchPlaylistBtn"
-            class="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold rounded-xl shadow-lg shadow-indigo-600/20 transition flex items-center justify-center space-x-2"
-          >
-            <i data-lucide="list-music" class="w-4 h-4"></i>
-            <span>Fetch Playlist</span>
-          </button>
+        <form onsubmit="handleFetchPlaylist(event)" class="space-y-3">
+          <div class="flex flex-col sm:flex-row gap-3">
+            <input
+              type="text"
+              id="playlistUrlInput"
+              placeholder="Paste Playlist URL (e.g. https://www.youtube.com/playlist?list=...)"
+              required
+              class="glass-input flex-grow px-4 py-3.5 rounded-xl text-white dark:text-white light:text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              value="https://www.youtube.com/playlist?list=PLrEnWoR732-BHrPp_QLTQhGWcyg67PCZO"
+            >
+            <div class="flex items-center gap-2">
+              <select id="playlistLimit" class="glass-input px-3 py-3.5 rounded-xl text-xs font-semibold text-white dark:text-white light:text-slate-900">
+                <option value="20">Limit: 20</option>
+                <option value="50" selected>Limit: 50</option>
+                <option value="100">Limit: 100</option>
+              </select>
+              <button
+                type="submit"
+                id="fetchPlaylistBtn"
+                class="px-6 py-3.5 btn-gradient text-white text-sm font-bold rounded-xl shadow-lg shadow-indigo-600/20 transition flex items-center justify-center space-x-2 flex-shrink-0"
+              >
+                <i data-lucide="list-music" class="w-4 h-4"></i>
+                <span>Fetch Playlist</span>
+              </button>
+            </div>
+          </div>
         </form>
 
         <!-- Playlist Output Container -->
-        <div id="playlistResultContainer" class="space-y-4">
-          <div class="p-8 text-center text-slate-400 dark:text-slate-400 light:text-slate-500 text-sm">
-            <i data-lucide="list-ordered" class="w-8 h-8 mx-auto text-slate-500 mb-2"></i>
-            <p>Paste a playlist URL above to inspect its entries.</p>
+        <div id="playlistResultContainer" class="space-y-6">
+          <div class="p-12 text-center text-slate-400 dark:text-slate-400 light:text-slate-500 text-sm">
+            <i data-lucide="list-ordered" class="w-10 h-10 mx-auto text-slate-500 mb-3 opacity-60"></i>
+            <p class="font-medium text-base text-slate-300 dark:text-slate-300 light:text-slate-700">No Playlist Loaded</p>
+            <p class="text-xs text-slate-500 mt-1">Paste a playlist URL above to inspect and batch-resolve all video download links.</p>
           </div>
         </div>
       </section>
@@ -632,7 +743,42 @@
 
 
     <!-- ===================================================================== -->
-    <!-- VIEW 4: INTERACTIVE ENDPOINT TESTER & cURL GENERATOR                  -->
+    <!-- VIEW 4: DOWNLOAD HISTORY & BOOKMARKS                                  -->
+    <!-- ===================================================================== -->
+    <div id="viewHistory" class="hidden space-y-6">
+      <section class="glass-card rounded-2xl p-6 sm:p-8 space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 dark:border-white/5 light:border-slate-200 pb-4">
+          <div>
+            <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 text-xs font-semibold mb-2">
+              <i data-lucide="history" class="w-3.5 h-3.5"></i>
+              <span>Local Storage</span>
+            </div>
+            <h2 class="text-xl sm:text-2xl font-bold text-white dark:text-white light:text-slate-900">
+              Download History & Bookmarks
+            </h2>
+            <p class="text-xs sm:text-sm text-slate-400 dark:text-slate-400 light:text-slate-600 mt-1">
+              Your recently inspected and resolved downloads saved in your browser.
+            </p>
+          </div>
+
+          <div class="flex items-center space-x-2">
+            <button onclick="clearDownloadHistory()" class="px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded-lg text-xs font-semibold transition flex items-center space-x-1">
+              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+              <span>Clear History</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- History Grid -->
+        <div id="historyContainer" class="space-y-3">
+          <!-- Populated by JS -->
+        </div>
+      </section>
+    </div>
+
+
+    <!-- ===================================================================== -->
+    <!-- VIEW 5: INTERACTIVE ENDPOINT TESTER & cURL GENERATOR                  -->
     <!-- ===================================================================== -->
     <div id="viewPlayground" class="hidden space-y-6">
       <section class="glass-card rounded-2xl p-6 sm:p-8 space-y-6">
@@ -640,18 +786,18 @@
           <div>
             <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs font-semibold mb-2">
               <i data-lucide="terminal" class="w-3.5 h-3.5"></i>
-              <span>Card 6: Interactive REST Tester</span>
+              <span>Interactive REST Playground</span>
             </div>
             <h2 class="text-xl sm:text-2xl font-bold text-white dark:text-white light:text-slate-900">
-              Interactive API Playground & Code Generator
+              API Playground & Code Generator
             </h2>
             <p class="text-xs sm:text-sm text-slate-400 dark:text-slate-400 light:text-slate-600 mt-1">
-              Send live requests to all serverless endpoints, monitor latency, and copy cURL, Python, or JavaScript code.
+              Send live requests to serverless endpoints, monitor latency, and generate cURL, Python, and JavaScript snippets.
             </p>
           </div>
 
           <div class="flex items-center space-x-2">
-            <span class="text-xs text-slate-400">Format:</span>
+            <span class="text-xs text-slate-400">Response:</span>
             <span class="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-mono text-[11px]">JSON (application/json)</span>
           </div>
         </div>
@@ -664,17 +810,20 @@
           <button onclick="selectPlaygroundEndpoint('info')" class="pg-tab px-3 py-1.5 text-xs font-semibold rounded-lg bg-white/5 dark:bg-white/5 light:bg-slate-100 text-slate-300 dark:text-slate-300 light:text-slate-700 hover:bg-white/10 transition" data-endpoint="info">
             POST /api/info
           </button>
+          <button onclick="selectPlaygroundEndpoint('resolve')" class="pg-tab px-3 py-1.5 text-xs font-semibold rounded-lg bg-white/5 dark:bg-white/5 light:bg-slate-100 text-slate-300 dark:text-slate-300 light:text-slate-700 hover:bg-white/10 transition" data-endpoint="resolve">
+            POST /api/resolve
+          </button>
           <button onclick="selectPlaygroundEndpoint('formats')" class="pg-tab px-3 py-1.5 text-xs font-semibold rounded-lg bg-white/5 dark:bg-white/5 light:bg-slate-100 text-slate-300 dark:text-slate-300 light:text-slate-700 hover:bg-white/10 transition" data-endpoint="formats">
             POST /api/formats
           </button>
           <button onclick="selectPlaygroundEndpoint('subtitles')" class="pg-tab px-3 py-1.5 text-xs font-semibold rounded-lg bg-white/5 dark:bg-white/5 light:bg-slate-100 text-slate-300 dark:text-slate-300 light:text-slate-700 hover:bg-white/10 transition" data-endpoint="subtitles">
             POST /api/subtitles
           </button>
-          <button onclick="selectPlaygroundEndpoint('resolve')" class="pg-tab px-3 py-1.5 text-xs font-semibold rounded-lg bg-white/5 dark:bg-white/5 light:bg-slate-100 text-slate-300 dark:text-slate-300 light:text-slate-700 hover:bg-white/10 transition" data-endpoint="resolve">
-            POST /api/resolve
-          </button>
           <button onclick="selectPlaygroundEndpoint('playlist')" class="pg-tab px-3 py-1.5 text-xs font-semibold rounded-lg bg-white/5 dark:bg-white/5 light:bg-slate-100 text-slate-300 dark:text-slate-300 light:text-slate-700 hover:bg-white/10 transition" data-endpoint="playlist">
             POST /api/playlist
+          </button>
+          <button onclick="selectPlaygroundEndpoint('playlist_resolve')" class="pg-tab px-3 py-1.5 text-xs font-semibold rounded-lg bg-white/5 dark:bg-white/5 light:bg-slate-100 text-slate-300 dark:text-slate-300 light:text-slate-700 hover:bg-white/10 transition" data-endpoint="playlist_resolve">
+            POST /api/playlist/resolve
           </button>
           <button onclick="selectPlaygroundEndpoint('validate_clip')" class="pg-tab px-3 py-1.5 text-xs font-semibold rounded-lg bg-white/5 dark:bg-white/5 light:bg-slate-100 text-slate-300 dark:text-slate-300 light:text-slate-700 hover:bg-white/10 transition" data-endpoint="validate_clip">
             POST /api/validate/clip
@@ -706,7 +855,7 @@
             <button
               onclick="executePlaygroundRequest()"
               id="pgExecuteBtn"
-              class="w-full py-3 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-indigo-600/20 transition flex items-center justify-center space-x-2"
+              class="w-full py-3.5 btn-gradient text-white text-xs font-bold rounded-xl shadow-lg shadow-indigo-600/20 transition flex items-center justify-center space-x-2"
             >
               <i data-lucide="play" class="w-3.5 h-3.5"></i>
               <span>Send Live API Request</span>
@@ -764,14 +913,14 @@
   <footer class="border-t border-white/5 dark:border-white/5 light:border-slate-200 py-10 mt-16 bg-[#090d16] dark:bg-[#090d16] light:bg-slate-50 text-center text-xs text-slate-500 transition-colors">
     <div class="max-w-7xl mx-auto px-4 space-y-2">
       <div class="flex items-center justify-center space-x-2">
-        <span class="font-bold text-slate-400 dark:text-slate-400 light:text-slate-700">Downloadyha API</span>
+        <span class="font-bold text-slate-400 dark:text-slate-400 light:text-slate-700">Downloadyha</span>
         <span>•</span>
-        <span>High-Performance Serverless Media Downloader</span>
+        <span>High-Performance Serverless Media Downloader & API</span>
         <span>•</span>
         <span>MIT License</span>
       </div>
       <p class="text-[11px] text-slate-600 dark:text-slate-600 light:text-slate-400">
-        Supports YouTube, Shorts, TikTok, Instagram Reels, Facebook Video, Twitter/X, Reddit, and multi-format audio/video stream extraction.
+        Supports YouTube, Shorts, TikTok, Instagram Reels, Facebook Video, Twitter/X, Reddit, SoundCloud, and multi-format extraction.
       </p>
     </div>
   </footer>
@@ -786,7 +935,80 @@
     // Global State
     let currentMediaInfo = null;
     let currentStreamResponse = null;
+    let currentPlaylistData = null;
     let activeCodeLang = 'curl';
+
+    // API Base URL Resolver
+    function getApiBaseUrl() {
+      const saved = localStorage.getItem('downloadyha_api_base');
+      if (saved !== null && saved !== undefined && saved.trim() !== '') {
+        return saved.trim().replace(/\/+$/, '');
+      }
+      const port = window.location.port;
+      const proto = window.location.protocol;
+      // If running on local static dev servers (e.g. VS Code Live Server on port 5500, 5501, 3000, 5173, 8080) or file://
+      if (proto === 'file:' || ['5500', '5501', '3000', '5173', '8080'].includes(port)) {
+        return 'http://127.0.0.1:8000';
+      }
+      return '';
+    }
+
+    function getApiUrl(path) {
+      const base = getApiBaseUrl();
+      const cleanPath = path.startsWith('/') ? path : '/' + path;
+      return base ? `${base}${cleanPath}` : cleanPath;
+    }
+
+    function updateApiBaseNotice() {
+      const base = getApiBaseUrl();
+      const banner = document.getElementById('backendNoticeBanner');
+      const label = document.getElementById('activeApiBaseLabel');
+      const customInput = document.getElementById('customApiBaseInput');
+      const swaggerLink = document.getElementById('navSwaggerLink');
+      const redocLink = document.getElementById('navRedocLink');
+
+      if (swaggerLink) swaggerLink.href = getApiUrl('/docs');
+      if (redocLink) redocLink.href = getApiUrl('/redoc');
+
+      if (customInput) customInput.value = localStorage.getItem('downloadyha_api_base') || (base || '');
+      if (label) label.innerText = base || 'Same-Origin (Vercel / Port 8000)';
+
+      if (banner) {
+        if (base && (base.includes('127.0.0.1') || base.includes('localhost') || ['5500', '5501', '3000'].includes(window.location.port))) {
+          banner.classList.remove('hidden');
+        } else {
+          banner.classList.add('hidden');
+        }
+      }
+    }
+
+    function toggleApiSettingsModal() {
+      const modal = document.getElementById('apiSettingsModal');
+      if (modal) modal.classList.toggle('hidden');
+    }
+
+    function saveCustomApiBaseUrl() {
+      const val = document.getElementById('customApiBaseInput').value.trim();
+      if (val) {
+        localStorage.setItem('downloadyha_api_base', val);
+        showToast(`Backend API URL set to: ${val}`, 'success');
+      } else {
+        localStorage.removeItem('downloadyha_api_base');
+        showToast('Reset to default API endpoint detection', 'info');
+      }
+      toggleApiSettingsModal();
+      updateApiBaseNotice();
+      checkHealth();
+    }
+
+    function resetApiBaseUrl() {
+      localStorage.removeItem('downloadyha_api_base');
+      document.getElementById('customApiBaseInput').value = '';
+      showToast('Reset API base URL to auto-detected default', 'info');
+      toggleApiSettingsModal();
+      updateApiBaseNotice();
+      checkHealth();
+    }
 
     // Theme Switcher Logic
     function initTheme() {
@@ -798,6 +1020,7 @@
         document.documentElement.classList.remove('light');
         document.documentElement.classList.add('dark');
       }
+      updateApiBaseNotice();
     }
     initTheme();
 
@@ -819,18 +1042,23 @@
 
     // View Switching Logic (Tabs)
     function switchView(viewName) {
-      const views = ['inspector', 'subtitles', 'playlist', 'playground'];
+      const views = ['inspector', 'subtitles', 'playlist', 'history', 'playground'];
       views.forEach(v => {
         const viewEl = document.getElementById(`view${v.charAt(0).toUpperCase() + v.slice(1)}`);
         const tabBtn = document.getElementById(`tab${v.charAt(0).toUpperCase() + v.slice(1)}`);
-        if (v === viewName) {
-          viewEl.classList.remove('hidden');
-          tabBtn.className = 'nav-tab active-tab px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg bg-indigo-600 text-white shadow-md shadow-indigo-600/30 flex items-center space-x-2 transition';
-        } else {
-          viewEl.classList.add('hidden');
-          tabBtn.className = 'nav-tab px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg text-slate-400 dark:text-slate-400 light:text-slate-600 hover:text-white light:hover:text-slate-900 hover:bg-white/5 light:hover:bg-slate-100 flex items-center space-x-2 transition';
+        if (viewEl && tabBtn) {
+          if (v === viewName) {
+            viewEl.classList.remove('hidden');
+            tabBtn.className = 'nav-tab active-tab px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg bg-indigo-600 text-white shadow-md shadow-indigo-600/30 flex items-center space-x-2 transition flex-shrink-0';
+          } else {
+            viewEl.classList.add('hidden');
+            tabBtn.className = 'nav-tab px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg text-slate-400 dark:text-slate-400 light:text-slate-600 hover:text-white light:hover:text-slate-900 hover:bg-white/5 light:hover:bg-slate-100 flex items-center space-x-2 transition flex-shrink-0';
+          }
         }
       });
+      if (viewName === 'history') {
+        renderDownloadHistory();
+      }
       lucide.createIcons();
     }
 
@@ -876,33 +1104,70 @@
       const badge = document.getElementById('healthStatusText');
       try {
         const start = performance.now();
-        const res = await fetch('/api/health');
+        const res = await fetch(getApiUrl('/api/health'));
         const data = await res.json();
         const latency = Math.round(performance.now() - start);
         if (res.ok && data.status === 'ok') {
           badge.innerText = `Online (${latency}ms)`;
+          document.getElementById('healthBadge').className = 'flex items-center space-x-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium cursor-pointer';
         } else {
           badge.innerText = 'Degraded';
-          document.getElementById('healthBadge').className = 'flex items-center space-x-2 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-medium';
+          document.getElementById('healthBadge').className = 'flex items-center space-x-2 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-medium cursor-pointer';
         }
       } catch (err) {
-        badge.innerText = 'Offline';
-        document.getElementById('healthBadge').className = 'flex items-center space-x-2 px-3 py-1.5 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-medium';
+        badge.innerText = 'Backend Offline';
+        document.getElementById('healthBadge').className = 'flex items-center space-x-2 px-3 py-1.5 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-medium cursor-pointer';
       }
     }
     checkHealth();
 
-    // Clipboard Helper
+    // Clipboard & URL Helpers
     async function pasteClipboard() {
       try {
         const text = await navigator.clipboard.readText();
         if (text) {
           document.getElementById('mediaUrl').value = text;
+          handleUrlInputLive(text);
           showToast('Pasted URL from clipboard', 'info');
         }
       } catch (err) {
         showToast('Clipboard access denied or unsupported', 'warning');
       }
+    }
+
+    function setSampleUrl(url) {
+      document.getElementById('mediaUrl').value = url;
+      handleUrlInputLive(url);
+      handleFetchInfo();
+    }
+
+    let urlValidateTimeout = null;
+    function handleUrlInputLive(url) {
+      clearTimeout(urlValidateTimeout);
+      const badge = document.getElementById('livePlatformBadge');
+      if (!url || url.length < 5) {
+        badge.classList.add('hidden');
+        return;
+      }
+
+      urlValidateTimeout = setTimeout(async () => {
+        try {
+          const res = await fetch(getApiUrl('/api/validate/url'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url })
+          });
+          const data = await res.json();
+          if (data.is_valid && data.platform) {
+            badge.innerText = data.platform;
+            badge.classList.remove('hidden');
+          } else {
+            badge.classList.add('hidden');
+          }
+        } catch (e) {
+          badge.classList.add('hidden');
+        }
+      }, 300);
     }
 
     // Card 1: Inspect Media & Fetch Info
@@ -917,7 +1182,7 @@
       lucide.createIcons();
 
       try {
-        const res = await fetch('/api/info', {
+        const res = await fetch(getApiUrl('/api/info'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ url, include_subtitles: true })
@@ -930,11 +1195,12 @@
         }
 
         currentMediaInfo = data;
+        saveToHistory(data);
         renderMediaDetails(data);
         renderSubtitlesExplorer(data.subtitles || []);
         showToast('Media inspected successfully!', 'success');
       } catch (err) {
-        showToast(`Network error: ${err.message}`, 'error');
+        showToast(`Backend connection error: ${err.message}. Ensure Uvicorn is running on port 8000.`, 'error');
       } finally {
         fetchBtn.disabled = false;
         fetchBtn.innerHTML = `<i data-lucide="search" class="w-4 h-4"></i><span>Inspect Media</span>`;
@@ -1051,7 +1317,7 @@
       feedback.classList.remove('hidden');
 
       try {
-        const res = await fetch('/api/validate/clip', {
+        const res = await fetch(getApiUrl('/api/validate/clip'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -1104,7 +1370,7 @@
           sub_format: sub_format
         };
 
-        const res = await fetch('/api/resolve', {
+        const res = await fetch(getApiUrl('/api/resolve'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
@@ -1117,32 +1383,37 @@
         }
 
         currentStreamResponse = data;
-        renderResolvedStream(data);
-        showToast('Stream resolved! Media player updated.', 'success');
+        renderResolvedStream(data, { url, media_type, quality, start_time, end_time });
+        showToast('Stream resolved! Direct download & player ready.', 'success');
       } catch (err) {
         showToast(`Network Error: ${err.message}`, 'error');
       } finally {
         resolveBtn.disabled = false;
-        resolveBtn.innerHTML = `<i data-lucide="zap" class="w-4 h-4"></i><span>Resolve Stream / Direct Download Link</span>`;
+        resolveBtn.innerHTML = `<i data-lucide="zap" class="w-4 h-4"></i><span>Resolve Stream & Direct Download</span>`;
         lucide.createIcons();
       }
     }
 
     // Card 3: Stream Player & Direct Download Card Renderer
-    function renderResolvedStream(data) {
+    function renderResolvedStream(data, params) {
       const outSection = document.getElementById('resolvedOutputSection');
       outSection.classList.remove('hidden');
 
       const videoPlayer = document.getElementById('videoPlayer');
       const audioWrapper = document.getElementById('audioPlayerWrapper');
       const audioPlayer = document.getElementById('audioPlayer');
-      const downloadLink = document.getElementById('directDownloadLink');
       const rawUrlInput = document.getElementById('rawUrlInput');
 
-      downloadLink.href = data.direct_download_url;
+      // Set up Direct File Download link (calls /api/download/file)
+      let dlQuery = `/api/download/file?url=${encodeURIComponent(params.url)}&media_type=${params.media_type}&quality=${encodeURIComponent(params.quality)}`;
+      if (params.start_time) dlQuery += `&start_time=${encodeURIComponent(params.start_time)}`;
+      if (params.end_time) dlQuery += `&end_time=${encodeURIComponent(params.end_time)}`;
+
+      document.getElementById('directDownloadFileBtn').href = getApiUrl(dlQuery);
+      document.getElementById('directCdnDownloadBtn').href = data.direct_download_url;
       rawUrlInput.value = data.direct_download_url;
 
-      document.getElementById('resolvedMetaSummary').innerText = `Format: ${data.media_type.toUpperCase()} | Requested Quality: ${data.requested_quality} | Title: ${data.title}`;
+      document.getElementById('resolvedMetaSummary').innerText = `Format: ${data.media_type.toUpperCase()} | Quality: ${data.requested_quality} | File: ${data.filename || 'download'}`;
 
       if (data.media_type === 'audio') {
         videoPlayer.classList.add('hidden');
@@ -1169,18 +1440,24 @@
       navigator.clipboard.writeText(currentStreamResponse.direct_download_url);
       const btnText = document.getElementById('copyBtnText');
       btnText.innerText = 'Copied!';
-      showToast('Direct Stream CDN URL copied to clipboard!', 'success');
-      setTimeout(() => { btnText.innerText = 'Copy Stream URL'; }, 2000);
+      showToast('Direct CDN Stream URL copied to clipboard!', 'success');
+      setTimeout(() => { btnText.innerText = 'Copy CDN URL'; }, 2000);
     }
 
-    function openRawStreamUrl() {
-      if (!currentStreamResponse || !currentStreamResponse.direct_download_url) return;
-      window.open(currentStreamResponse.direct_download_url, '_blank');
+    function copyDirectDownloadLink() {
+      const dlLink = document.getElementById('directDownloadFileBtn').href;
+      if (!dlLink || dlLink === '#') {
+        showToast('No download link resolved yet', 'warning');
+        return;
+      }
+      navigator.clipboard.writeText(dlLink);
+      showToast('Direct attachment download link copied!', 'success');
     }
 
     function copyCurlSnippet() {
       const url = document.getElementById('mediaUrl').value.trim();
-      const cmd = `curl -X POST "${window.location.origin}/api/resolve" \\\n  -H "Content-Type: application/json" \\\n  -d '{"url":"${url}","media_type":"video","quality":"best"}'`;
+      const host = getApiBaseUrl() || window.location.origin;
+      const cmd = `curl -X POST "${host}/api/resolve" \\\n  -H "Content-Type: application/json" \\\n  -d '{"url":"${url}","media_type":"video","quality":"best"}'`;
       navigator.clipboard.writeText(cmd);
       showToast('cURL command copied to clipboard!', 'info');
     }
@@ -1188,10 +1465,13 @@
     // Card 4: Subtitles Explorer
     function renderSubtitlesExplorer(subtitles) {
       const container = document.getElementById('subtitlesListContainer');
+      const globalFormat = document.getElementById('globalSubFormat').value || 'srt';
+      const mediaUrl = currentMediaInfo ? (currentMediaInfo.webpage_url || currentMediaInfo.url) : document.getElementById('mediaUrl').value.trim();
+
       if (!subtitles || subtitles.length === 0) {
         container.innerHTML = `
           <div class="p-8 text-center text-slate-400 text-sm">
-            <i data-lucide="info" class="w-6 h-6 mx-auto text-slate-500 mb-2"></i>
+            <i data-lucide="info" class="w-8 h-8 mx-auto text-slate-500 mb-2"></i>
             <p>No subtitle or caption tracks found for this video.</p>
           </div>
         `;
@@ -1206,17 +1486,17 @@
               <tr>
                 <th class="p-3.5">Language</th>
                 <th class="p-3.5">Type</th>
-                <th class="p-3.5">Available Formats</th>
-                <th class="p-3.5 text-right">Direct Download</th>
+                <th class="p-3.5">Language Code</th>
+                <th class="p-3.5 text-right">Download Subtitle</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-white/5 dark:divide-white/5 light:divide-slate-200">
       `;
 
       subtitles.forEach((sub, idx) => {
-        const formatsBadges = (sub.formats || ['srt', 'vtt']).map(f => `<span class="px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-300 font-mono text-[10px] mr-1 uppercase">${f}</span>`).join('');
         const typeBadge = sub.is_auto ? '<span class="px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 font-semibold text-[10px]">Auto-Generated</span>' : '<span class="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-semibold text-[10px]">Official Subtitle</span>';
-        const downloadAction = sub.url ? `<a href="${sub.url}" target="_blank" class="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold inline-flex items-center space-x-1"><i data-lucide="download" class="w-3 h-3"></i><span>Download</span></a>` : `<span class="text-slate-500 text-[11px]">Use Resolver</span>`;
+        const rawDlUrl = `/api/subtitles/download?url=${encodeURIComponent(mediaUrl)}&lang=${encodeURIComponent(sub.lang)}&sub_format=${globalFormat}&is_auto=${sub.is_auto ? 'true' : 'false'}`;
+        const dlUrl = getApiUrl(rawDlUrl);
 
         html += `
           <tr class="hover:bg-white/5 dark:hover:bg-white/5 light:hover:bg-slate-50 transition">
@@ -1225,8 +1505,13 @@
               <span>${sub.display || sub.name || sub.lang}</span>
             </td>
             <td class="p-3.5">${typeBadge}</td>
-            <td class="p-3.5">${formatsBadges}</td>
-            <td class="p-3.5 text-right">${downloadAction}</td>
+            <td class="p-3.5 font-mono text-indigo-300">${sub.lang}</td>
+            <td class="p-3.5 text-right">
+              <a href="${dlUrl}" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold inline-flex items-center space-x-1.5 shadow-sm transition">
+                <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                <span>Download .${globalFormat.toUpperCase()}</span>
+              </a>
+            </td>
           </tr>
         `;
       });
@@ -1236,10 +1521,25 @@
       lucide.createIcons();
     }
 
-    // Card 5: Playlist Explorer
+    function refreshSubtitlesTable() {
+      if (currentMediaInfo && currentMediaInfo.subtitles) {
+        renderSubtitlesExplorer(currentMediaInfo.subtitles);
+      }
+    }
+
+    // Card 5: Playlist Batch Resolver
+    function openPlaylistFromInspector() {
+      if (currentMediaInfo) {
+        document.getElementById('playlistUrlInput').value = currentMediaInfo.webpage_url || currentMediaInfo.url;
+        switchView('playlist');
+        handleFetchPlaylist();
+      }
+    }
+
     async function handleFetchPlaylist(e) {
-      e.preventDefault();
+      if (e) e.preventDefault();
       const url = document.getElementById('playlistUrlInput').value.trim();
+      const limit = document.getElementById('playlistLimit').value || 50;
       if (!url) return;
 
       const btn = document.getElementById('fetchPlaylistBtn');
@@ -1248,7 +1548,7 @@
       lucide.createIcons();
 
       try {
-        const res = await fetch(`/api/playlist?url=${encodeURIComponent(url)}&limit=50`);
+        const res = await fetch(getApiUrl(`/api/playlist?url=${encodeURIComponent(url)}&limit=${limit}`));
         const data = await res.json();
 
         if (!res.ok) {
@@ -1256,6 +1556,7 @@
           return;
         }
 
+        currentPlaylistData = data;
         renderPlaylistResults(data);
         showToast(`Loaded ${data.entries.length} videos from playlist!`, 'success');
       } catch (err) {
@@ -1269,32 +1570,74 @@
 
     function renderPlaylistResults(data) {
       const container = document.getElementById('playlistResultContainer');
+      const playlistUrl = document.getElementById('playlistUrlInput').value.trim();
+
       let html = `
-        <div class="p-4 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div class="p-5 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h3 class="font-bold text-base text-white dark:text-white light:text-slate-900">${data.title}</h3>
-            <p class="text-xs text-slate-400 dark:text-slate-400 light:text-slate-600">By ${data.uploader || 'Unknown Channel'} • Total Videos: ${data.count}</p>
+            <div class="flex items-center space-x-2">
+              <span class="px-2.5 py-0.5 rounded-full bg-indigo-600 text-white text-[11px] font-bold">Playlist</span>
+              <span class="text-xs text-slate-400">Total: ${data.count} items (${data.entries.length} loaded)</span>
+            </div>
+            <h3 class="font-extrabold text-lg text-white dark:text-white light:text-slate-900 mt-1">${data.title}</h3>
+            <p class="text-xs text-slate-400 dark:text-slate-400 light:text-slate-600">Channel: ${data.uploader || 'Unknown'}</p>
           </div>
-          <span class="px-3 py-1 rounded-full bg-indigo-600 text-white text-xs font-bold self-start sm:self-auto">${data.entries.length} Loaded</span>
+
+          <!-- Batch Actions -->
+          <div class="flex flex-wrap items-center gap-2">
+            <button onclick="resolveAllPlaylistStreams('video')" id="batchResolveVideoBtn" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl shadow-lg transition flex items-center space-x-1.5">
+              <i data-lucide="video" class="w-4 h-4"></i>
+              <span>Resolve All Videos (MP4)</span>
+            </button>
+            <button onclick="resolveAllPlaylistStreams('audio')" id="batchResolveAudioBtn" class="px-4 py-2.5 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-xl shadow-lg transition flex items-center space-x-1.5">
+              <i data-lucide="music" class="w-4 h-4"></i>
+              <span>Resolve All Audio (MP3)</span>
+            </button>
+          </div>
+        </div>
+
+        <div id="batchProgressContainer" class="hidden p-4 rounded-xl bg-slate-900/70 border border-indigo-500/30 space-y-2">
+          <div class="flex items-center justify-between text-xs font-semibold">
+            <span id="batchProgressTitle" class="text-indigo-300">Resolving Playlist Streams...</span>
+            <span id="batchProgressPercent" class="text-white">0%</span>
+          </div>
+          <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
+            <div id="batchProgressBar" class="bg-gradient-to-r from-indigo-500 to-purple-500 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+          </div>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       `;
 
-      data.entries.forEach(entry => {
+      data.entries.forEach((entry, idx) => {
+        const indexStr = String(idx + 1).padStart(2, '0');
+        const dlFileUrl = getApiUrl(`/api/download/file?url=${encodeURIComponent(entry.url)}&media_type=video&quality=best`);
+        const dlAudioUrl = getApiUrl(`/api/download/file?url=${encodeURIComponent(entry.url)}&media_type=audio&quality=best`);
+
         html += `
           <div class="glass-card rounded-xl p-3 flex gap-3 items-center border-white/5 hover:border-indigo-500/40 transition">
             <div class="relative w-28 h-16 rounded-lg overflow-hidden bg-slate-900 flex-shrink-0">
               <img src="${entry.thumbnail || 'https://via.placeholder.com/160x90'}" alt="" class="w-full h-full object-cover">
               <span class="absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-black/80 text-[10px] font-mono text-white">${entry.duration_formatted || '00:00'}</span>
+              <span class="absolute top-1 left-1 px-1.5 py-0.5 rounded bg-indigo-600/90 text-[10px] font-mono font-bold text-white">${indexStr}</span>
             </div>
             <div class="flex-grow min-w-0 space-y-1">
-              <h4 class="text-xs font-bold text-white dark:text-white light:text-slate-900 truncate">${entry.title}</h4>
+              <h4 class="text-xs font-bold text-white dark:text-white light:text-slate-900 truncate" title="${entry.title}">${entry.title}</h4>
               <p class="text-[11px] text-slate-400 truncate">${entry.uploader || 'Unknown'}</p>
-              <button onclick="loadMediaIntoInspector('${entry.url}')" class="text-[11px] text-indigo-400 hover:text-indigo-300 font-semibold flex items-center space-x-1">
-                <span>Inspect Video</span>
-                <i data-lucide="arrow-right" class="w-3 h-3"></i>
-              </button>
+              <div class="flex items-center space-x-2 pt-1">
+                <a href="${dlFileUrl}" class="px-2 py-1 bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white rounded text-[11px] font-semibold transition flex items-center space-x-1">
+                  <i data-lucide="download" class="w-3 h-3"></i>
+                  <span>MP4</span>
+                </a>
+                <a href="${dlAudioUrl}" class="px-2 py-1 bg-purple-600/20 hover:bg-purple-600 text-purple-300 hover:text-white rounded text-[11px] font-semibold transition flex items-center space-x-1">
+                  <i data-lucide="music" class="w-3 h-3"></i>
+                  <span>MP3</span>
+                </a>
+                <button onclick="loadMediaIntoInspector('${entry.url}')" class="text-[11px] text-indigo-400 hover:text-indigo-300 font-semibold flex items-center space-x-0.5">
+                  <span>Inspect</span>
+                  <i data-lucide="arrow-right" class="w-3 h-3"></i>
+                </button>
+              </div>
             </div>
           </div>
         `;
@@ -1305,13 +1648,146 @@
       lucide.createIcons();
     }
 
+    async function resolveAllPlaylistStreams(mediaType = 'video') {
+      const url = document.getElementById('playlistUrlInput').value.trim();
+      const limit = document.getElementById('playlistLimit').value || 50;
+      if (!url) return;
+
+      const progContainer = document.getElementById('batchProgressContainer');
+      const progBar = document.getElementById('batchProgressBar');
+      const progPercent = document.getElementById('batchProgressPercent');
+      const progTitle = document.getElementById('batchProgressTitle');
+
+      progContainer.classList.remove('hidden');
+      progBar.style.width = '30%';
+      progPercent.innerText = '30%';
+      progTitle.innerText = `Resolving all playlist ${mediaType} streams...`;
+
+      try {
+        const res = await fetch(getApiUrl(`/api/playlist/resolve?url=${encodeURIComponent(url)}&media_type=${mediaType}&limit=${limit}`));
+        const data = await res.json();
+
+        progBar.style.width = '100%';
+        progPercent.innerText = '100%';
+
+        if (!res.ok) {
+          showToast(data.error || data.detail || 'Batch resolution failed', 'error');
+          return;
+        }
+
+        // Generate download links list for user export
+        const urlsList = (data.entries || []).map(e => e.direct_download_url).join('\n');
+        downloadTextFile(`${sanitizeName(data.playlist_title || 'playlist')}_urls.txt`, urlsList);
+        showToast(`Successfully resolved ${data.resolved_items} streams! Exported URLs list.`, 'success');
+      } catch (err) {
+        showToast(`Network Error: ${err.message}`, 'error');
+      } finally {
+        setTimeout(() => { progContainer.classList.add('hidden'); }, 3000);
+      }
+    }
+
+    function downloadTextFile(filename, text) {
+      const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    function sanitizeName(str) {
+      return (str || 'file').replace(/[^a-z0-9]/gi, '_').toLowerCase();
+    }
+
     function loadMediaIntoInspector(url) {
       document.getElementById('mediaUrl').value = url;
+      handleUrlInputLive(url);
       switchView('inspector');
       handleFetchInfo();
     }
 
-    // Card 6: Interactive REST API Playground & Code Generator
+    // Card 6: Download History Management (localStorage)
+    function saveToHistory(item) {
+      try {
+        let history = JSON.parse(localStorage.getItem('downloadyha_history') || '[]');
+        history = history.filter(h => h.id !== item.id);
+        history.unshift({
+          id: item.id,
+          title: item.title,
+          uploader: item.uploader || item.channel || 'Unknown',
+          duration: item.duration_formatted || '00:00',
+          thumbnail: item.thumbnail,
+          url: item.webpage_url || item.url,
+          timestamp: new Date().toISOString()
+        });
+        if (history.length > 30) history.pop();
+        localStorage.setItem('downloadyha_history', JSON.stringify(history));
+      } catch (e) {
+        console.warn('LocalStorage error:', e);
+      }
+    }
+
+    function renderDownloadHistory() {
+      const container = document.getElementById('historyContainer');
+      let history = [];
+      try {
+        history = JSON.parse(localStorage.getItem('downloadyha_history') || '[]');
+      } catch (e) {}
+
+      if (!history || history.length === 0) {
+        container.innerHTML = `
+          <div class="p-12 text-center text-slate-400 text-sm">
+            <i data-lucide="history" class="w-10 h-10 mx-auto text-slate-500 mb-3 opacity-60"></i>
+            <p class="font-medium text-base text-slate-300 dark:text-slate-300 light:text-slate-700">No History Saved</p>
+            <p class="text-xs text-slate-500 mt-1">Your inspected downloads and links will appear here automatically.</p>
+          </div>
+        `;
+        lucide.createIcons();
+        return;
+      }
+
+      let html = `<div class="grid grid-cols-1 md:grid-cols-2 gap-4">`;
+      history.forEach(item => {
+        const timeAgo = new Date(item.timestamp).toLocaleDateString();
+        const dlFileUrl = getApiUrl(`/api/download/file?url=${encodeURIComponent(item.url)}&media_type=video&quality=best`);
+        html += `
+          <div class="glass-card rounded-xl p-3.5 flex gap-3 items-center border-white/5 hover:border-indigo-500/40 transition">
+            <div class="relative w-28 h-16 rounded-lg overflow-hidden bg-slate-900 flex-shrink-0">
+              <img src="${item.thumbnail || 'https://via.placeholder.com/160x90'}" alt="" class="w-full h-full object-cover">
+              <span class="absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-black/80 text-[10px] font-mono text-white">${item.duration}</span>
+            </div>
+            <div class="flex-grow min-w-0 space-y-1">
+              <h4 class="text-xs font-bold text-white dark:text-white light:text-slate-900 truncate" title="${item.title}">${item.title}</h4>
+              <p class="text-[11px] text-slate-400 truncate">${item.uploader} • ${timeAgo}</p>
+              <div class="flex items-center space-x-2 pt-1">
+                <button onclick="loadMediaIntoInspector('${item.url}')" class="px-2 py-1 bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white rounded text-[11px] font-semibold transition flex items-center space-x-1">
+                  <i data-lucide="refresh-cw" class="w-3 h-3"></i>
+                  <span>Re-Inspect</span>
+                </button>
+                <a href="${dlFileUrl}" class="px-2 py-1 bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white rounded text-[11px] font-semibold transition flex items-center space-x-1">
+                  <i data-lucide="download" class="w-3 h-3"></i>
+                  <span>Download</span>
+                </a>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+      html += `</div>`;
+      container.innerHTML = html;
+      lucide.createIcons();
+    }
+
+    function clearDownloadHistory() {
+      localStorage.removeItem('downloadyha_history');
+      renderDownloadHistory();
+      showToast('Download history cleared', 'info');
+    }
+
+    // Card 7: Interactive REST API Playground & Code Generator
     const playgroundEndpoints = {
       health: {
         method: 'GET',
@@ -1323,6 +1799,11 @@
         url: '/api/info',
         body: JSON.stringify({ url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", include_subtitles: true }, null, 2)
       },
+      resolve: {
+        method: 'POST',
+        url: '/api/resolve',
+        body: JSON.stringify({ url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", media_type: "video", quality: "1080", output_format: "mp4" }, null, 2)
+      },
       formats: {
         method: 'POST',
         url: '/api/formats',
@@ -1333,14 +1814,14 @@
         url: '/api/subtitles',
         body: JSON.stringify({ url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" }, null, 2)
       },
-      resolve: {
-        method: 'POST',
-        url: '/api/resolve',
-        body: JSON.stringify({ url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", media_type: "video", quality: "1080", output_format: "mp4" }, null, 2)
-      },
       playlist: {
         method: 'POST',
         url: '/api/playlist?limit=20',
+        body: JSON.stringify({ url: "https://www.youtube.com/playlist?list=PLrEnWoR732-BHrPp_QLTQhGWcyg67PCZO" }, null, 2)
+      },
+      playlist_resolve: {
+        method: 'POST',
+        url: '/api/playlist/resolve?media_type=video&quality=best&limit=10',
         body: JSON.stringify({ url: "https://www.youtube.com/playlist?list=PLrEnWoR732-BHrPp_QLTQhGWcyg67PCZO" }, null, 2)
       },
       validate_clip: {
@@ -1393,7 +1874,7 @@
         if (conf.method !== 'GET') {
           opts.body = document.getElementById('pgPayload').value;
         }
-        const res = await fetch(conf.url, opts);
+        const res = await fetch(getApiUrl(conf.url), opts);
         const data = await res.json();
         const latency = Math.round(performance.now() - start);
 
@@ -1437,7 +1918,7 @@
 
     function updateGeneratedCodeSnippet() {
       const conf = playgroundEndpoints[currentPgKey];
-      const host = window.location.origin;
+      const host = getApiBaseUrl() || window.location.origin;
       const snippetEl = document.getElementById('pgCodeSnippet');
       const body = document.getElementById('pgPayload').value.trim();
 

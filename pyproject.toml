@@ -11,7 +11,7 @@ description = "A modern video, audio, and playlist downloader CLI and GUI for Yo
 
 readme = "README.md"
 
-requires-python = ">=3.10"
+requires-python = ">=3.13"
 
 dependencies = [
     "yt-dlp>=2026.8.19",
