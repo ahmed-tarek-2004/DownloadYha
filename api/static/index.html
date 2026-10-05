@@ -1,0 +1,1478 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Downloadyha API - Serverless Media Downloader & Metadata Engine</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              200: '#c7d2fe',
+              300: '#a5b4fc',
+              400: '#818cf8',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+              800: '#3730a3',
+              900: '#312e81',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    code, pre, .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Glassmorphism Classes */
+    .glass-card {
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .light .glass-card {
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(226, 232, 240, 0.8);
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+    }
+
+    .glass-input {
+      background: rgba(10, 15, 29, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .light .glass-input {
+      background: #ffffff;
+      border: 1px solid rgba(203, 213, 225, 1);
+    }
+
+    .glow-accent {
+      background: radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.18) 0%, transparent 70%);
+    }
+    .light .glow-accent {
+      background: radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.08) 0%, transparent 70%);
+    }
+
+    /* Custom scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.3);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(99, 102, 241, 0.4);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(99, 102, 241, 0.7);
+    }
+
+    /* Toast animation */
+    @keyframes slideIn {
+      from { transform: translateY(100%) scale(0.95); opacity: 0; }
+      to { transform: translateY(0) scale(1); opacity: 1; }
+    }
+    .animate-toast {
+      animation: slideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+  </style>
+</head>
+<body class="bg-[#090d16] text-slate-100 min-h-screen relative selection:bg-indigo-500 selection:text-white transition-colors duration-300">
+
+  <!-- Background decorative glows -->
+  <div class="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[500px] glow-accent pointer-events-none -z-10"></div>
+  <div class="fixed -top-40 right-10 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl pointer-events-none -z-10"></div>
+  <div class="fixed top-80 -left-20 w-96 h-96 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none -z-10"></div>
+  <div class="fixed bottom-10 right-1/4 w-96 h-96 bg-cyan-600/10 rounded-full blur-3xl pointer-events-none -z-10"></div>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="fixed bottom-6 right-6 z-50 flex flex-col gap-2 max-w-md w-full pointer-events-none"></div>
+
+  <!-- Navigation Header -->
+  <header class="border-b border-white/5 dark:border-white/5 light:border-slate-200 backdrop-blur-md sticky top-0 z-40 bg-[#090d16]/80 dark:bg-[#090d16]/80 light:bg-white/80 transition-colors">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+
+      <!-- Brand Logo & Name -->
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-violet-500 to-cyan-400 flex items-center justify-center shadow-lg shadow-indigo-500/20 ring-1 ring-white/20">
+          <i data-lucide="download" class="w-5 h-5 text-white"></i>
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <span class="font-extrabold text-lg tracking-tight bg-gradient-to-r from-white via-indigo-200 to-cyan-300 dark:from-white dark:via-indigo-200 dark:to-cyan-300 light:from-slate-900 light:via-indigo-700 light:to-cyan-600 bg-clip-text text-transparent">
+              Downloadyha
+            </span>
+            <span class="px-2 py-0.5 text-[11px] font-semibold rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+              API v1.0
+            </span>
+          </div>
+          <p class="text-[11px] text-slate-400 dark:text-slate-400 light:text-slate-500 font-medium hidden sm:block">
+            Serverless Media Extraction & Direct Streaming
+          </p>
+        </div>
+      </div>
+
+      <!-- Action Items & Status -->
+      <div class="flex items-center space-x-2 sm:space-x-3">
+        <!-- Live Health Status Badge -->
+        <div id="healthBadge" class="flex items-center space-x-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span id="healthStatusText">Checking API...</span>
+        </div>
+
+        <!-- Swagger Docs Link -->
+        <a href="/docs" target="_blank" class="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-medium text-slate-300 dark:text-slate-300 light:text-slate-700 hover:text-white light:hover:text-black bg-white/5 light:bg-slate-100 hover:bg-white/10 light:hover:bg-slate-200 border border-white/10 light:border-slate-300 rounded-lg transition">
+          <i data-lucide="book-open" class="w-3.5 h-3.5 text-indigo-400"></i>
+          <span class="hidden md:inline">Swagger</span><span>Docs</span>
+        </a>
+
+        <!-- Redoc Link -->
+        <a href="/redoc" target="_blank" class="hidden sm:flex items-center space-x-1.5 px-3 py-1.5 text-xs font-medium text-slate-300 dark:text-slate-300 light:text-slate-700 hover:text-white light:hover:text-black bg-white/5 light:bg-slate-100 hover:bg-white/10 light:hover:bg-slate-200 border border-white/10 light:border-slate-300 rounded-lg transition">
+          <i data-lucide="file-text" class="w-3.5 h-3.5 text-purple-400"></i>
+          <span>Redoc</span>
+        </a>
+
+        <!-- Theme Toggle Button -->
+        <button onclick="toggleTheme()" id="themeToggleBtn" aria-label="Toggle Theme" class="p-2 rounded-lg bg-white/5 light:bg-slate-100 hover:bg-white/10 light:hover:bg-slate-200 border border-white/10 light:border-slate-300 text-slate-300 light:text-slate-700 transition">
+          <i data-lucide="sun" id="themeIconSun" class="w-4 h-4 hidden dark:block"></i>
+          <i data-lucide="moon" id="themeIconMoon" class="w-4 h-4 block dark:hidden"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Navigation Tabs (Dashboard Views) -->
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+    <div class="flex items-center space-x-2 border-b border-white/5 dark:border-white/5 light:border-slate-200 pb-2 overflow-x-auto">
+      <button onclick="switchView('inspector')" id="tabInspector" class="nav-tab active-tab px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg bg-indigo-600 text-white shadow-md shadow-indigo-600/30 flex items-center space-x-2 transition">
+        <i data-lucide="search" class="w-4 h-4"></i>
+        <span>URL Inspector & Resolver</span>
+      </button>
+      <button onclick="switchView('subtitles')" id="tabSubtitles" class="nav-tab px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg text-slate-400 dark:text-slate-400 light:text-slate-600 hover:text-white light:hover:text-slate-900 hover:bg-white/5 light:hover:bg-slate-100 flex items-center space-x-2 transition">
+        <i data-lucide="subtitles" class="w-4 h-4"></i>
+        <span>Subtitles Explorer</span>
+      </button>
+      <button onclick="switchView('playlist')" id="tabPlaylist" class="nav-tab px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg text-slate-400 dark:text-slate-400 light:text-slate-600 hover:text-white light:hover:text-slate-900 hover:bg-white/5 light:hover:bg-slate-100 flex items-center space-x-2 transition">
+        <i data-lucide="list-music" class="w-4 h-4"></i>
+        <span>Playlist Explorer</span>
+      </button>
+      <button onclick="switchView('playground')" id="tabPlayground" class="nav-tab px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg text-slate-400 dark:text-slate-400 light:text-slate-600 hover:text-white light:hover:text-slate-900 hover:bg-white/5 light:hover:bg-slate-100 flex items-center space-x-2 transition">
+        <i data-lucide="terminal" class="w-4 h-4"></i>
+        <span>Endpoint Tester & cURL</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Main Container -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8">
+
+    <!-- ===================================================================== -->
+    <!-- VIEW 1: URL INSPECTOR & RESOLVER                                      -->
+    <!-- ===================================================================== -->
+    <div id="viewInspector" class="space-y-8">
+
+      <!-- Card 1: URL Inspector & Metadata Fetcher Header -->
+      <section class="glass-card rounded-2xl p-6 sm:p-8 relative overflow-hidden shadow-2xl">
+        <div class="max-w-3xl">
+          <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-semibold mb-3">
+            <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+            <span>Universal Media Inspector</span>
+          </div>
+          <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white dark:text-white light:text-slate-900 mb-2">
+            Inspect Media & Resolve Direct Streams
+          </h1>
+          <p class="text-sm sm:text-base text-slate-400 dark:text-slate-400 light:text-slate-600 mb-6">
+            Input any media URL to extract full video/audio specifications, available resolutions up to 4K, audio bitrates, subtitles, and direct CDN streaming links.
+          </p>
+        </div>
+
+        <!-- URL Input Form -->
+        <form id="urlForm" onsubmit="handleFetchInfo(event)" class="space-y-4">
+          <div class="relative flex flex-col sm:flex-row items-stretch gap-3">
+            <div class="relative flex-grow">
+              <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                <i data-lucide="link-2" class="w-5 h-5 text-indigo-400"></i>
+              </div>
+              <input
+                type="text"
+                id="mediaUrl"
+                name="url"
+                placeholder="Paste YouTube, Shorts, TikTok, Instagram, Twitter/X, Facebook, Reddit URL..."
+                required
+                class="glass-input w-full pl-11 pr-24 py-3.5 rounded-xl text-white dark:text-white light:text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition text-sm sm:text-base"
+                value="https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+              >
+              <button
+                type="button"
+                onclick="pasteClipboard()"
+                class="absolute inset-y-1.5 right-1.5 px-3 flex items-center text-xs font-medium text-slate-400 dark:text-slate-400 light:text-slate-600 hover:text-white light:hover:text-black bg-white/5 light:bg-slate-100 hover:bg-white/10 rounded-lg transition"
+              >
+                <i data-lucide="clipboard" class="w-3.5 h-3.5 mr-1"></i> Paste
+              </button>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <button
+                type="submit"
+                id="fetchBtn"
+                class="w-full sm:w-auto px-6 py-3.5 bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-sm font-bold rounded-xl shadow-lg shadow-indigo-600/30 hover:shadow-indigo-600/40 transition flex items-center justify-center space-x-2 ring-1 ring-white/20"
+              >
+                <i data-lucide="search" class="w-4 h-4"></i>
+                <span>Inspect Media</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Platform Pill Tags -->
+          <div class="flex flex-wrap items-center gap-2 pt-2 text-xs text-slate-400 dark:text-slate-400 light:text-slate-600">
+            <span class="font-semibold text-slate-300 dark:text-slate-300 light:text-slate-700">Supported:</span>
+            <span class="px-2 py-0.5 rounded bg-white/5 dark:bg-white/5 light:bg-slate-100 border border-white/5 dark:border-white/5 light:border-slate-200">YouTube & Shorts</span>
+            <span class="px-2 py-0.5 rounded bg-white/5 dark:bg-white/5 light:bg-slate-100 border border-white/5 dark:border-white/5 light:border-slate-200">TikTok</span>
+            <span class="px-2 py-0.5 rounded bg-white/5 dark:bg-white/5 light:bg-slate-100 border border-white/5 dark:border-white/5 light:border-slate-200">Instagram</span>
+            <span class="px-2 py-0.5 rounded bg-white/5 dark:bg-white/5 light:bg-slate-100 border border-white/5 dark:border-white/5 light:border-slate-200">Facebook</span>
+            <span class="px-2 py-0.5 rounded bg-white/5 dark:bg-white/5 light:bg-slate-100 border border-white/5 dark:border-white/5 light:border-slate-200">Twitter/X</span>
+            <span class="px-2 py-0.5 rounded bg-white/5 dark:bg-white/5 light:bg-slate-100 border border-white/5 dark:border-white/5 light:border-slate-200">Reddit</span>
+            <span class="px-2 py-0.5 rounded bg-white/5 dark:bg-white/5 light:bg-slate-100 border border-white/5 dark:border-white/5 light:border-slate-200">SoundCloud</span>
+          </div>
+        </form>
+      </section>
+
+      <!-- Media Details & Stream Resolver Split Grid -->
+      <div id="mediaDetailsSection" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+        <!-- Card 1 (Detail): Media Card Overview & Thumbnail -->
+        <div class="lg:col-span-5 space-y-6">
+          <div class="glass-card rounded-2xl p-5 space-y-4">
+
+            <!-- Thumbnail & Duration Badge -->
+            <div class="relative rounded-xl overflow-hidden aspect-video bg-slate-900 dark:bg-slate-900 light:bg-slate-200 border border-white/10 dark:border-white/10 light:border-slate-300 group">
+              <img id="mediaThumb" src="" alt="Thumbnail" class="w-full h-full object-cover transition duration-300 group-hover:scale-105">
+              <div class="absolute bottom-2.5 right-2.5 px-2.5 py-1 rounded-md bg-black/80 backdrop-blur-md text-[11px] font-mono text-white font-bold" id="mediaDuration">
+                00:00
+              </div>
+              <div id="playlistBadge" class="hidden absolute top-2.5 left-2.5 px-3 py-1 rounded-full bg-indigo-600/90 backdrop-blur-md text-[11px] font-bold text-white shadow-lg flex items-center space-x-1.5">
+                <i data-lucide="list-music" class="w-3.5 h-3.5"></i>
+                <span>Playlist (<span id="playlistCount">0</span> items)</span>
+              </div>
+              <div id="platformBadge" class="absolute top-2.5 right-2.5 px-2.5 py-0.5 rounded-full bg-slate-900/80 backdrop-blur-md text-[10px] font-semibold text-indigo-300 border border-indigo-500/30">
+                YouTube
+              </div>
+            </div>
+
+            <!-- Title & Metadata -->
+            <div>
+              <h3 id="mediaTitle" class="font-bold text-base sm:text-lg text-white dark:text-white light:text-slate-900 line-clamp-2 leading-snug">
+                Media Title
+              </h3>
+
+              <div class="flex flex-wrap items-center gap-y-2 gap-x-3 text-xs text-slate-400 dark:text-slate-400 light:text-slate-500 mt-2.5">
+                <span id="mediaUploader" class="font-medium text-slate-300 dark:text-slate-300 light:text-slate-700 flex items-center">
+                  <i data-lucide="user" class="w-3.5 h-3.5 mr-1 text-indigo-400"></i> Channel Name
+                </span>
+                <span>•</span>
+                <span id="mediaViews" class="flex items-center">
+                  <i data-lucide="eye" class="w-3.5 h-3.5 mr-1 text-slate-400"></i> 0 views
+                </span>
+                <span id="mediaDateSpan" class="hidden sm:inline">•</span>
+                <span id="mediaDate" class="hidden sm:flex items-center">
+                  <i data-lucide="calendar" class="w-3.5 h-3.5 mr-1 text-slate-400"></i> Date
+                </span>
+              </div>
+            </div>
+
+            <!-- Specs Grid -->
+            <div class="grid grid-cols-2 gap-2 pt-3 border-t border-white/5 dark:border-white/5 light:border-slate-200 text-xs">
+              <div class="p-2.5 rounded-xl bg-slate-900/50 dark:bg-slate-900/50 light:bg-slate-50 border border-white/5 dark:border-white/5 light:border-slate-200">
+                <span class="text-slate-400 dark:text-slate-400 light:text-slate-500 block text-[10px] uppercase font-semibold">Available Formats</span>
+                <span id="mediaFormatCount" class="font-bold text-white dark:text-white light:text-slate-800 text-sm">0 formats</span>
+              </div>
+              <div class="p-2.5 rounded-xl bg-slate-900/50 dark:bg-slate-900/50 light:bg-slate-50 border border-white/5 dark:border-white/5 light:border-slate-200">
+                <span class="text-slate-400 dark:text-slate-400 light:text-slate-500 block text-[10px] uppercase font-semibold">Max Resolution</span>
+                <span id="mediaMaxRes" class="font-bold text-indigo-400 text-sm">1080p</span>
+              </div>
+            </div>
+
+            <!-- ID & Direct Webpage URL -->
+            <div class="pt-3 border-t border-white/5 dark:border-white/5 light:border-slate-200 flex items-center justify-between text-xs text-slate-400">
+              <span>ID: <code id="mediaId" class="text-indigo-300 font-mono text-[11px] bg-indigo-500/10 px-1.5 py-0.5 rounded">id</code></span>
+              <a id="mediaWebpage" href="#" target="_blank" class="text-indigo-400 hover:text-indigo-300 font-medium flex items-center">
+                <span>Original Link</span>
+                <i data-lucide="external-link" class="w-3.5 h-3.5 ml-1"></i>
+              </a>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Card 2: Stream / Download Resolver Form -->
+        <div class="lg:col-span-7 space-y-6">
+          <div class="glass-card rounded-2xl p-6 sm:p-7 space-y-6">
+
+            <div class="flex items-center justify-between border-b border-white/5 dark:border-white/5 light:border-slate-200 pb-4">
+              <div class="flex items-center space-x-2.5">
+                <div class="w-7 h-7 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center">
+                  <i data-lucide="sliders-horizontal" class="w-4 h-4"></i>
+                </div>
+                <div>
+                  <h3 class="text-lg font-bold text-white dark:text-white light:text-slate-900">Stream & Download Resolver</h3>
+                  <p class="text-xs text-slate-400 dark:text-slate-400 light:text-slate-500">Configure parameters to resolve direct streaming media</p>
+                </div>
+              </div>
+              <span class="px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-[11px] font-bold border border-emerald-500/20">
+                Direct CDN
+              </span>
+            </div>
+
+            <!-- Resolver Form -->
+            <form id="resolveForm" onsubmit="handleResolveStream(event)" class="space-y-5">
+
+              <!-- 1. Media Type Selector (Video vs Audio) -->
+              <div>
+                <label class="block text-xs font-bold text-slate-300 dark:text-slate-300 light:text-slate-700 uppercase tracking-wider mb-2.5">
+                  1. Target Media Format
+                </label>
+                <div class="grid grid-cols-2 gap-3">
+                  <label class="relative flex items-center justify-center p-3.5 rounded-xl border border-white/10 dark:border-white/10 light:border-slate-300 cursor-pointer transition hover:bg-white/5 dark:hover:bg-white/5 light:hover:bg-slate-50 [&:has(input:checked)]:border-indigo-500 [&:has(input:checked)]:bg-indigo-500/10 [&:has(input:checked)]:ring-1 [&:has(input:checked)]:ring-indigo-500">
+                    <input type="radio" name="media_type" value="video" checked onchange="toggleMediaType('video')" class="sr-only">
+                    <div class="flex items-center space-x-2.5">
+                      <i data-lucide="video" class="w-4 h-4 text-indigo-400"></i>
+                      <span class="text-sm font-bold text-white dark:text-white light:text-slate-900">Video (MP4 / 4K)</span>
+                    </div>
+                  </label>
+                  <label class="relative flex items-center justify-center p-3.5 rounded-xl border border-white/10 dark:border-white/10 light:border-slate-300 cursor-pointer transition hover:bg-white/5 dark:hover:bg-white/5 light:hover:bg-slate-50 [&:has(input:checked)]:border-indigo-500 [&:has(input:checked)]:bg-indigo-500/10 [&:has(input:checked)]:ring-1 [&:has(input:checked)]:ring-indigo-500">
+                    <input type="radio" name="media_type" value="audio" onchange="toggleMediaType('audio')" class="sr-only">
+                    <div class="flex items-center space-x-2.5">
+                      <i data-lucide="music" class="w-4 h-4 text-purple-400"></i>
+                      <span class="text-sm font-bold text-white dark:text-white light:text-slate-900">Audio (MP3 / 320k)</span>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              <!-- 2. Quality Dropdown (Video Resolution or Audio Bitrate) -->
+              <div id="qualitySelectionContainer">
+                <div class="flex items-center justify-between mb-2">
+                  <label class="text-xs font-bold text-slate-300 dark:text-slate-300 light:text-slate-700 uppercase tracking-wider" id="qualityLabel">
+                    2. Select Video Resolution
+                  </label>
+                  <span class="text-[11px] text-indigo-400 font-medium" id="qualityHint">Auto-detected stream qualities</span>
+                </div>
+                <select id="qualitySelect" class="glass-input w-full px-4 py-3 rounded-xl text-white dark:text-white light:text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium">
+                  <!-- Dynamically populated -->
+                </select>
+              </div>
+
+              <!-- 3. Timestamp Clipping Section with Live Validation -->
+              <div class="p-4 rounded-xl bg-slate-900/60 dark:bg-slate-900/60 light:bg-slate-100 border border-white/5 dark:border-white/5 light:border-slate-200 space-y-3">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center space-x-2">
+                    <i data-lucide="scissors" class="w-4 h-4 text-purple-400"></i>
+                    <div>
+                      <span class="text-sm font-bold text-slate-200 dark:text-slate-200 light:text-slate-800">Highlight & Section Clipping</span>
+                      <p class="text-[11px] text-slate-400 dark:text-slate-400 light:text-slate-500">Extract exact timestamps with live range verification</p>
+                    </div>
+                  </div>
+                  <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="enableClip" onchange="toggleClippingInputs()" class="sr-only peer">
+                    <div class="w-10 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+                  </label>
+                </div>
+
+                <div id="clippingInputs" class="hidden space-y-3 pt-2">
+                  <div class="grid grid-cols-2 gap-3">
+                    <div>
+                      <label class="block text-[11px] font-semibold text-slate-400 dark:text-slate-400 light:text-slate-600 mb-1">Start Time (MM:SS or Sec)</label>
+                      <input
+                        type="text"
+                        id="clipStart"
+                        placeholder="00:30"
+                        oninput="validateClipLive()"
+                        class="glass-input w-full px-3 py-2 rounded-lg text-sm text-white dark:text-white light:text-slate-900 focus:ring-1 focus:ring-indigo-500 font-mono"
+                      >
+                    </div>
+                    <div>
+                      <label class="block text-[11px] font-semibold text-slate-400 dark:text-slate-400 light:text-slate-600 mb-1">End Time (MM:SS or Sec)</label>
+                      <input
+                        type="text"
+                        id="clipEnd"
+                        placeholder="02:15"
+                        oninput="validateClipLive()"
+                        class="glass-input w-full px-3 py-2 rounded-lg text-sm text-white dark:text-white light:text-slate-900 focus:ring-1 focus:ring-indigo-500 font-mono"
+                      >
+                    </div>
+                  </div>
+
+                  <!-- Live Clip Validation Feedback Badge -->
+                  <div id="clipValidationFeedback" class="text-xs p-2 rounded-lg hidden"></div>
+                </div>
+              </div>
+
+              <!-- 4. Subtitles Selector -->
+              <div class="p-4 rounded-xl bg-slate-900/60 dark:bg-slate-900/60 light:bg-slate-100 border border-white/5 dark:border-white/5 light:border-slate-200 space-y-3">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center space-x-2">
+                    <i data-lucide="subtitles" class="w-4 h-4 text-emerald-400"></i>
+                    <div>
+                      <span class="text-sm font-bold text-slate-200 dark:text-slate-200 light:text-slate-800">Subtitles & Transcripts</span>
+                      <p class="text-[11px] text-slate-400 dark:text-slate-400 light:text-slate-500">Include official or auto-generated captions</p>
+                    </div>
+                  </div>
+                  <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="enableSubs" onchange="toggleSubInputs()" class="sr-only peer">
+                    <div class="w-10 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+                  </label>
+                </div>
+
+                <div id="subInputs" class="hidden space-y-3 pt-2">
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label class="block text-[11px] font-semibold text-slate-400 dark:text-slate-400 light:text-slate-600 mb-1">Language Track</label>
+                      <select id="subSelect" class="glass-input w-full px-3 py-2 rounded-lg text-xs text-white dark:text-white light:text-slate-900 focus:ring-1 focus:ring-indigo-500">
+                        <option value="">-- All Available Subtitles --</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label class="block text-[11px] font-semibold text-slate-400 dark:text-slate-400 light:text-slate-600 mb-1">Subtitle Format</label>
+                      <select id="subFormatSelect" class="glass-input w-full px-3 py-2 rounded-lg text-xs text-white dark:text-white light:text-slate-900 focus:ring-1 focus:ring-indigo-500">
+                        <option value="srt">SRT (SubRip Subtitle)</option>
+                        <option value="vtt">VTT (WebVTT)</option>
+                        <option value="ass">ASS (Advanced SubStation)</option>
+                        <option value="lrc">LRC (Synchronized Lyrics)</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Resolve Button -->
+              <button
+                type="submit"
+                id="resolveBtn"
+                class="w-full py-4 bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-sm rounded-xl shadow-xl shadow-indigo-600/25 transition flex items-center justify-center space-x-2 ring-1 ring-white/20"
+              >
+                <i data-lucide="zap" class="w-4 h-4"></i>
+                <span>Resolve Stream / Direct Download Link</span>
+              </button>
+            </form>
+
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Card 3: Stream Player & Direct Download Card -->
+      <div id="resolvedOutputSection" class="hidden glass-card rounded-2xl p-6 sm:p-8 space-y-6 border-indigo-500/30">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 dark:border-white/10 light:border-slate-200 pb-4">
+          <div class="flex items-center space-x-3">
+            <div class="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center ring-1 ring-emerald-500/30">
+              <i data-lucide="check-circle-2" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <h3 class="text-base sm:text-lg font-bold text-white dark:text-white light:text-slate-900">
+                Direct Stream Resolved Successfully
+              </h3>
+              <p class="text-xs text-slate-400 dark:text-slate-400 light:text-slate-500" id="resolvedMetaSummary">
+                Media stream CDN URL ready for in-browser playback and high-speed downloading.
+              </p>
+            </div>
+          </div>
+
+          <div class="flex items-center space-x-2">
+            <button onclick="copyDirectUrl()" class="flex items-center space-x-1.5 px-3 py-2 text-xs font-semibold text-indigo-300 dark:text-indigo-300 light:text-indigo-600 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 rounded-lg transition">
+              <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+              <span id="copyBtnText">Copy Stream URL</span>
+            </button>
+            <button onclick="copyCurlSnippet()" class="flex items-center space-x-1.5 px-3 py-2 text-xs font-semibold text-slate-300 dark:text-slate-300 light:text-slate-600 bg-white/5 light:bg-slate-100 hover:bg-white/10 border border-white/10 light:border-slate-300 rounded-lg transition">
+              <i data-lucide="terminal" class="w-3.5 h-3.5 text-purple-400"></i>
+              <span>cURL</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- In-Browser Stream Player -->
+        <div class="rounded-xl overflow-hidden bg-black aspect-video max-h-[440px] flex items-center justify-center border border-white/10 relative shadow-2xl" id="playerWrapper">
+          <video id="videoPlayer" controls playsinline class="w-full h-full max-h-[440px]"></video>
+          <div id="audioPlayerWrapper" class="hidden w-full p-8 flex flex-col items-center justify-center space-y-4">
+            <div class="w-16 h-16 rounded-full bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-600/30">
+              <i data-lucide="music" class="w-8 h-8 text-white animate-pulse"></i>
+            </div>
+            <p id="audioTrackTitle" class="text-sm font-bold text-white text-center max-w-md"></p>
+            <audio id="audioPlayer" controls class="w-full max-w-lg"></audio>
+          </div>
+        </div>
+
+        <!-- Action Links & Metadata Summary Row -->
+        <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 pt-2">
+          <a id="directDownloadLink" href="#" target="_blank" download class="sm:col-span-8 py-3.5 px-6 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm rounded-xl text-center shadow-lg shadow-emerald-600/25 transition flex items-center justify-center space-x-2 ring-1 ring-white/20">
+            <i data-lucide="download-cloud" class="w-4 h-4"></i>
+            <span>Download Media File Directly</span>
+          </a>
+          <button onclick="openRawStreamUrl()" class="sm:col-span-4 py-3.5 px-4 bg-slate-800 dark:bg-slate-800 light:bg-slate-100 hover:bg-slate-700 text-slate-200 dark:text-slate-200 light:text-slate-800 text-xs font-semibold rounded-xl border border-white/10 dark:border-white/10 light:border-slate-300 transition flex items-center justify-center space-x-2">
+            <i data-lucide="external-link" class="w-3.5 h-3.5 text-indigo-400"></i>
+            <span>Open Stream in New Tab</span>
+          </button>
+        </div>
+
+        <!-- Raw URL Inspector (Expandable) -->
+        <details class="text-xs text-slate-400 pt-2 border-t border-white/5 dark:border-white/5 light:border-slate-200">
+          <summary class="cursor-pointer hover:text-slate-300 font-medium py-1">View Full Direct CDN Link & Stream Headers</summary>
+          <div class="mt-2 space-y-2">
+            <input type="text" id="rawUrlInput" readonly class="glass-input w-full p-2.5 rounded-lg text-[11px] font-mono text-indigo-300 select-all" value="">
+            <p class="text-[10px] text-slate-500">Note: Streaming links are signed with temporary tokens from CDN providers and may expire within a few hours.</p>
+          </div>
+        </details>
+
+      </div>
+
+    </div>
+
+
+    <!-- ===================================================================== -->
+    <!-- VIEW 2: SUBTITLES EXPLORER                                            -->
+    <!-- ===================================================================== -->
+    <div id="viewSubtitles" class="hidden space-y-6">
+      <section class="glass-card rounded-2xl p-6 sm:p-8 space-y-6">
+        <div class="border-b border-white/5 dark:border-white/5 light:border-slate-200 pb-4">
+          <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold mb-2">
+            <i data-lucide="subtitles" class="w-3.5 h-3.5"></i>
+            <span>Card 4: Subtitles & Captions Explorer</span>
+          </div>
+          <h2 class="text-xl sm:text-2xl font-bold text-white dark:text-white light:text-slate-900">
+            Multi-Language Subtitles & Auto-Caption Tracks
+          </h2>
+          <p class="text-xs sm:text-sm text-slate-400 dark:text-slate-400 light:text-slate-600 mt-1">
+            Inspect available official subtitle tracks, auto-generated captions, and download in SRT, VTT, ASS, or LRC format.
+          </p>
+        </div>
+
+        <!-- Subtitles Table / Grid -->
+        <div id="subtitlesListContainer" class="space-y-3">
+          <div class="p-8 text-center text-slate-400 dark:text-slate-400 light:text-slate-500 text-sm">
+            <i data-lucide="subtitles" class="w-8 h-8 mx-auto text-slate-500 mb-2"></i>
+            <p>Please inspect a media URL in the <strong>Inspector tab</strong> first to explore its subtitle tracks.</p>
+          </div>
+        </div>
+      </section>
+    </div>
+
+
+    <!-- ===================================================================== -->
+    <!-- VIEW 3: PLAYLIST EXPLORER                                             -->
+    <!-- ===================================================================== -->
+    <div id="viewPlaylist" class="hidden space-y-6">
+      <section class="glass-card rounded-2xl p-6 sm:p-8 space-y-6">
+        <div class="border-b border-white/5 dark:border-white/5 light:border-slate-200 pb-4">
+          <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-semibold mb-2">
+            <i data-lucide="list-music" class="w-3.5 h-3.5"></i>
+            <span>Card 5: Playlist Inspector & Explorer</span>
+          </div>
+          <h2 class="text-xl sm:text-2xl font-bold text-white dark:text-white light:text-slate-900">
+            Playlist Batch Inspector
+          </h2>
+          <p class="text-xs sm:text-sm text-slate-400 dark:text-slate-400 light:text-slate-600 mt-1">
+            Fetch all videos inside YouTube or media playlists, view thumbnails, metadata, and resolve individual items.
+          </p>
+        </div>
+
+        <!-- Playlist Form -->
+        <form onsubmit="handleFetchPlaylist(event)" class="flex flex-col sm:flex-row gap-3">
+          <input
+            type="text"
+            id="playlistUrlInput"
+            placeholder="Paste Playlist URL (e.g. https://www.youtube.com/playlist?list=...)"
+            required
+            class="glass-input flex-grow px-4 py-3 rounded-xl text-white dark:text-white light:text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          >
+          <button
+            type="submit"
+            id="fetchPlaylistBtn"
+            class="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold rounded-xl shadow-lg shadow-indigo-600/20 transition flex items-center justify-center space-x-2"
+          >
+            <i data-lucide="list-music" class="w-4 h-4"></i>
+            <span>Fetch Playlist</span>
+          </button>
+        </form>
+
+        <!-- Playlist Output Container -->
+        <div id="playlistResultContainer" class="space-y-4">
+          <div class="p-8 text-center text-slate-400 dark:text-slate-400 light:text-slate-500 text-sm">
+            <i data-lucide="list-ordered" class="w-8 h-8 mx-auto text-slate-500 mb-2"></i>
+            <p>Paste a playlist URL above to inspect its entries.</p>
+          </div>
+        </div>
+      </section>
+    </div>
+
+
+    <!-- ===================================================================== -->
+    <!-- VIEW 4: INTERACTIVE ENDPOINT TESTER & cURL GENERATOR                  -->
+    <!-- ===================================================================== -->
+    <div id="viewPlayground" class="hidden space-y-6">
+      <section class="glass-card rounded-2xl p-6 sm:p-8 space-y-6">
+        <div class="border-b border-white/5 dark:border-white/5 light:border-slate-200 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs font-semibold mb-2">
+              <i data-lucide="terminal" class="w-3.5 h-3.5"></i>
+              <span>Card 6: Interactive REST Tester</span>
+            </div>
+            <h2 class="text-xl sm:text-2xl font-bold text-white dark:text-white light:text-slate-900">
+              Interactive API Playground & Code Generator
+            </h2>
+            <p class="text-xs sm:text-sm text-slate-400 dark:text-slate-400 light:text-slate-600 mt-1">
+              Send live requests to all serverless endpoints, monitor latency, and copy cURL, Python, or JavaScript code.
+            </p>
+          </div>
+
+          <div class="flex items-center space-x-2">
+            <span class="text-xs text-slate-400">Format:</span>
+            <span class="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-mono text-[11px]">JSON (application/json)</span>
+          </div>
+        </div>
+
+        <!-- Endpoint Quick Selector Badges -->
+        <div class="flex flex-wrap gap-2">
+          <button onclick="selectPlaygroundEndpoint('health')" class="pg-tab px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 text-white transition" data-endpoint="health">
+            GET /api/health
+          </button>
+          <button onclick="selectPlaygroundEndpoint('info')" class="pg-tab px-3 py-1.5 text-xs font-semibold rounded-lg bg-white/5 dark:bg-white/5 light:bg-slate-100 text-slate-300 dark:text-slate-300 light:text-slate-700 hover:bg-white/10 transition" data-endpoint="info">
+            POST /api/info
+          </button>
+          <button onclick="selectPlaygroundEndpoint('formats')" class="pg-tab px-3 py-1.5 text-xs font-semibold rounded-lg bg-white/5 dark:bg-white/5 light:bg-slate-100 text-slate-300 dark:text-slate-300 light:text-slate-700 hover:bg-white/10 transition" data-endpoint="formats">
+            POST /api/formats
+          </button>
+          <button onclick="selectPlaygroundEndpoint('subtitles')" class="pg-tab px-3 py-1.5 text-xs font-semibold rounded-lg bg-white/5 dark:bg-white/5 light:bg-slate-100 text-slate-300 dark:text-slate-300 light:text-slate-700 hover:bg-white/10 transition" data-endpoint="subtitles">
+            POST /api/subtitles
+          </button>
+          <button onclick="selectPlaygroundEndpoint('resolve')" class="pg-tab px-3 py-1.5 text-xs font-semibold rounded-lg bg-white/5 dark:bg-white/5 light:bg-slate-100 text-slate-300 dark:text-slate-300 light:text-slate-700 hover:bg-white/10 transition" data-endpoint="resolve">
+            POST /api/resolve
+          </button>
+          <button onclick="selectPlaygroundEndpoint('playlist')" class="pg-tab px-3 py-1.5 text-xs font-semibold rounded-lg bg-white/5 dark:bg-white/5 light:bg-slate-100 text-slate-300 dark:text-slate-300 light:text-slate-700 hover:bg-white/10 transition" data-endpoint="playlist">
+            POST /api/playlist
+          </button>
+          <button onclick="selectPlaygroundEndpoint('validate_clip')" class="pg-tab px-3 py-1.5 text-xs font-semibold rounded-lg bg-white/5 dark:bg-white/5 light:bg-slate-100 text-slate-300 dark:text-slate-300 light:text-slate-700 hover:bg-white/10 transition" data-endpoint="validate_clip">
+            POST /api/validate/clip
+          </button>
+          <button onclick="selectPlaygroundEndpoint('validate_url')" class="pg-tab px-3 py-1.5 text-xs font-semibold rounded-lg bg-white/5 dark:bg-white/5 light:bg-slate-100 text-slate-300 dark:text-slate-300 light:text-slate-700 hover:bg-white/10 transition" data-endpoint="validate_url">
+            POST /api/validate/url
+          </button>
+        </div>
+
+        <!-- Split Grid: Request Payload vs Live Response -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+          <!-- Request Box -->
+          <div class="space-y-3">
+            <div class="flex items-center justify-between text-xs text-slate-400">
+              <span class="font-semibold text-slate-300 dark:text-slate-300 light:text-slate-700">Request Body (JSON)</span>
+              <div class="flex items-center space-x-2">
+                <span id="pgMethodBadge" class="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-mono text-[10px] font-bold">GET</span>
+                <span id="pgEndpointPath" class="font-mono text-[11px] text-slate-400">/api/health</span>
+              </div>
+            </div>
+
+            <textarea
+              id="pgPayload"
+              rows="10"
+              class="glass-input w-full p-4 rounded-xl text-xs font-mono text-indigo-200 dark:text-indigo-200 light:text-indigo-900 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            ></textarea>
+
+            <button
+              onclick="executePlaygroundRequest()"
+              id="pgExecuteBtn"
+              class="w-full py-3 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-indigo-600/20 transition flex items-center justify-center space-x-2"
+            >
+              <i data-lucide="play" class="w-3.5 h-3.5"></i>
+              <span>Send Live API Request</span>
+            </button>
+          </div>
+
+          <!-- Response Box -->
+          <div class="space-y-3">
+            <div class="flex items-center justify-between text-xs text-slate-400">
+              <span class="font-semibold text-slate-300 dark:text-slate-300 light:text-slate-700">Server Response</span>
+              <div class="flex items-center space-x-2">
+                <span id="pgStatus" class="font-mono text-[11px] text-emerald-400 font-bold px-2 py-0.5 rounded bg-emerald-500/10">200 OK</span>
+                <span id="pgLatency" class="font-mono text-[11px] text-slate-400">0ms</span>
+              </div>
+            </div>
+
+            <pre id="pgResponse" class="glass-input w-full h-[252px] p-4 rounded-xl text-xs font-mono text-slate-300 dark:text-slate-300 light:text-slate-800 overflow-auto whitespace-pre-wrap">{ "status": "Ready to test" }</pre>
+
+            <div class="flex items-center space-x-2">
+              <button onclick="copyPgResponse()" class="flex-1 py-2 bg-white/5 dark:bg-white/5 light:bg-slate-100 hover:bg-white/10 text-slate-300 dark:text-slate-300 light:text-slate-700 text-xs font-medium rounded-lg border border-white/10 dark:border-white/10 light:border-slate-300 transition flex items-center justify-center space-x-1.5">
+                <i data-lucide="copy" class="w-3 h-3"></i>
+                <span>Copy JSON Response</span>
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Code Snippet Generator Tabs (cURL, JavaScript Fetch, Python) -->
+        <div class="pt-4 border-t border-white/5 dark:border-white/5 light:border-slate-200 space-y-3">
+          <div class="flex items-center justify-between">
+            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400">Generated Code Snippets</h4>
+            <div class="flex items-center space-x-1">
+              <button onclick="switchCodeLang('curl')" id="codeLangCurl" class="px-2.5 py-1 text-[11px] font-semibold rounded bg-indigo-600 text-white">cURL</button>
+              <button onclick="switchCodeLang('js')" id="codeLangJs" class="px-2.5 py-1 text-[11px] font-semibold rounded text-slate-400 hover:text-white">JavaScript</button>
+              <button onclick="switchCodeLang('python')" id="codeLangPython" class="px-2.5 py-1 text-[11px] font-semibold rounded text-slate-400 hover:text-white">Python</button>
+            </div>
+          </div>
+
+          <div class="relative">
+            <pre id="pgCodeSnippet" class="glass-input p-4 rounded-xl text-xs font-mono text-cyan-300 dark:text-cyan-300 light:text-cyan-900 overflow-x-auto whitespace-pre-wrap"></pre>
+            <button onclick="copySnippetCode()" class="absolute top-3 right-3 px-2.5 py-1 bg-white/10 hover:bg-white/20 text-slate-200 text-[11px] font-semibold rounded transition flex items-center space-x-1">
+              <i data-lucide="copy" class="w-3 h-3"></i>
+              <span id="copySnippetBtnText">Copy</span>
+            </button>
+          </div>
+        </div>
+
+      </section>
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-white/5 dark:border-white/5 light:border-slate-200 py-10 mt-16 bg-[#090d16] dark:bg-[#090d16] light:bg-slate-50 text-center text-xs text-slate-500 transition-colors">
+    <div class="max-w-7xl mx-auto px-4 space-y-2">
+      <div class="flex items-center justify-center space-x-2">
+        <span class="font-bold text-slate-400 dark:text-slate-400 light:text-slate-700">Downloadyha API</span>
+        <span>•</span>
+        <span>High-Performance Serverless Media Downloader</span>
+        <span>•</span>
+        <span>MIT License</span>
+      </div>
+      <p class="text-[11px] text-slate-600 dark:text-slate-600 light:text-slate-400">
+        Supports YouTube, Shorts, TikTok, Instagram Reels, Facebook Video, Twitter/X, Reddit, and multi-format audio/video stream extraction.
+      </p>
+    </div>
+  </footer>
+
+  <!-- ======================================================================= -->
+  <!-- APPLICATION JAVASCRIPT LOGIC                                            -->
+  <!-- ======================================================================= -->
+  <script>
+    // Initialize icons
+    lucide.createIcons();
+
+    // Global State
+    let currentMediaInfo = null;
+    let currentStreamResponse = null;
+    let activeCodeLang = 'curl';
+
+    // Theme Switcher Logic
+    function initTheme() {
+      const savedTheme = localStorage.getItem('theme');
+      if (savedTheme === 'light') {
+        document.documentElement.classList.remove('dark');
+        document.documentElement.classList.add('light');
+      } else {
+        document.documentElement.classList.remove('light');
+        document.documentElement.classList.add('dark');
+      }
+    }
+    initTheme();
+
+    function toggleTheme() {
+      const isDark = document.documentElement.classList.contains('dark');
+      if (isDark) {
+        document.documentElement.classList.remove('dark');
+        document.documentElement.classList.add('light');
+        localStorage.setItem('theme', 'light');
+        showToast('Light Mode Activated', 'info');
+      } else {
+        document.documentElement.classList.remove('light');
+        document.documentElement.classList.add('dark');
+        localStorage.setItem('theme', 'dark');
+        showToast('Dark Mode Activated', 'info');
+      }
+      lucide.createIcons();
+    }
+
+    // View Switching Logic (Tabs)
+    function switchView(viewName) {
+      const views = ['inspector', 'subtitles', 'playlist', 'playground'];
+      views.forEach(v => {
+        const viewEl = document.getElementById(`view${v.charAt(0).toUpperCase() + v.slice(1)}`);
+        const tabBtn = document.getElementById(`tab${v.charAt(0).toUpperCase() + v.slice(1)}`);
+        if (v === viewName) {
+          viewEl.classList.remove('hidden');
+          tabBtn.className = 'nav-tab active-tab px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg bg-indigo-600 text-white shadow-md shadow-indigo-600/30 flex items-center space-x-2 transition';
+        } else {
+          viewEl.classList.add('hidden');
+          tabBtn.className = 'nav-tab px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg text-slate-400 dark:text-slate-400 light:text-slate-600 hover:text-white light:hover:text-slate-900 hover:bg-white/5 light:hover:bg-slate-100 flex items-center space-x-2 transition';
+        }
+      });
+      lucide.createIcons();
+    }
+
+    // Toast Notification System
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+
+      const colors = {
+        success: 'bg-emerald-600 text-white border-emerald-400/30',
+        error: 'bg-rose-600 text-white border-rose-400/30',
+        info: 'bg-indigo-600 text-white border-indigo-400/30',
+        warning: 'bg-amber-600 text-white border-amber-400/30'
+      };
+
+      const icons = {
+        success: 'check-circle-2',
+        error: 'alert-circle',
+        info: 'info',
+        warning: 'alert-triangle'
+      };
+
+      toast.className = `animate-toast pointer-events-auto flex items-center space-x-3 px-4 py-3 rounded-xl shadow-2xl border ${colors[type] || colors.info} text-xs font-semibold backdrop-blur-md`;
+      toast.innerHTML = `
+        <i data-lucide="${icons[type] || 'info'}" class="w-4 h-4 flex-shrink-0"></i>
+        <span class="flex-grow">${message}</span>
+        <button onclick="this.parentElement.remove()" class="opacity-70 hover:opacity-100 transition"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+      `;
+
+      container.appendChild(toast);
+      lucide.createIcons();
+
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(20px)';
+        toast.style.transition = 'all 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+      }, 4000);
+    }
+
+    // Live API Health Check
+    async function checkHealth() {
+      const badge = document.getElementById('healthStatusText');
+      try {
+        const start = performance.now();
+        const res = await fetch('/api/health');
+        const data = await res.json();
+        const latency = Math.round(performance.now() - start);
+        if (res.ok && data.status === 'ok') {
+          badge.innerText = `Online (${latency}ms)`;
+        } else {
+          badge.innerText = 'Degraded';
+          document.getElementById('healthBadge').className = 'flex items-center space-x-2 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-medium';
+        }
+      } catch (err) {
+        badge.innerText = 'Offline';
+        document.getElementById('healthBadge').className = 'flex items-center space-x-2 px-3 py-1.5 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-medium';
+      }
+    }
+    checkHealth();
+
+    // Clipboard Helper
+    async function pasteClipboard() {
+      try {
+        const text = await navigator.clipboard.readText();
+        if (text) {
+          document.getElementById('mediaUrl').value = text;
+          showToast('Pasted URL from clipboard', 'info');
+        }
+      } catch (err) {
+        showToast('Clipboard access denied or unsupported', 'warning');
+      }
+    }
+
+    // Card 1: Inspect Media & Fetch Info
+    async function handleFetchInfo(e) {
+      if (e) e.preventDefault();
+      const url = document.getElementById('mediaUrl').value.trim();
+      if (!url) return;
+
+      const fetchBtn = document.getElementById('fetchBtn');
+      fetchBtn.disabled = true;
+      fetchBtn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>Inspecting...</span>`;
+      lucide.createIcons();
+
+      try {
+        const res = await fetch('/api/info', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url, include_subtitles: true })
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          showToast(data.error || data.detail || 'Extraction failed for URL.', 'error');
+          return;
+        }
+
+        currentMediaInfo = data;
+        renderMediaDetails(data);
+        renderSubtitlesExplorer(data.subtitles || []);
+        showToast('Media inspected successfully!', 'success');
+      } catch (err) {
+        showToast(`Network error: ${err.message}`, 'error');
+      } finally {
+        fetchBtn.disabled = false;
+        fetchBtn.innerHTML = `<i data-lucide="search" class="w-4 h-4"></i><span>Inspect Media</span>`;
+        lucide.createIcons();
+      }
+    }
+
+    // Populate Media Details
+    function renderMediaDetails(data) {
+      const detailsSection = document.getElementById('mediaDetailsSection');
+      detailsSection.classList.remove('hidden');
+
+      document.getElementById('mediaTitle').innerText = data.title;
+      document.getElementById('mediaThumb').src = data.thumbnail || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=640&q=80';
+      document.getElementById('mediaDuration').innerText = data.duration_formatted || '00:00';
+      document.getElementById('mediaUploader').innerHTML = `<i data-lucide="user" class="w-3.5 h-3.5 mr-1 text-indigo-400"></i> ${data.uploader || data.channel || 'Unknown'}`;
+      document.getElementById('mediaViews').innerHTML = `<i data-lucide="eye" class="w-3.5 h-3.5 mr-1 text-slate-400"></i> ${(data.view_count || 0).toLocaleString()} views`;
+      document.getElementById('mediaId').innerText = data.id;
+      document.getElementById('mediaWebpage').href = data.webpage_url || data.url;
+      document.getElementById('mediaFormatCount').innerText = `${(data.formats || []).length} streams`;
+
+      const maxRes = (data.available_resolutions && data.available_resolutions.length > 0) ? `${Math.max(...data.available_resolutions)}p` : 'Best';
+      document.getElementById('mediaMaxRes').innerText = maxRes;
+
+      if (data.is_playlist) {
+        document.getElementById('playlistBadge').classList.remove('hidden');
+        document.getElementById('playlistCount').innerText = data.playlist_count || '0';
+      } else {
+        document.getElementById('playlistBadge').classList.add('hidden');
+      }
+
+      // Populate Resolutions
+      populateResolutions(data.available_resolutions || [1080, 720, 480, 360]);
+
+      // Populate Subtitles in Resolver dropdown
+      const subSelect = document.getElementById('subSelect');
+      subSelect.innerHTML = `<option value="">-- All Available Subtitles --</option>`;
+      if (data.subtitles && data.subtitles.length > 0) {
+        data.subtitles.forEach(sub => {
+          const opt = document.createElement('option');
+          opt.value = sub.lang;
+          opt.innerText = sub.display || `${sub.name || sub.lang} (${sub.is_auto ? 'auto' : 'manual'})`;
+          subSelect.appendChild(opt);
+        });
+      }
+
+      lucide.createIcons();
+      detailsSection.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function populateResolutions(resList) {
+      const qSelect = document.getElementById('qualitySelect');
+      qSelect.innerHTML = `<option value="best">Best Available (Maximum Quality)</option>`;
+      const sorted = [...new Set(resList)].sort((a, b) => b - a);
+      sorted.forEach(res => {
+        const opt = document.createElement('option');
+        opt.value = res;
+        const tag = res >= 2160 ? ' (4K UHD)' : res >= 1440 ? ' (2K QHD)' : res >= 1080 ? ' (Full HD)' : res >= 720 ? ' (HD)' : '';
+        opt.innerText = `${res}p${tag}`;
+        qSelect.appendChild(opt);
+      });
+    }
+
+    function populateAudioQualities() {
+      const qSelect = document.getElementById('qualitySelect');
+      qSelect.innerHTML = `
+        <option value="best">Best Quality (Variable Bitrate ~320k)</option>
+        <option value="320">320 kbps (High Fidelity MP3)</option>
+        <option value="192">192 kbps (Standard MP3)</option>
+        <option value="128">128 kbps (Compact MP3)</option>
+      `;
+    }
+
+    function toggleMediaType(type) {
+      const qLabel = document.getElementById('qualityLabel');
+      const qHint = document.getElementById('qualityHint');
+      if (type === 'audio') {
+        qLabel.innerText = '2. Select Audio Bitrate';
+        qHint.innerText = 'High-bitrate MP3 encoding';
+        populateAudioQualities();
+      } else {
+        qLabel.innerText = '2. Select Video Resolution';
+        qHint.innerText = 'Auto-detected stream qualities';
+        if (currentMediaInfo) {
+          populateResolutions(currentMediaInfo.available_resolutions || [1080, 720, 480, 360]);
+        }
+      }
+    }
+
+    function toggleClippingInputs() {
+      const chk = document.getElementById('enableClip');
+      const box = document.getElementById('clippingInputs');
+      box.classList.toggle('hidden', !chk.checked);
+      if (chk.checked) validateClipLive();
+    }
+
+    function toggleSubInputs() {
+      const chk = document.getElementById('enableSubs');
+      const box = document.getElementById('subInputs');
+      box.classList.toggle('hidden', !chk.checked);
+    }
+
+    // Live Clipping Range Validator
+    async function validateClipLive() {
+      const startVal = document.getElementById('clipStart').value.trim();
+      const endVal = document.getElementById('clipEnd').value.trim();
+      const feedback = document.getElementById('clipValidationFeedback');
+
+      if (!startVal && !endVal) {
+        feedback.classList.add('hidden');
+        return;
+      }
+
+      feedback.classList.remove('hidden');
+
+      try {
+        const res = await fetch('/api/validate/clip', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            start_time: startVal || null,
+            end_time: endVal || null,
+            media_duration: currentMediaInfo ? currentMediaInfo.duration : null
+          })
+        });
+        const data = await res.json();
+
+        if (data.is_valid) {
+          feedback.className = 'text-xs p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 font-mono';
+          feedback.innerText = `Valid Clip: ${data.start_formatted || '00:00'} -> ${data.end_formatted || 'end'} (Duration: ${data.clip_duration_formatted || 'N/A'})`;
+        } else {
+          feedback.className = 'text-xs p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-300';
+          feedback.innerText = `${data.error_message || 'Invalid timestamp range'}`;
+        }
+      } catch (err) {
+        feedback.innerText = 'Validating...';
+      }
+    }
+
+    // Card 2: Resolve Direct Stream / Download URL
+    async function handleResolveStream(e) {
+      e.preventDefault();
+      const url = document.getElementById('mediaUrl').value.trim();
+      const media_type = document.querySelector('input[name="media_type"]:checked').value;
+      const quality = document.getElementById('qualitySelect').value;
+      const enableClip = document.getElementById('enableClip').checked;
+      const start_time = enableClip ? document.getElementById('clipStart').value.trim() : null;
+      const end_time = enableClip ? document.getElementById('clipEnd').value.trim() : null;
+      const enableSubs = document.getElementById('enableSubs').checked;
+      const sub_langs = enableSubs ? document.getElementById('subSelect').value : null;
+      const sub_format = enableSubs ? document.getElementById('subFormatSelect').value : 'srt';
+
+      const resolveBtn = document.getElementById('resolveBtn');
+      resolveBtn.disabled = true;
+      resolveBtn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>Resolving Direct Stream...</span>`;
+      lucide.createIcons();
+
+      try {
+        const payload = {
+          url,
+          media_type,
+          quality,
+          start_time: start_time || undefined,
+          end_time: end_time || undefined,
+          write_subtitles: enableSubs,
+          sub_langs: sub_langs || undefined,
+          sub_format: sub_format
+        };
+
+        const res = await fetch('/api/resolve', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          showToast(data.error || data.detail || 'Failed to resolve stream link.', 'error');
+          return;
+        }
+
+        currentStreamResponse = data;
+        renderResolvedStream(data);
+        showToast('Stream resolved! Media player updated.', 'success');
+      } catch (err) {
+        showToast(`Network Error: ${err.message}`, 'error');
+      } finally {
+        resolveBtn.disabled = false;
+        resolveBtn.innerHTML = `<i data-lucide="zap" class="w-4 h-4"></i><span>Resolve Stream / Direct Download Link</span>`;
+        lucide.createIcons();
+      }
+    }
+
+    // Card 3: Stream Player & Direct Download Card Renderer
+    function renderResolvedStream(data) {
+      const outSection = document.getElementById('resolvedOutputSection');
+      outSection.classList.remove('hidden');
+
+      const videoPlayer = document.getElementById('videoPlayer');
+      const audioWrapper = document.getElementById('audioPlayerWrapper');
+      const audioPlayer = document.getElementById('audioPlayer');
+      const downloadLink = document.getElementById('directDownloadLink');
+      const rawUrlInput = document.getElementById('rawUrlInput');
+
+      downloadLink.href = data.direct_download_url;
+      rawUrlInput.value = data.direct_download_url;
+
+      document.getElementById('resolvedMetaSummary').innerText = `Format: ${data.media_type.toUpperCase()} | Requested Quality: ${data.requested_quality} | Title: ${data.title}`;
+
+      if (data.media_type === 'audio') {
+        videoPlayer.classList.add('hidden');
+        videoPlayer.pause();
+        audioWrapper.classList.remove('hidden');
+        document.getElementById('audioTrackTitle').innerText = data.title;
+        audioPlayer.src = data.direct_download_url;
+      } else {
+        audioWrapper.classList.add('hidden');
+        audioPlayer.pause();
+        videoPlayer.classList.remove('hidden');
+        videoPlayer.src = data.direct_download_url;
+      }
+
+      lucide.createIcons();
+      outSection.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function copyDirectUrl() {
+      if (!currentStreamResponse || !currentStreamResponse.direct_download_url) {
+        showToast('No stream URL resolved yet', 'warning');
+        return;
+      }
+      navigator.clipboard.writeText(currentStreamResponse.direct_download_url);
+      const btnText = document.getElementById('copyBtnText');
+      btnText.innerText = 'Copied!';
+      showToast('Direct Stream CDN URL copied to clipboard!', 'success');
+      setTimeout(() => { btnText.innerText = 'Copy Stream URL'; }, 2000);
+    }
+
+    function openRawStreamUrl() {
+      if (!currentStreamResponse || !currentStreamResponse.direct_download_url) return;
+      window.open(currentStreamResponse.direct_download_url, '_blank');
+    }
+
+    function copyCurlSnippet() {
+      const url = document.getElementById('mediaUrl').value.trim();
+      const cmd = `curl -X POST "${window.location.origin}/api/resolve" \\\n  -H "Content-Type: application/json" \\\n  -d '{"url":"${url}","media_type":"video","quality":"best"}'`;
+      navigator.clipboard.writeText(cmd);
+      showToast('cURL command copied to clipboard!', 'info');
+    }
+
+    // Card 4: Subtitles Explorer
+    function renderSubtitlesExplorer(subtitles) {
+      const container = document.getElementById('subtitlesListContainer');
+      if (!subtitles || subtitles.length === 0) {
+        container.innerHTML = `
+          <div class="p-8 text-center text-slate-400 text-sm">
+            <i data-lucide="info" class="w-6 h-6 mx-auto text-slate-500 mb-2"></i>
+            <p>No subtitle or caption tracks found for this video.</p>
+          </div>
+        `;
+        lucide.createIcons();
+        return;
+      }
+
+      let html = `
+        <div class="overflow-x-auto rounded-xl border border-white/5 dark:border-white/5 light:border-slate-200">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-slate-900/80 dark:bg-slate-900/80 light:bg-slate-100 uppercase tracking-wider text-slate-400 dark:text-slate-400 light:text-slate-600 font-bold border-b border-white/5 dark:border-white/5 light:border-slate-200">
+              <tr>
+                <th class="p-3.5">Language</th>
+                <th class="p-3.5">Type</th>
+                <th class="p-3.5">Available Formats</th>
+                <th class="p-3.5 text-right">Direct Download</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-white/5 dark:divide-white/5 light:divide-slate-200">
+      `;
+
+      subtitles.forEach((sub, idx) => {
+        const formatsBadges = (sub.formats || ['srt', 'vtt']).map(f => `<span class="px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-300 font-mono text-[10px] mr-1 uppercase">${f}</span>`).join('');
+        const typeBadge = sub.is_auto ? '<span class="px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 font-semibold text-[10px]">Auto-Generated</span>' : '<span class="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-semibold text-[10px]">Official Subtitle</span>';
+        const downloadAction = sub.url ? `<a href="${sub.url}" target="_blank" class="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold inline-flex items-center space-x-1"><i data-lucide="download" class="w-3 h-3"></i><span>Download</span></a>` : `<span class="text-slate-500 text-[11px]">Use Resolver</span>`;
+
+        html += `
+          <tr class="hover:bg-white/5 dark:hover:bg-white/5 light:hover:bg-slate-50 transition">
+            <td class="p-3.5 font-bold text-white dark:text-white light:text-slate-900 flex items-center space-x-2">
+              <i data-lucide="globe" class="w-3.5 h-3.5 text-indigo-400"></i>
+              <span>${sub.display || sub.name || sub.lang}</span>
+            </td>
+            <td class="p-3.5">${typeBadge}</td>
+            <td class="p-3.5">${formatsBadges}</td>
+            <td class="p-3.5 text-right">${downloadAction}</td>
+          </tr>
+        `;
+      });
+
+      html += `</tbody></table></div>`;
+      container.innerHTML = html;
+      lucide.createIcons();
+    }
+
+    // Card 5: Playlist Explorer
+    async function handleFetchPlaylist(e) {
+      e.preventDefault();
+      const url = document.getElementById('playlistUrlInput').value.trim();
+      if (!url) return;
+
+      const btn = document.getElementById('fetchPlaylistBtn');
+      btn.disabled = true;
+      btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>Fetching Playlist...</span>`;
+      lucide.createIcons();
+
+      try {
+        const res = await fetch(`/api/playlist?url=${encodeURIComponent(url)}&limit=50`);
+        const data = await res.json();
+
+        if (!res.ok) {
+          showToast(data.error || data.detail || 'Could not fetch playlist details', 'error');
+          return;
+        }
+
+        renderPlaylistResults(data);
+        showToast(`Loaded ${data.entries.length} videos from playlist!`, 'success');
+      } catch (err) {
+        showToast(`Network Error: ${err.message}`, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i data-lucide="list-music" class="w-4 h-4"></i><span>Fetch Playlist</span>`;
+        lucide.createIcons();
+      }
+    }
+
+    function renderPlaylistResults(data) {
+      const container = document.getElementById('playlistResultContainer');
+      let html = `
+        <div class="p-4 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h3 class="font-bold text-base text-white dark:text-white light:text-slate-900">${data.title}</h3>
+            <p class="text-xs text-slate-400 dark:text-slate-400 light:text-slate-600">By ${data.uploader || 'Unknown Channel'} • Total Videos: ${data.count}</p>
+          </div>
+          <span class="px-3 py-1 rounded-full bg-indigo-600 text-white text-xs font-bold self-start sm:self-auto">${data.entries.length} Loaded</span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      `;
+
+      data.entries.forEach(entry => {
+        html += `
+          <div class="glass-card rounded-xl p-3 flex gap-3 items-center border-white/5 hover:border-indigo-500/40 transition">
+            <div class="relative w-28 h-16 rounded-lg overflow-hidden bg-slate-900 flex-shrink-0">
+              <img src="${entry.thumbnail || 'https://via.placeholder.com/160x90'}" alt="" class="w-full h-full object-cover">
+              <span class="absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-black/80 text-[10px] font-mono text-white">${entry.duration_formatted || '00:00'}</span>
+            </div>
+            <div class="flex-grow min-w-0 space-y-1">
+              <h4 class="text-xs font-bold text-white dark:text-white light:text-slate-900 truncate">${entry.title}</h4>
+              <p class="text-[11px] text-slate-400 truncate">${entry.uploader || 'Unknown'}</p>
+              <button onclick="loadMediaIntoInspector('${entry.url}')" class="text-[11px] text-indigo-400 hover:text-indigo-300 font-semibold flex items-center space-x-1">
+                <span>Inspect Video</span>
+                <i data-lucide="arrow-right" class="w-3 h-3"></i>
+              </button>
+            </div>
+          </div>
+        `;
+      });
+
+      html += `</div>`;
+      container.innerHTML = html;
+      lucide.createIcons();
+    }
+
+    function loadMediaIntoInspector(url) {
+      document.getElementById('mediaUrl').value = url;
+      switchView('inspector');
+      handleFetchInfo();
+    }
+
+    // Card 6: Interactive REST API Playground & Code Generator
+    const playgroundEndpoints = {
+      health: {
+        method: 'GET',
+        url: '/api/health',
+        body: ''
+      },
+      info: {
+        method: 'POST',
+        url: '/api/info',
+        body: JSON.stringify({ url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", include_subtitles: true }, null, 2)
+      },
+      formats: {
+        method: 'POST',
+        url: '/api/formats',
+        body: JSON.stringify({ url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" }, null, 2)
+      },
+      subtitles: {
+        method: 'POST',
+        url: '/api/subtitles',
+        body: JSON.stringify({ url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" }, null, 2)
+      },
+      resolve: {
+        method: 'POST',
+        url: '/api/resolve',
+        body: JSON.stringify({ url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", media_type: "video", quality: "1080", output_format: "mp4" }, null, 2)
+      },
+      playlist: {
+        method: 'POST',
+        url: '/api/playlist?limit=20',
+        body: JSON.stringify({ url: "https://www.youtube.com/playlist?list=PLrEnWoR732-BHrPp_QLTQhGWcyg67PCZO" }, null, 2)
+      },
+      validate_clip: {
+        method: 'POST',
+        url: '/api/validate/clip',
+        body: JSON.stringify({ start_time: "01:30", end_time: "03:45", media_duration: 300 }, null, 2)
+      },
+      validate_url: {
+        method: 'POST',
+        url: '/api/validate/url',
+        body: JSON.stringify({ url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" }, null, 2)
+      }
+    };
+
+    let currentPgKey = 'health';
+
+    function selectPlaygroundEndpoint(key) {
+      currentPgKey = key;
+      const conf = playgroundEndpoints[key];
+
+      document.querySelectorAll('.pg-tab').forEach(b => {
+        if (b.dataset.endpoint === key) {
+          b.className = 'pg-tab px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 text-white transition';
+        } else {
+          b.className = 'pg-tab px-3 py-1.5 text-xs font-semibold rounded-lg bg-white/5 dark:bg-white/5 light:bg-slate-100 text-slate-300 dark:text-slate-300 light:text-slate-700 hover:bg-white/10 transition';
+        }
+      });
+
+      document.getElementById('pgMethodBadge').innerText = conf.method;
+      document.getElementById('pgEndpointPath').innerText = conf.url;
+      document.getElementById('pgPayload').value = conf.body;
+      document.getElementById('pgPayload').disabled = conf.method === 'GET';
+
+      updateGeneratedCodeSnippet();
+    }
+
+    async function executePlaygroundRequest() {
+      const conf = playgroundEndpoints[currentPgKey];
+      const execBtn = document.getElementById('pgExecuteBtn');
+      execBtn.disabled = true;
+      execBtn.innerHTML = `<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i><span>Sending Request...</span>`;
+      lucide.createIcons();
+
+      const start = performance.now();
+      try {
+        const opts = {
+          method: conf.method,
+          headers: { 'Content-Type': 'application/json' }
+        };
+        if (conf.method !== 'GET') {
+          opts.body = document.getElementById('pgPayload').value;
+        }
+        const res = await fetch(conf.url, opts);
+        const data = await res.json();
+        const latency = Math.round(performance.now() - start);
+
+        document.getElementById('pgStatus').innerText = `${res.status} ${res.statusText}`;
+        document.getElementById('pgStatus').className = res.ok ? 'font-mono text-[11px] text-emerald-400 font-bold px-2 py-0.5 rounded bg-emerald-500/10' : 'font-mono text-[11px] text-rose-400 font-bold px-2 py-0.5 rounded bg-rose-500/10';
+        document.getElementById('pgLatency').innerText = `${latency}ms`;
+        document.getElementById('pgResponse').innerText = JSON.stringify(data, null, 2);
+        showToast(`Request complete in ${latency}ms`, res.ok ? 'success' : 'error');
+      } catch (err) {
+        document.getElementById('pgStatus').innerText = 'NETWORK ERROR';
+        document.getElementById('pgStatus').className = 'font-mono text-[11px] text-rose-400 font-bold px-2 py-0.5 rounded bg-rose-500/10';
+        document.getElementById('pgResponse').innerText = err.message;
+        showToast(err.message, 'error');
+      } finally {
+        execBtn.disabled = false;
+        execBtn.innerHTML = `<i data-lucide="play" class="w-3.5 h-3.5"></i><span>Send Live API Request</span>`;
+        lucide.createIcons();
+      }
+    }
+
+    function copyPgResponse() {
+      const resp = document.getElementById('pgResponse').innerText;
+      navigator.clipboard.writeText(resp);
+      showToast('JSON Response copied to clipboard!', 'info');
+    }
+
+    // Code Generator Helpers
+    function switchCodeLang(lang) {
+      activeCodeLang = lang;
+      const langs = ['curl', 'js', 'python'];
+      langs.forEach(l => {
+        const btn = document.getElementById(`codeLang${l.charAt(0).toUpperCase() + l.slice(1)}`);
+        if (l === lang) {
+          btn.className = 'px-2.5 py-1 text-[11px] font-semibold rounded bg-indigo-600 text-white';
+        } else {
+          btn.className = 'px-2.5 py-1 text-[11px] font-semibold rounded text-slate-400 hover:text-white';
+        }
+      });
+      updateGeneratedCodeSnippet();
+    }
+
+    function updateGeneratedCodeSnippet() {
+      const conf = playgroundEndpoints[currentPgKey];
+      const host = window.location.origin;
+      const snippetEl = document.getElementById('pgCodeSnippet');
+      const body = document.getElementById('pgPayload').value.trim();
+
+      if (activeCodeLang === 'curl') {
+        if (conf.method === 'GET') {
+          snippetEl.innerText = `curl -X GET "${host}${conf.url}"`;
+        } else {
+          snippetEl.innerText = `curl -X ${conf.method} "${host}${conf.url}" \\\n  -H "Content-Type: application/json" \\\n  -d '${body.replace(/\n/g, '')}'`;
+        }
+      } else if (activeCodeLang === 'js') {
+        if (conf.method === 'GET') {
+          snippetEl.innerText = `const response = await fetch("${host}${conf.url}");\nconst data = await response.json();\nconsole.log(data);`;
+        } else {
+          snippetEl.innerText = `const response = await fetch("${host}${conf.url}", {\n  method: "${conf.method}",\n  headers: { "Content-Type": "application/json" },\n  body: JSON.stringify(${body})\n});\nconst data = await response.json();\nconsole.log(data);`;
+        }
+      } else if (activeCodeLang === 'python') {
+        if (conf.method === 'GET') {
+          snippetEl.innerText = `import requests\n\nres = requests.get("${host}${conf.url}")\nprint(res.json())`;
+        } else {
+          snippetEl.innerText = `import requests\n\npayload = ${body}\nres = requests.post("${host}${conf.url}", json=payload)\nprint(res.json())`;
+        }
+      }
+    }
+
+    function copySnippetCode() {
+      const code = document.getElementById('pgCodeSnippet').innerText;
+      navigator.clipboard.writeText(code);
+      const btnText = document.getElementById('copySnippetBtnText');
+      btnText.innerText = 'Copied!';
+      showToast('Code snippet copied to clipboard!', 'info');
+      setTimeout(() => { btnText.innerText = 'Copy'; }, 2000);
+    }
+
+    // Initialize with health endpoint in playground
+    selectPlaygroundEndpoint('health');
+  </script>
+</body>
+</html>
