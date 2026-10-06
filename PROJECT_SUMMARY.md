@@ -69,7 +69,11 @@ Added real-time progress display to all download operations:
 ## Key Features
 - **Partial Downloads (Clipping)**: Download specific sections of media using start/end timestamps.
 - **Playlist Support**: Download entire playlists as video or audio with organized folder structure.
-- **Format Selection**: Choose video resolution (up to 4K) or audio bitrate (MP3).
+- **Smart Codec & Container Selection**:
+  - **<= 1080p (or Default Video)**: Strictly prioritizes native H.264 (`avc`) video and AAC (`m4a`) audio directly from YouTube merged into universal `.mp4` containers for maximum device and media player compatibility.
+  - **Ultra-HD (1440p, 4K, 8K)**: Automatically acquires optimal high-efficiency VP9/AV1 streams packaged into modern `.mkv` or `.webm` containers.
+  - **Lossless Stream-Copy Muxing**: Fast container muxing without CPU-intensive FFmpeg transcoding or re-encoding.
+- **Format Selection**: Choose video resolution (up to 8K/4K/1080p/720p/etc.) or audio bitrate (MP3 up to 320 kbps).
 - **Subtitle Handling**: Download, embed, and convert subtitles in multiple formats (SRT, VTT, ASS, LRC) with language selection, auto-generated caption support, and format conversion.
 - **Modern UI**: 
   - CLI: Interactive wizard with color-coded steps, progress bars, and summary cards.
@@ -86,7 +90,7 @@ The project follows a modular structure separating concerns into distinct module
 - `__init__.py`: Package metadata and version resolution.
 - `__main__.py`: Entry point that launches the CLI.
 - `cli.py`: Main CLI implementation (argument parsing, interactive workflow).
-- `downloader.py`: Core download logic using yt-dlp, handling video/audio/playlist downloads, progress hooks, and result structures.
+- `downloader.py`: Core download logic using yt-dlp, handling video/audio/playlist downloads, smart codec resolution (H.264/AAC for <=1080p, VP9/AV1 for Ultra-HD), progress hooks, and result structures.
 - `gui.py`: Desktop GUI implementation using tkinter/CustomTkinter.
 - `config.py`: User configuration management (platform-specific config.json).
 - `dependencies.py`: Dependency resolution, automatic download, and verification (FFmpeg, Deno, yt-dlp).

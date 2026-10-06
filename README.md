@@ -1,23 +1,23 @@
 # Downloadyha
 
-A fast, modern, and beautiful YouTube downloader available in both **Desktop GUI** and **CLI** versions for **Videos (up to 4K)**, **Audio (MP3)**, **Partial Video & Audio Clips (Highlights)**, and **Full Playlists**. No Python, FFmpeg, Deno, or yt-dlp setup required.
+A fast, modern, and beautiful YouTube downloader available in both **Desktop GUI** and **CLI** versions for **Videos (up to 8K/4K/1080p)**, **Audio (MP3)**, **Partial Video & Audio Clips (Highlights)**, and **Full Playlists**. No Python, FFmpeg, Deno, or yt-dlp setup required.
 
 ---
 
 ## 🌟 Key Features
 
+- 🎬 **Smart Codec & Container Selection**: Intelligently prioritizes native H.264 (`avc`) video and AAC (`m4a`) audio merged into standard MP4 for ≤ 1080p for 100% universal player compatibility. For Ultra-HD (1440p, 4K, 8K), automatically fetches optimal VP9/AV1 streams in MKV/WebM containers without costly transcoding.
+- ⚡ **Zero-Transcoding Stream Copy**: Instant stream-copy muxing via FFmpeg (`-c copy`) without CPU-heavy video re-encoding.
 - ✂️ **Partial Video & Audio Clipping**: Download only the exact section you need by specifying Start and End times (`01:30`, `90`, `00:02:45`). Save bandwidth and disk space without downloading full multi-hour videos!
 - 🎨 **Modern Desktop GUI**: Sleek CustomTkinter interface with glassmorphism cards, light/dark themes, docked persistent action buttons, and scrollable controls.
 - 🔍 **Real-Time Metadata Fetching**: Automatically inspects video/playlist URLs to preview Title, Channel, Duration, and Type.
-- 🎯 **Dynamic Quality Detection**: Auto-detects and displays available resolutions (4K 2160p, 1440p, 1080p, 720p, 480p, 360p, etc.).
+- 🎯 **Dynamic Quality Detection**: Auto-detects and displays available resolutions (8K 4320p, 4K 2160p, 1440p, 1080p, 720p, 480p, 360p, etc.).
 - 🎵 **Audio MP3 Extractor**: One-click high-fidelity MP3 conversion with custom bitrates (320 kbps, 192 kbps, 128 kbps, or Best VBR).
 - 📑 **Full Playlist Downloads**: Batch download entire video or audio playlists with automated folder numbering and organization.
 - 📜 **Download History & Quick Open**: Track download history and open completed media files or destination folders directly with one click.
 - 📝 **Subtitle & Transcript Support**: Download, embed, and convert subtitles in multiple formats (SRT, VTT, ASS, LRC) with language selection and auto-generated caption support.
 - ⚡ **Interactive Terminal CLI**: Color-coded step-by-step wizard, live progress bars (speed, ETA, batch counter), and summary cards.
 - 📦 **Zero-Config Standalone**: Includes built-in self-repairing FFmpeg and Deno helper binaries with SHA-256 checksum verification.
-- ⚡ **Enhanced Download Experience**: Real-time progress indicators for all dependency downloads with percentage, size, speed, and ETA.
-- 💾 **Optimized Dependency Size**: Uses smaller FFmpeg builds (~40MB vs ~150MB) for faster installation.
 - ⚡ **Enhanced Download Experience**: Real-time progress indicators for all dependency downloads with percentage, size, speed, and ETA.
 - 💾 **Optimized Dependency Size**: Uses smaller FFmpeg builds (~40MB vs ~150MB) for faster installation.
 
