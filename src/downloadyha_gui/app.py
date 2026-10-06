@@ -831,6 +831,15 @@ class DownloadyhaGUI(ctk.CTk):
         )
         brand_subtitle.pack(anchor="w", pady=(2, 0))
 
+        brand_author = ctk.CTkLabel(
+            brand_frame,
+            text="Crafted by Ahmed Tarek Zaher",
+            font=ctk.CTkFont(size=10, weight="bold"),
+            text_color=Theme.CRIMSON_PRIMARY,
+            anchor="w",
+        )
+        brand_author.pack(anchor="w", pady=(2, 0))
+
         # Navigation Buttons Container
         self.nav_frame = ctk.CTkFrame(self.sidebar, fg_color="transparent")
         self.nav_frame.grid(row=1, column=0, padx=12, pady=0, sticky="ew")
@@ -951,6 +960,16 @@ class DownloadyhaGUI(ctk.CTk):
             wraplength=180,
             justify="center",
         )
+
+        # Footer Copyright Label
+        sidebar_footer = ctk.CTkLabel(
+            self.sidebar,
+            text="© 2026 Ahmed Tarek Zaher",
+            font=ctk.CTkFont(size=12, weight="bold"),
+            text_color=Theme.TEXT_MUTED,
+            anchor="center",
+        )
+        sidebar_footer.grid(row=5, column=0, padx=12, pady=(0, 10), sticky="ew")
 
     def _create_nav_button(
         self,
@@ -1782,7 +1801,38 @@ class DownloadyhaGUI(ctk.CTk):
         )
         diag_label.grid(row=1, column=0, padx=16, pady=(0, 16), sticky="w")
 
-        # 4. Save Settings Button
+        # 4. About & Code Ownership Card
+        about_card = GlassCard(scroll)
+        about_card.grid(row=3, column=0, padx=4, pady=(0, 12), sticky="ew")
+        about_card.grid_columnconfigure(0, weight=1)
+
+        ctk.CTkLabel(
+            about_card,
+            text="ℹ️ About & Ownership",
+            font=ctk.CTkFont(size=14, weight="bold"),
+            text_color=Theme.TEXT_PRIMARY,
+        ).grid(row=0, column=0, padx=16, pady=(14, 8), sticky="w")
+
+        about_text = (
+            f"• Application: Downloadyha Desktop GUI\n"
+            f"• Version: v{__version__}\n"
+            f"• Author & Developer: Ahmed Tarek Zaher\n"
+            f"• Copyright: © 2026 Ahmed Tarek Zaher. All rights reserved.\n"
+            f"• License: MIT License\n"
+            f"• Repository: https://github.com/ahmed-tarek-2004/DownloadYha"
+        )
+
+        about_label = ctk.CTkLabel(
+            about_card,
+            text=about_text,
+            font=ctk.CTkFont(family="Consolas", size=11),
+            text_color=Theme.TEXT_SECONDARY,
+            justify="left",
+            anchor="w",
+        )
+        about_label.grid(row=1, column=0, padx=16, pady=(0, 16), sticky="w")
+
+        # 5. Save Settings Button
         self.save_settings_btn = CrimsonButton(
             scroll,
             text="💾 Save Preferences",
@@ -1790,7 +1840,7 @@ class DownloadyhaGUI(ctk.CTk):
             font=ctk.CTkFont(size=13, weight="bold"),
             command=self._save_settings,
         )
-        self.save_settings_btn.grid(row=3, column=0, padx=4, pady=(4, 16), sticky="ew")
+        self.save_settings_btn.grid(row=4, column=0, padx=4, pady=(4, 16), sticky="ew")
 
         # Inline confirmation label
         self.settings_feedback_label = ctk.CTkLabel(
@@ -1799,7 +1849,7 @@ class DownloadyhaGUI(ctk.CTk):
             font=ctk.CTkFont(size=11, weight="bold"),
             text_color=Theme.SUCCESS_GREEN,
         )
-        self.settings_feedback_label.grid(row=4, column=0, pady=(0, 8))
+        self.settings_feedback_label.grid(row=5, column=0, pady=(0, 8))
 
         return view
 
