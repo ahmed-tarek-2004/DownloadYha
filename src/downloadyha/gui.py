@@ -846,13 +846,23 @@ class DownloadyhaGUI:
 
     def _browse_directory(self) -> None:
         """Open a directory browser dialog."""
-        current_dir = self.dir_var.get()
-        new_dir = filedialog.askdirectory(initialdir=current_dir)
-
-        if new_dir:
-            self.dir_var.set(new_dir)
-            self.settings["download_directory"] = new_dir
-            save_gui_settings(self.settings)
+        try:
+            current_dir = self.dir_var.get().strip()
+            if not current_dir or not os.path.isdir(current_dir):
+                current_dir = str(get_download_dir())
+            new_dir = filedialog.askdirectory(
+                parent=self.root,
+                title="Select Download Directory",
+                initialdir=current_dir,
+                mustexist=True,
+            )
+            if new_dir:
+                normalized = os.path.normpath(new_dir)
+                self.dir_var.set(normalized)
+                self.settings["download_directory"] = normalized
+                save_gui_settings(self.settings)
+        except Exception:
+            pass
 
     def _fetch_media_info(self) -> None:
         """Fetch and display media information from the URL."""

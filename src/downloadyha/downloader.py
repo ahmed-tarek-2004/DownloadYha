@@ -986,13 +986,17 @@ def create_progress_hook(
 
                 pl_prefix = f"[{pl_index}/{pl_count}] " if (pl_index and pl_count) else ""
                 out = f"\rDownloading {pl_prefix}{percentage} | Speed: {speed} | ETA: {eta}"
-                sys.stdout.write(out)
-                sys.stdout.flush()
+                if sys.stdout is not None and hasattr(sys.stdout, "write"):
+                    sys.stdout.write(out)
+                    if hasattr(sys.stdout, "flush"):
+                        sys.stdout.flush()
 
             elif status == "finished":
                 pl_suffix = f" (Item {pl_index}/{pl_count})" if (pl_index and pl_count) else ""
-                sys.stdout.write(f"\nProcessing file{pl_suffix}...\n")
-                sys.stdout.flush()
+                if sys.stdout is not None and hasattr(sys.stdout, "write"):
+                    sys.stdout.write(f"\nProcessing file{pl_suffix}...\n")
+                    if hasattr(sys.stdout, "flush"):
+                        sys.stdout.flush()
 
     return hook
 

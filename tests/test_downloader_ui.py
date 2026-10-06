@@ -49,6 +49,14 @@ class TestDownloader(unittest.TestCase):
         qualities = downloader.get_video_qualities(info)
         self.assertEqual(qualities, [1080, 720, 480, 360])
 
+    def test_progress_hook_with_stdout_none(self):
+        """Ensure downloader progress hook does not crash when sys.stdout is None."""
+        hook = downloader.create_progress_hook(custom_callback=None)
+        with patch("sys.stdout", None), patch.object(downloader, "render_progress", None):
+            # Should not raise AttributeError when sys.stdout is None
+            hook({"status": "downloading", "_percent_str": "50%", "_speed_str": "1MB/s", "_eta_str": "00:01"})
+            hook({"status": "finished", "filename": "test.mp4"})
+
 
 class TestUI(unittest.TestCase):
     def setUp(self):
