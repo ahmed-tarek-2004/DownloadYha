@@ -672,15 +672,6 @@ class DownloadyhaGUI(ctk.CTk):
     System Health actions, and robust inline error handling.
     """
 
-    def __getattr__(self, name: str) -> Any:
-        if name.startswith("__") and name.endswith("__"):
-            raise AttributeError(name)
-        if "_dummy_widgets" not in self.__dict__:
-            self.__dict__["_dummy_widgets"] = {}
-        if name not in self.__dict__["_dummy_widgets"]:
-            self.__dict__["_dummy_widgets"][name] = _DummyWidget()
-        return self.__dict__["_dummy_widgets"][name]
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -2269,8 +2260,12 @@ class DownloadyhaGUI(ctk.CTk):
 
     def _save_settings(self):
         """Save preferences to configuration file."""
-        new_dir = self.settings_path_entry.get().strip()
+        new_dir = self.settings_path_entry.get().strip().strip("\"'")
         if new_dir:
+            try:
+                os.makedirs(new_dir, exist_ok=True)
+            except Exception:
+                pass
             self.config["download_directory"] = new_dir
 
         if hasattr(self, "settings_theme_segmented") and self.settings_theme_segmented:
@@ -2314,7 +2309,7 @@ class DownloadyhaGUI(ctk.CTk):
             self.url_feedback_label.configure(text="⚠️ Please enter a video or playlist URL.", text_color=Theme.WARNING_AMBER)
             return
 
-        dest_path = self.dest_entry.get().strip()
+        dest_path = self.dest_entry.get().strip().strip("\"'")
         if not dest_path:
             self.url_feedback_label.configure(text="⚠️ Please specify a destination folder.", text_color=Theme.WARNING_AMBER)
             return
@@ -2695,7 +2690,7 @@ class DownloadyhaGUI(ctk.CTk):
 
     def _open_download_folder(self):
         """Open the target folder in file manager."""
-        folder = self.dest_entry.get().strip()
+        folder = self.dest_entry.get().strip().strip("\"'")
         if folder and os.path.exists(folder):
             try:
                 if sys.platform == "win32":

@@ -73,8 +73,8 @@ def setup_logging(
             # If file logging fails, continue without it
             logger.warning(f"Could not set up file logging: {e}")
 
-    # Add console handler
-    if log_to_console:
+    # Add console handler only if a valid stream exists
+    if log_to_console and sys.stdout is not None and hasattr(sys.stdout, "write"):
         console_handler = logging.StreamHandler(sys.stdout)
         console_handler.setLevel(level)
         console_handler.setFormatter(formatter)

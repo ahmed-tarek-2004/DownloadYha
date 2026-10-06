@@ -91,6 +91,9 @@ class TestDownloadyhaGUILogic(unittest.TestCase):
 
     def setUp(self):
         self.gui = DownloadyhaGUI.__new__(DownloadyhaGUI)
+        self.gui.tk = MagicMock()
+        self.gui._w = "."
+        self.gui.children = {}
         self.gui.media_info = None
         self.gui.last_fetched_url = ""
         self.gui.is_fetching_info = False
@@ -106,6 +109,28 @@ class TestDownloadyhaGUILogic(unittest.TestCase):
         self.gui.status_label = MagicMock()
         self.gui.status_indicator = MagicMock()
         self.gui.fetch_btn = MagicMock()
+        self.gui.main_error_banner = MagicMock()
+        self.gui.url_feedback_label = MagicMock()
+        self.gui.start_download_btn = MagicMock()
+        self.gui.cancel_download_btn = MagicMock()
+        self.gui.active_status_badge = MagicMock()
+        self.gui.active_item_label = MagicMock()
+        self.gui.main_progress_bar = MagicMock()
+        self.gui.main_percent_label = MagicMock()
+        self.gui.main_speed_label = MagicMock()
+        self.gui.main_eta_label = MagicMock()
+        self.gui.btn_nav_queue = MagicMock()
+        self.gui.download_queue = []
+        self.gui.active_task = None
+        self.gui.active_card = None
+        self.gui.config = {"download_directory": "/tmp/downloads"}
+        self.gui.transcript_toggle_var = MagicMock()
+        self.gui.transcript_toggle_var.get.return_value = False
+        self.gui.sub_langs_var = MagicMock()
+        self.gui.auto_subs_var = MagicMock()
+        self.gui.sub_format_var = MagicMock()
+        self.gui.embed_subs_var = MagicMock()
+        self.gui.playlist_scope_frame = None
 
     def test_parse_video_quality(self):
         """Test parsing quality dropdown string to height integer."""
