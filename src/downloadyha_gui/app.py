@@ -2217,17 +2217,55 @@ class DownloadyhaGUI(ctk.CTk):
 
     def _browse_destination(self):
         """Open directory picker dialog for download destination."""
-        folder = filedialog.askdirectory(title="Select Destination Folder", initialdir=self.dest_entry.get())
-        if folder:
-            self.dest_entry.delete(0, tk.END)
-            self.dest_entry.insert(0, folder)
+        try:
+            init_dir = self.dest_entry.get().strip() if hasattr(self, "dest_entry") else ""
+            if not init_dir or not os.path.isdir(init_dir):
+                init_dir = str(get_download_dir())
+
+            folder = filedialog.askdirectory(
+                parent=self,
+                title="Select Destination Folder",
+                initialdir=init_dir,
+                mustexist=True,
+            )
+            if folder:
+                normalized_folder = os.path.normpath(folder)
+                self.dest_entry.delete(0, tk.END)
+                self.dest_entry.insert(0, normalized_folder)
+        except Exception:
+            pass
+        finally:
+            try:
+                self.lift()
+                self.focus_force()
+            except Exception:
+                pass
 
     def _browse_settings_path(self):
         """Open directory picker for default settings."""
-        folder = filedialog.askdirectory(title="Select Default Download Folder", initialdir=self.settings_path_entry.get())
-        if folder:
-            self.settings_path_entry.delete(0, tk.END)
-            self.settings_path_entry.insert(0, folder)
+        try:
+            init_dir = self.settings_path_entry.get().strip() if hasattr(self, "settings_path_entry") else ""
+            if not init_dir or not os.path.isdir(init_dir):
+                init_dir = str(get_download_dir())
+
+            folder = filedialog.askdirectory(
+                parent=self,
+                title="Select Default Download Folder",
+                initialdir=init_dir,
+                mustexist=True,
+            )
+            if folder:
+                normalized_folder = os.path.normpath(folder)
+                self.settings_path_entry.delete(0, tk.END)
+                self.settings_path_entry.insert(0, normalized_folder)
+        except Exception:
+            pass
+        finally:
+            try:
+                self.lift()
+                self.focus_force()
+            except Exception:
+                pass
 
     def _save_settings(self):
         """Save preferences to configuration file."""

@@ -308,6 +308,55 @@ class TestDownloadyhaGUILogic(unittest.TestCase):
             text_color=Theme.ERROR_RED,
         )
 
+    @patch("downloadyha_gui.app.filedialog.askdirectory")
+    def test_browse_destination_success(self, mock_askdir):
+        """Test browsing destination updates dest_entry with normalized path."""
+        mock_askdir.return_value = "/custom/download/path"
+        self.gui.dest_entry = MagicMock()
+        self.gui.dest_entry.get.return_value = "/initial/path"
+        self.gui.lift = MagicMock()
+        self.gui.focus_force = MagicMock()
+
+        self.gui._browse_destination()
+
+        self.gui.dest_entry.delete.assert_called_with(0, unittest.mock.ANY)
+        self.gui.dest_entry.insert.assert_called_with(0, "/custom/download/path" if sys.platform != "win32" else "\\custom\\download\\path")
+        self.gui.lift.assert_called()
+        self.gui.focus_force.assert_called()
+
+    @patch("downloadyha_gui.app.filedialog.askdirectory")
+    def test_browse_destination_cancelled_or_error(self, mock_askdir):
+        """Test browsing destination handles cancellation and errors gracefully."""
+        # Cancelled
+        mock_askdir.return_value = ""
+        self.gui.dest_entry = MagicMock()
+        self.gui.dest_entry.get.return_value = "/initial/path"
+        self.gui.lift = MagicMock()
+        self.gui.focus_force = MagicMock()
+
+        self.gui._browse_destination()
+        self.gui.dest_entry.insert.assert_not_called()
+
+        # Exception during dialog
+        mock_askdir.side_effect = Exception("Dialog error")
+        self.gui._browse_destination()
+        # Should not raise exception
+        self.gui.dest_entry.insert.assert_not_called()
+
+    @patch("downloadyha_gui.app.filedialog.askdirectory")
+    def test_browse_settings_path(self, mock_askdir):
+        """Test browsing settings default path."""
+        mock_askdir.return_value = "/custom/settings/path"
+        self.gui.settings_path_entry = MagicMock()
+        self.gui.settings_path_entry.get.return_value = ""
+        self.gui.lift = MagicMock()
+        self.gui.focus_force = MagicMock()
+
+        self.gui._browse_settings_path()
+
+        self.gui.settings_path_entry.delete.assert_called_with(0, unittest.mock.ANY)
+        self.gui.settings_path_entry.insert.assert_called_with(0, "/custom/settings/path" if sys.platform != "win32" else "\\custom\\settings\\path")
+
 
 if __name__ == "__main__":
     unittest.main()
