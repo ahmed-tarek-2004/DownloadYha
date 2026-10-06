@@ -97,6 +97,21 @@ class TestNetworkModule(unittest.TestCase):
             self.assertTrue(dest.exists())
             self.assertEqual(dest.read_bytes(), b"test data chunk")
 
+    @patch("downloadyha.network.open_url")
+    def test_download_url_to_file_stdout_none(self, mock_open_url):
+        mock_resp = MagicMock()
+        mock_resp.headers.get.return_value = "100"
+        mock_resp.read.side_effect = [b"test data chunk", b""]
+        mock_resp.__enter__.return_value = mock_resp
+        mock_open_url.return_value = mock_resp
+
+        with TemporaryDirectory() as tmp_dir:
+            dest = Path(tmp_dir) / "output.bin"
+            with patch("sys.stdout", None):
+                download_url_to_file("https://example.com/file.bin", dest, show_progress=True)
+                self.assertTrue(dest.exists())
+                self.assertEqual(dest.read_bytes(), b"test data chunk")
+
 
 if __name__ == "__main__":
     unittest.main()

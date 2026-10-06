@@ -22,6 +22,10 @@ except Exception:
         __version__ = "2.0.0"
 
 __author__ = "Ahmed Tarek Zaher"
+__copyright__ = "Copyright 2026, Ahmed Tarek Zaher"
+__license__ = "MIT"
+
+# BOOKMARK: Ahmed Tarek Zaher - Owner
 
 from .app import DownloadyhaGUI, main
 

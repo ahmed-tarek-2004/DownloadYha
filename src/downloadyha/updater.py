@@ -11,6 +11,14 @@ Responsibilities:
 - Cross-platform styled UI for update notices and progress.
 """
 
+from __future__ import annotations
+
+__author__ = "Ahmed Tarek Zaher"
+__copyright__ = "Copyright 2026, Ahmed Tarek Zaher"
+__license__ = "MIT"
+
+# BOOKMARK: Ahmed Tarek Zaher - Owner
+
 import hashlib
 import json
 import os
@@ -43,7 +51,7 @@ GITHUB_API_BASE = f"https://api.github.com/repos/{GITHUB_OWNER}/{GITHUB_REPO}"
 GITHUB_RELEASE_BASE = f"https://github.com/{GITHUB_OWNER}/{GITHUB_REPO}/releases/download"
 
 UPDATE_CHECK_INTERVAL = 24 * 60 * 60
-REQUEST_TIMEOUT = 30
+REQUEST_TIMEOUT = 300
 
 
 # ---------------------------------------------------------------------------
@@ -154,20 +162,42 @@ def _detect_platform() -> Optional[str]:
         return None
 
 
-def _build_artifact_name(version: str, platform_id: str) -> str:
+def _is_gui_app(target_exe: Optional[Path] = None) -> bool:
+    """
+    Check if the running instance or target executable is the Desktop GUI application.
+    """
+    if target_exe is None:
+        target_exe = _get_executable_path()
+
+    exe_name = target_exe.name.lower()
+    if "downloadyha-gui" in exe_name or "downloadyha_gui" in exe_name:
+        return True
+    if "downloadyha" in exe_name:
+        return False
+
+    # Fallback for development mode via loaded modules
+    if "downloadyha_gui" in sys.modules or "downloadyha_gui.app" in sys.modules:
+        return True
+    return False
+
+
+def _build_artifact_name(version: str, platform_id: str, is_gui: bool = False) -> str:
     """
     Build the expected artifact name for the given version and platform.
 
     Examples:
       downloadyha-v1.0.0-windows-x86_64.zip
+      downloadyha-gui-v1.0.0-windows-x86_64.zip
       downloadyha-v1.0.0-linux-x86_64.tar.gz
+      downloadyha-gui-v1.0.0-linux-x86_64.tar.gz
     """
+    prefix = "downloadyha-gui" if is_gui else "downloadyha"
     if "windows" in platform_id:
         ext = ".zip"
     else:
         ext = ".tar.gz"
 
-    return f"downloadyha-{version}-{platform_id}{ext}"
+    return f"{prefix}-{version}-{platform_id}{ext}"
 
 
 # ---------------------------------------------------------------------------
@@ -482,11 +512,13 @@ def _replace_binary(new_binary: Path, target_exe: Path) -> Tuple[bool, Optional[
             return False, f"Failed to replace executable: {e}"
 
 
-def perform_update(new_version: str) -> bool:
+def perform_update(new_version: str) -> Tuple[bool, str]:
     """
     Download and install the update for new_version.
 
-    Returns True on success, False on error.
+    Returns:
+        (True, success_message) on success.
+        (False, error_message) on failure.
     """
     c = Colors
     init_terminal()
@@ -498,14 +530,17 @@ def perform_update(new_version: str) -> bool:
         info("Downloadyha is running from source code (development mode).")
         info("Self-update binary replacement is designed for standalone executables.")
         info(f"To update your source installation, run: {c.BOLD}git pull{c.RESET}\n")
-        return True
+        return True, "Application is running from source code (development mode). Update with 'git pull'."
 
     platform_id = _detect_platform()
     if platform_id is None:
-        error("Unsupported operating system or architecture for auto-update.")
-        return False
+        err_msg = "Unsupported operating system or architecture for auto-update."
+        error(err_msg)
+        return False, err_msg
 
-    artifact_name = _build_artifact_name(new_version, platform_id)
+    current_exe = _get_executable_path()
+    is_gui = _is_gui_app(current_exe)
+    artifact_name = _build_artifact_name(new_version, platform_id, is_gui=is_gui)
     download_url = f"{GITHUB_RELEASE_BASE}/{new_version}/{artifact_name}"
     temp_dir = Path(tempfile.mkdtemp(prefix="downloadyha-update-"))
 
@@ -513,23 +548,26 @@ def perform_update(new_version: str) -> bool:
         temp_artifact = temp_dir / artifact_name
 
         # Step 1: Download
-        wait("Downloading update package from GitHub Releases...")
+        wait(f"Downloading update package ({artifact_name}) from GitHub Releases...")
         if not _download_file(download_url, temp_artifact):
-            error("Failed to download update package.")
-            return False
+            err_msg = f"Failed to download update package: {artifact_name}"
+            error(err_msg)
+            return False, err_msg
         success("Download complete.")
 
         # Step 2: Checksum verification
         wait("Verifying SHA-256 integrity checksum...")
         expected_checksum = _fetch_checksum(new_version, artifact_name)
         if expected_checksum is None:
-            error("Could not retrieve SHA256SUMS from GitHub.")
-            return False
+            err_msg = f"Could not retrieve SHA256SUMS from GitHub for release {new_version}."
+            error(err_msg)
+            return False, err_msg
 
         actual_checksum = _compute_sha256(temp_artifact)
         if actual_checksum != expected_checksum:
-            error("Integrity check failed: Checksum mismatch.")
-            return False
+            err_msg = f"Integrity check failed: Checksum mismatch for {artifact_name}."
+            error(err_msg)
+            return False, err_msg
         success("Checksum verified.")
 
         # Step 3: Extract
@@ -540,14 +578,19 @@ def perform_update(new_version: str) -> bool:
         if artifact_name.endswith(".zip"):
             with zipfile.ZipFile(temp_artifact, "r") as zip_ref:
                 zip_ref.extractall(extract_dir)
-        elif artifact_name.endswith(".tar.gz"):
+        elif artifact_name.endswith((".tar.gz", ".tgz")):
             with tarfile.open(temp_artifact, "r:gz") as tar_ref:
                 tar_ref.extractall(extract_dir)
         else:
-            error("Unsupported archive format.")
-            return False
+            err_msg = f"Unsupported archive format: {artifact_name}"
+            error(err_msg)
+            return False, err_msg
 
-        exe_name = "downloadyha.exe" if platform.system() == "Windows" else "downloadyha"
+        if is_gui:
+            exe_name = "downloadyha-gui.exe" if platform.system() == "Windows" else "downloadyha-gui"
+        else:
+            exe_name = "downloadyha.exe" if platform.system() == "Windows" else "downloadyha"
+
         new_exe = None
         for item in extract_dir.rglob(exe_name):
             if item.is_file():
@@ -555,21 +598,22 @@ def perform_update(new_version: str) -> bool:
                 break
 
         if new_exe is None:
-            error(f"Could not find '{exe_name}' inside the update archive.")
-            return False
+            err_msg = f"Could not find '{exe_name}' inside the update archive."
+            error(err_msg)
+            return False, err_msg
 
         # Step 4: Replace executable
         wait("Applying update to current installation...")
-        current_exe = _get_executable_path()
 
         ok, err_msg = _replace_binary(new_exe, current_exe)
         if not ok:
-            error(f"Failed to replace executable: {err_msg}")
-            return False
+            full_err = f"Failed to replace executable: {err_msg}"
+            error(full_err)
+            return False, full_err
 
         success(f"Downloadyha has been updated to {new_version}!")
         print(f"\n{c.BRIGHT_GREEN}Please restart the application to use the updated version.{c.RESET}\n")
-        return True
+        return True, f"Successfully updated to {new_version}. Please restart Downloadyha."
 
     finally:
         try:
@@ -628,6 +672,6 @@ def handle_update_command() -> None:
         info("Update canceled.")
         return
 
-    success_status = perform_update(new_version)
-    if not success_status:
-        warning(f"Update could not be completed automatically. Download manually from:\n  https://github.com/{GITHUB_OWNER}/{GITHUB_REPO}/releases")
+    ok, msg = perform_update(new_version)
+    if not ok:
+        warning(f"Update could not be completed automatically: {msg}\nDownload manually from:\n  https://github.com/{GITHUB_OWNER}/{GITHUB_REPO}/releases")

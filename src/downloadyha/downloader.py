@@ -14,6 +14,12 @@ Supports:
 
 from __future__ import annotations
 
+__author__ = "Ahmed Tarek Zaher"
+__copyright__ = "Copyright 2026, Ahmed Tarek Zaher"
+__license__ = "MIT"
+
+# BOOKMARK: Ahmed Tarek Zaher - Owner
+
 import os
 import re
 import sys
