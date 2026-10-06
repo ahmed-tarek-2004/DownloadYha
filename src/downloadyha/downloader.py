@@ -798,30 +798,87 @@ def choose_audio_quality() -> Optional[str]:
     return quality
 
 
-def resolve_video_format(height: Optional[int] = None, has_ffmpeg: bool = True) -> str:
+def parse_video_height(quality: Optional[Union[str, int]]) -> int:
     """
-    Build yt-dlp format selector string for video downloads.
+    Parse video quality parameter into an integer height resolution.
+
+    Supports integer heights, string numbers ('1080', '720'), quality presets ('1080p', '4k', '1440p', '8k'),
+    and returns 0 for 'best' / '0' / None / unparseable values.
 
     Args:
-        height: Maximum video height resolution (e.g., 1080, 720, 0 for best).
+        quality: Video quality string or integer (e.g., 1080, "1080", "1080p", "4k", "1440p", "8k", "best", 0).
+
+    Returns:
+        Integer height (e.g., 1080, 720, 1440, 2160, 4320) or 0 for best/default.
+    """
+    if quality is None:
+        return 0
+    if isinstance(quality, int):
+        return max(0, quality)
+    q_str = str(quality).strip().lower()
+    if q_str in ("", "0", "best", "max", "default", "none"):
+        return 0
+    if q_str in ("4k", "2160", "2160p", "uhd", "4k uhd"):
+        return 2160
+    if q_str in ("2k", "1440", "1440p", "qhd", "2k qhd"):
+        return 1440
+    if q_str in ("8k", "4320", "4320p", "fuhd", "8k uhd"):
+        return 4320
+    clean = q_str.rstrip("p").strip()
+    if clean.isdigit():
+        return int(clean)
+    return 0
+
+
+def resolve_video_format(height: Optional[Union[int, str]] = None, has_ffmpeg: bool = True) -> str:
+    """
+    Build yt-dlp format selector string with smart codec prioritization.
+
+    Smart Logic:
+    - For qualities 1080p and below (or default 'video' / height=0):
+      Strictly prioritize native H.264 (avc) video and M4A (aac) audio directly from YouTube:
+      'bestvideo[vcodec^=avc]+bestaudio[ext=m4a]/bestvideo+bestaudio/best'
+    - For Ultra-HD qualities (1440p, 4K, 8K, i.e. height > 1080):
+      Allow yt-dlp to fetch the default best codecs (VP9/AV1) using standard format string:
+      'bestvideo+bestaudio/best'
+
+    Args:
+        height: Maximum video height resolution (e.g., 1080, 720, 1440, 2160, 0 for best/default).
         has_ffmpeg: Whether FFmpeg is available to mux separate video and audio streams.
 
     Returns:
         yt-dlp format string.
     """
+    h = parse_video_height(height)
+
     if not has_ffmpeg:
         # Fallback to single-file progressive streams with audio if FFmpeg is absent
-        if height and height > 0:
-            return f"best[height<={height}][acodec!=none]/best[acodec!=none]/best"
-        return "best[acodec!=none]/best"
+        if h > 1080:
+            return f"best[height<={h}][acodec!=none]/best[acodec!=none]/best"
+        elif h > 0:
+            return f"best[height<={h}][vcodec^=avc][acodec!=none]/best[height<={h}][acodec!=none]/best[acodec!=none]/best"
+        return "best[vcodec^=avc][acodec!=none]/best[acodec!=none]/best"
 
-    if height and height > 0:
+    if h > 1080:
+        # Ultra-HD qualities (1440p, 4K, 8K): YouTube does not provide H.264 at these resolutions,
+        # so allow yt-dlp to fetch the default best codecs (VP9/AV1).
         return (
-            f"bestvideo[height<={height}]+bestaudio/"
-            f"best[height<={height}]/"
+            f"bestvideo[height<={h}]+bestaudio/"
+            f"best[height<={h}]/"
             f"bestvideo+bestaudio/best"
         )
-    return "bestvideo+bestaudio/best"
+    elif h > 0:
+        # 1080p and below with specific height: strictly prioritize native H.264 (avc) and M4A (aac)
+        return (
+            f"bestvideo[height<={h}][vcodec^=avc]+bestaudio[ext=m4a]/"
+            f"bestvideo[height<={h}]+bestaudio/"
+            f"best[height<={h}]/"
+            f"bestvideo[vcodec^=avc]+bestaudio[ext=m4a]/"
+            f"bestvideo+bestaudio/best"
+        )
+
+    # Default 'video' / Best available (height == 0 / None)
+    return "bestvideo[vcodec^=avc]+bestaudio[ext=m4a]/bestvideo+bestaudio/best"
 
 
 def resolve_audio_quality(quality: Optional[Union[str, int]] = None) -> str:
@@ -1153,13 +1210,29 @@ def download_media(
         desc_str = f"audio (MP3, quality: {audio_quality}){clip_desc}{sub_desc}"
     else:
         # Video download
-        height = int(quality) if (quality is not None and str(quality).isdigit()) else 0
+        height = parse_video_height(quality)
+        is_ultra_hd = height > 1080
         video_format = resolve_video_format(height, has_ffmpeg=has_ffmpeg)
+
+        # Smart format & container selection:
+        # - For 1080p and below (or default 'video'): strictly prioritize H.264 + M4A and set merge_output_format to mp4
+        # - For Ultra-HD (1440p, 4K, 8K): allow VP9/AV1 with .mkv or .webm container (do not force .mp4)
+        if is_ultra_hd:
+            if output_format and output_format.lower() in ("webm", "mkv"):
+                merge_fmt = output_format.lower()
+            else:
+                merge_fmt = "mkv"
+        else:
+            if output_format and output_format.lower() in ("mkv", "webm"):
+                merge_fmt = output_format.lower()
+            else:
+                merge_fmt = "mp4"
+
         extra_options.update({
             "format": video_format,
-            "merge_output_format": output_format,
+            "merge_output_format": merge_fmt,
         })
-        desc_str = f"video (format: {output_format}, max height: {height or 'best'}p){clip_desc}{sub_desc}"
+        desc_str = f"video (format: {merge_fmt}, max height: {height or 'best'}p){clip_desc}{sub_desc}"
 
     options = get_yt_dlp_options(extra_options, logger_instance=collector, auto_download_deps=True)
     if has_ffmpeg and "ffmpeg_location" not in options:

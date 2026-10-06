@@ -37,6 +37,7 @@ from downloadyha.downloader import (
     is_playlist,
     is_playlist_url,
     parse_time_str,
+    parse_video_height,
     resolve_audio_quality,
     resolve_video_format,
     sanitize_filename,
@@ -164,20 +165,76 @@ class TestDownloaderHelpers(unittest.TestCase):
 class TestQualityResolvers(unittest.TestCase):
     """Test video and audio quality resolution."""
 
-    def test_resolve_video_format(self):
-        best_fmt = resolve_video_format(0, has_ffmpeg=True)
-        self.assertEqual(best_fmt, "bestvideo+bestaudio/best")
+    def test_parse_video_height(self):
+        self.assertEqual(parse_video_height(None), 0)
+        self.assertEqual(parse_video_height(0), 0)
+        self.assertEqual(parse_video_height("0"), 0)
+        self.assertEqual(parse_video_height("best"), 0)
+        self.assertEqual(parse_video_height(1080), 1080)
+        self.assertEqual(parse_video_height("1080"), 1080)
+        self.assertEqual(parse_video_height("1080p"), 1080)
+        self.assertEqual(parse_video_height("720p"), 720)
+        self.assertEqual(parse_video_height("1440"), 1440)
+        self.assertEqual(parse_video_height("1440p"), 1440)
+        self.assertEqual(parse_video_height("2k"), 1440)
+        self.assertEqual(parse_video_height("4k"), 2160)
+        self.assertEqual(parse_video_height("2160p"), 2160)
+        self.assertEqual(parse_video_height("8k"), 4320)
+        self.assertEqual(parse_video_height("4320p"), 4320)
 
+    def test_resolve_video_format_1080p_and_below(self):
+        # Default / best (0 / None) strictly prioritizes H.264 (avc) + M4A (aac)
+        best_fmt = resolve_video_format(0, has_ffmpeg=True)
+        self.assertEqual(best_fmt, "bestvideo[vcodec^=avc]+bestaudio[ext=m4a]/bestvideo+bestaudio/best")
+
+        none_fmt = resolve_video_format(None, has_ffmpeg=True)
+        self.assertEqual(none_fmt, "bestvideo[vcodec^=avc]+bestaudio[ext=m4a]/bestvideo+bestaudio/best")
+
+        # 1080p strictly prioritizes H.264 (avc) + M4A (aac) up to 1080
         h1080_fmt = resolve_video_format(1080, has_ffmpeg=True)
         self.assertIn("height<=1080", h1080_fmt)
+        self.assertIn("vcodec^=avc", h1080_fmt)
+        self.assertIn("ext=m4a", h1080_fmt)
         self.assertIn("bestvideo", h1080_fmt)
 
+        # 720p strictly prioritizes H.264 (avc) + M4A (aac) up to 720
+        h720_fmt = resolve_video_format(720, has_ffmpeg=True)
+        self.assertIn("height<=720", h720_fmt)
+        self.assertIn("vcodec^=avc", h720_fmt)
+        self.assertIn("ext=m4a", h720_fmt)
+
+        # Without ffmpeg
         no_ffmpeg_best = resolve_video_format(0, has_ffmpeg=False)
-        self.assertEqual(no_ffmpeg_best, "best[acodec!=none]/best")
+        self.assertEqual(no_ffmpeg_best, "best[vcodec^=avc][acodec!=none]/best[acodec!=none]/best")
 
         no_ffmpeg_1080 = resolve_video_format(1080, has_ffmpeg=False)
         self.assertIn("height<=1080", no_ffmpeg_1080)
+        self.assertIn("vcodec^=avc", no_ffmpeg_1080)
         self.assertIn("acodec!=none", no_ffmpeg_1080)
+
+    def test_resolve_video_format_ultra_hd(self):
+        # 1440p (2K) allows VP9/AV1 using standard format string
+        h1440_fmt = resolve_video_format(1440, has_ffmpeg=True)
+        self.assertIn("height<=1440", h1440_fmt)
+        self.assertNotIn("vcodec^=avc", h1440_fmt)
+        self.assertEqual(h1440_fmt, "bestvideo[height<=1440]+bestaudio/best[height<=1440]/bestvideo+bestaudio/best")
+
+        # 2160p (4K) allows VP9/AV1
+        h2160_fmt = resolve_video_format(2160, has_ffmpeg=True)
+        self.assertIn("height<=2160", h2160_fmt)
+        self.assertNotIn("vcodec^=avc", h2160_fmt)
+        self.assertEqual(h2160_fmt, "bestvideo[height<=2160]+bestaudio/best[height<=2160]/bestvideo+bestaudio/best")
+
+        # 4320p (8K) allows VP9/AV1
+        h4320_fmt = resolve_video_format(4320, has_ffmpeg=True)
+        self.assertIn("height<=4320", h4320_fmt)
+        self.assertNotIn("vcodec^=avc", h4320_fmt)
+        self.assertEqual(h4320_fmt, "bestvideo[height<=4320]+bestaudio/best[height<=4320]/bestvideo+bestaudio/best")
+
+        # Without ffmpeg for ultra-hd
+        no_ffmpeg_4k = resolve_video_format(2160, has_ffmpeg=False)
+        self.assertIn("height<=2160", no_ffmpeg_4k)
+        self.assertNotIn("vcodec^=avc", no_ffmpeg_4k)
 
     def test_resolve_audio_quality(self):
         self.assertEqual(resolve_audio_quality("best"), "0")
@@ -347,6 +404,53 @@ class TestDownloaderMocked(unittest.TestCase):
         self.assertEqual(res.download_type, "video")
         self.assertFalse(res.is_playlist)
         self.assertEqual(res.download_directory, self.test_dir)
+        # Verify 1080p smart logic in yt-dlp options
+        ydl_opts = mock_ydl_class.call_args_list[-1][0][0]
+        self.assertEqual(ydl_opts.get("merge_output_format"), "mp4")
+        self.assertIn("vcodec^=avc", ydl_opts.get("format", ""))
+        self.assertIn("ext=m4a", ydl_opts.get("format", ""))
+        # Verify NO video re-encoding postprocessors are added
+        video_pps = [pp for pp in ydl_opts.get("postprocessors", []) if "video" in str(pp.get("key", "")).lower()]
+        self.assertEqual(len(video_pps), 0)
+
+    @patch("downloadyha.downloader.yt_dlp.YoutubeDL")
+    def test_download_single_video_4k_smart_logic(self, mock_ydl_class):
+        mock_ydl = MagicMock()
+        mock_ydl.__enter__.return_value = mock_ydl
+        mock_ydl.extract_info.return_value = {
+            "title": "4K Ultra HD Video",
+            "formats": [{"height": 2160}]
+        }
+        mock_ydl.download.return_value = 0
+        mock_ydl_class.return_value = mock_ydl
+
+        res = download_video("https://www.youtube.com/watch?v=123", self.test_dir, height=2160)
+        self.assertTrue(res)
+        self.assertEqual(res.download_type, "video")
+        # Verify 4K smart logic: allows VP9/AV1, merge_output_format is mkv (not forced to mp4)
+        ydl_opts = mock_ydl_class.call_args_list[-1][0][0]
+        self.assertEqual(ydl_opts.get("merge_output_format"), "mkv")
+        self.assertNotIn("vcodec^=avc", ydl_opts.get("format", ""))
+        self.assertIn("height<=2160", ydl_opts.get("format", ""))
+        # Verify NO video re-encoding postprocessors are added
+        video_pps = [pp for pp in ydl_opts.get("postprocessors", []) if "video" in str(pp.get("key", "")).lower()]
+        self.assertEqual(len(video_pps), 0)
+
+    @patch("downloadyha.downloader.yt_dlp.YoutubeDL")
+    def test_download_single_video_4k_webm_format(self, mock_ydl_class):
+        mock_ydl = MagicMock()
+        mock_ydl.__enter__.return_value = mock_ydl
+        mock_ydl.extract_info.return_value = {
+            "title": "4K Ultra HD Video",
+            "formats": [{"height": 2160}]
+        }
+        mock_ydl.download.return_value = 0
+        mock_ydl_class.return_value = mock_ydl
+
+        res = download_video("https://www.youtube.com/watch?v=123", self.test_dir, height=2160, output_format="webm")
+        self.assertTrue(res)
+        ydl_opts = mock_ydl_class.call_args_list[-1][0][0]
+        self.assertEqual(ydl_opts.get("merge_output_format"), "webm")
 
     @patch("downloadyha.downloader.yt_dlp.YoutubeDL")
     def test_download_single_audio_success(self, mock_ydl_class):
