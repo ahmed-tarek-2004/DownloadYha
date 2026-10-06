@@ -23,8 +23,12 @@ from .downloader import (
     get_media_info,
     get_playlist_entries,
     get_video_qualities,
+    has_video_id,
     is_playlist,
+    is_pure_playlist_url,
+    is_video_in_playlist_url,
     parse_time_str,
+    strip_playlist_params,
 )
 from .logging import get_logger, setup_logging
 from .subtitle_utils import get_available_subtitles
@@ -283,13 +287,14 @@ def run_download_interactive(
     sub_langs: Optional[str] = None,
     sub_format: str = "srt",
     embed_subs: bool = False,
-    convert_subs: Optional[str] = None
+    convert_subs: Optional[str] = None,
+    is_playlist_mode: Optional[bool] = None,
 ) -> int:
     """
     Execute the interactive download workflow with modern UI.
 
     Supports optional pre-populated parameters from CLI arguments
-    (e.g., start_time, end_time, url, download_path, dl_type, quality).
+    (e.g., start_time, end_time, url, download_path, dl_type, quality, is_playlist_mode).
     """
     logger = get_logger("cli")
 
@@ -329,16 +334,50 @@ def run_download_interactive(
     # Step 3: Fetch Metadata & Configure Download
     print_step(3, 3, "Analyzing Media & Selecting Quality")
     wait("Fetching media metadata...")
-    info_dict = get_media_info(url)
+
+    noplaylist = False if (is_playlist_mode is True) or (is_pure_playlist_url(url) and is_playlist_mode is not False) else True
+    info_dict = get_media_info(url, noplaylist=noplaylist)
 
     if not info_dict:
         error("Failed to retrieve media information. Please check the URL or your internet connection.")
         return 1
 
+    # Determine whether to run the playlist workflow or single video workflow
+    is_pl_workflow = False
+    if is_playlist_mode is True:
+        is_pl_workflow = True
+    elif is_playlist_mode is False:
+        is_pl_workflow = False
+    elif is_pure_playlist_url(url) or (is_playlist(info_dict) and not has_video_id(url)):
+        is_pl_workflow = True
+    elif is_video_in_playlist_url(url):
+        # Video is part of a playlist / mix
+        if not (dl_type and quality):
+            scope_choice = prompt_choice(
+                title="Video in Playlist/Mix Detected",
+                options=[
+                    ("single", "Download Single Video (Recommended)", "Download only this selected video"),
+                    ("playlist", "Download Entire Playlist Batch", "Download all videos in the playlist/mix"),
+                ],
+                default_index=0
+            )
+            if scope_choice == "playlist":
+                is_pl_workflow = True
+                pl_info = get_media_info(url, noplaylist=False)
+                if pl_info:
+                    info_dict = pl_info
+            else:
+                is_pl_workflow = False
+        else:
+            # When format and quality are pre-supplied via CLI without --playlist, default to single video
+            is_pl_workflow = False
+    else:
+        is_pl_workflow = is_playlist(info_dict)
+
     # -----------------------------------------------------------------------
     # Playlist Workflow
     # -----------------------------------------------------------------------
-    if is_playlist(info_dict):
+    if is_pl_workflow:
         entries = get_playlist_entries(info_dict)
         pl_title = info_dict.get("title", "Playlist")
         pl_author = info_dict.get("uploader") or info_dict.get("channel") or "Unknown"
@@ -365,7 +404,7 @@ def run_download_interactive(
             "embed_subs": embed_subs,
             "convert_subs": convert_subs,
         }
-        if not (write_subtitles or write_auto_subs or embed_subs or sub_langs):
+        if not (write_subtitles or write_auto_subs or embed_subs or sub_langs) and not (dl_type and quality):
             transcripts = prompt_transcript_options(url)
 
         dl_type_choice = dl_type or prompt_choice(
@@ -502,7 +541,7 @@ def run_download_interactive(
             "embed_subs": embed_subs,
             "convert_subs": convert_subs,
         }
-        if not (write_subtitles or write_auto_subs or embed_subs or sub_langs):
+        if not (write_subtitles or write_auto_subs or embed_subs or sub_langs) and not (dl_type and quality):
             transcripts = prompt_transcript_options(url)
 
         if chosen_format == "video":

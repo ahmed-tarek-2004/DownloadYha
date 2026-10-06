@@ -82,6 +82,9 @@ _DEFAULT_CONFIG: dict = {
     "download_directory": str(get_download_dir()),
     # Whether to check for updates in the background.
     "check_updates": True,
+    # User interface appearance mode ('light', 'dark', 'system').
+    "appearance_mode": "light",
+    "theme": "light",
 }
 
 

@@ -304,13 +304,13 @@ class DownloadyhaGUI:
         self._media_info: Optional[Dict[str, Any]] = None
 
         # Subtitle settings
-        self.write_subs_var = tk.BooleanVar(value=self.settings.get("write_subs", False))
-        self.write_auto_subs_var = tk.BooleanVar(value=self.settings.get("write_auto_subs", False))
-        self.sub_langs_var = tk.StringVar(value=self.settings.get("sub_langs", "en"))
-        self.sub_format_var = tk.StringVar(value=self.settings.get("sub_format", "srt"))
-        self.embed_subs_var = tk.BooleanVar(value=self.settings.get("embed_subs", False))
-        self.convert_subs_var = tk.BooleanVar(value=self.settings.get("convert_subs", False))
-        self.convert_subs_format_var = tk.StringVar(value=self.settings.get("convert_subs_format", "srt"))
+        self.write_subs_var = tk.BooleanVar(master=self.root, value=self.settings.get("write_subs", False))
+        self.write_auto_subs_var = tk.BooleanVar(master=self.root, value=self.settings.get("write_auto_subs", False))
+        self.sub_langs_var = tk.StringVar(master=self.root, value=self.settings.get("sub_langs", "en"))
+        self.sub_format_var = tk.StringVar(master=self.root, value=self.settings.get("sub_format", "srt"))
+        self.embed_subs_var = tk.BooleanVar(master=self.root, value=self.settings.get("embed_subs", False))
+        self.convert_subs_var = tk.BooleanVar(master=self.root, value=self.settings.get("convert_subs", False))
+        self.convert_subs_format_var = tk.StringVar(master=self.root, value=self.settings.get("convert_subs_format", "srt"))
 
         # Apply saved window geometry
         geometry = self.settings.get("window_geometry", "700x600")
@@ -417,7 +417,7 @@ class DownloadyhaGUI:
         url_frame.pack(fill=tk.X, pady=(0, 15))
 
         # URL entry
-        self.url_var = tk.StringVar()
+        self.url_var = tk.StringVar(master=self.root)
         self.url_entry = ttk.Entry(
             url_frame,
             textvariable=self.url_var,
@@ -462,7 +462,7 @@ class DownloadyhaGUI:
 
         ttk.Label(type_frame, text="Download Type:", font=("Segoe UI", 10)).pack(side=tk.LEFT)
 
-        self.download_type_var = tk.StringVar(value="video")
+        self.download_type_var = tk.StringVar(master=self.root, value="video")
 
         ttk.Radiobutton(
             type_frame,
@@ -487,8 +487,8 @@ class DownloadyhaGUI:
         self.quality_label = ttk.Label(quality_frame, text="Video Quality:", font=("Segoe UI", 10))
         self.quality_label.pack(side=tk.LEFT)
 
-        self.video_quality_var = tk.StringVar(value=self.settings.get("last_video_quality", "1"))
-        self.audio_quality_var = tk.StringVar(value=self.settings.get("last_audio_quality", "1"))
+        self.video_quality_var = tk.StringVar(master=self.root, value=self.settings.get("last_video_quality", "1"))
+        self.audio_quality_var = tk.StringVar(master=self.root, value=self.settings.get("last_audio_quality", "1"))
 
         self.quality_combo = ttk.Combobox(
             quality_frame,
@@ -501,7 +501,7 @@ class DownloadyhaGUI:
         self.quality_combo.pack(side=tk.LEFT, padx=(10, 0))
 
         # Section clipping checkbox
-        self.section_toggle_var = tk.BooleanVar(value=False)
+        self.section_toggle_var = tk.BooleanVar(master=self.root, value=False)
         self.section_check = ttk.Checkbutton(
             options_frame,
             text="Download specific section (clip)",
@@ -514,12 +514,12 @@ class DownloadyhaGUI:
         self.section_frame = ttk.Frame(options_frame)
 
         ttk.Label(self.section_frame, text="Start Time:", font=("Segoe UI", 9)).pack(side=tk.LEFT, padx=(0, 5))
-        self.start_time_var = tk.StringVar()
+        self.start_time_var = tk.StringVar(master=self.root)
         self.start_time_entry = ttk.Entry(self.section_frame, textvariable=self.start_time_var, width=10, font=("Segoe UI", 9))
         self.start_time_entry.pack(side=tk.LEFT, padx=(0, 15))
 
         ttk.Label(self.section_frame, text="End Time:", font=("Segoe UI", 9)).pack(side=tk.LEFT, padx=(0, 5))
-        self.end_time_var = tk.StringVar()
+        self.end_time_var = tk.StringVar(master=self.root)
         self.end_time_entry = ttk.Entry(self.section_frame, textvariable=self.end_time_var, width=10, font=("Segoe UI", 9))
         self.end_time_entry.pack(side=tk.LEFT, padx=(0, 10))
 
@@ -606,7 +606,7 @@ class DownloadyhaGUI:
 
         ttk.Label(dir_frame, text="Save to:", font=("Segoe UI", 10)).pack(side=tk.LEFT)
 
-        self.dir_var = tk.StringVar(value=self.settings.get("download_directory", str(get_download_dir())))
+        self.dir_var = tk.StringVar(master=self.root, value=self.settings.get("download_directory", str(get_download_dir())))
 
         self.dir_entry = ttk.Entry(
             dir_frame,
@@ -633,7 +633,7 @@ class DownloadyhaGUI:
         progress_frame.pack(fill=tk.X, pady=(0, 15))
 
         # Progress bar
-        self.progress_var = tk.DoubleVar(value=0.0)
+        self.progress_var = tk.DoubleVar(master=self.root, value=0.0)
         self.progress_bar = ttk.Progressbar(
             progress_frame,
             variable=self.progress_var,

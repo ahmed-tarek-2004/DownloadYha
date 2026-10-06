@@ -21,7 +21,7 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
 import yt_dlp
 try:
@@ -157,6 +157,157 @@ def sanitize_folder_name(name: str) -> str:
     clean = re.sub(r'[<>:"/\\|?*\x00-\x1f]+', '_', str(name)).strip('. _')
     clean = re.sub(r'_+', '_', clean)
     return clean if clean else "Media_Download"
+
+
+def has_video_id(url: str) -> bool:
+    """
+    Check if a given URL directly points to a specific video ID or video endpoint.
+
+    Identifies:
+    - YouTube: /watch?v=..., youtu.be/..., /shorts/..., /embed/..., /v/..., /live/...
+    - TikTok: /video/... or /v/...
+    - Instagram: /reel/..., /p/..., /tv/...
+    - Facebook: /videos/..., /watch/?v=..., fb.watch/...
+    - Twitter/X: /status/...
+    """
+    if not url:
+        return False
+
+    url_str = str(url).strip()
+    try:
+        parsed = urlparse(url_str)
+        netloc = (parsed.netloc or "").lower()
+        path = parsed.path or ""
+        params = parse_qs(parsed.query)
+
+        # YouTube / YouTube Music
+        if "youtube.com" in netloc or "youtu.be" in netloc:
+            # Shortened youtu.be/<video_id>
+            if "youtu.be" in netloc and path.strip("/"):
+                return True
+            # Standard /watch?v=<video_id>
+            if "v" in params and params["v"] and params["v"][0].strip():
+                return True
+            # Embedded or direct video endpoints
+            for prefix in ("/shorts/", "/embed/", "/v/", "/live/"):
+                if prefix in path:
+                    sub = path.split(prefix)[-1].strip("/").split("/")[0]
+                    if sub:
+                        return True
+            return False
+
+        # TikTok (/video/<id>)
+        if "tiktok.com" in netloc and ("/video/" in path or "/v/" in path):
+            return True
+
+        # Instagram (/reel/<id>, /p/<id>, /tv/<id>)
+        if "instagram.com" in netloc and any(x in path for x in ("/reel/", "/p/", "/tv/")):
+            return True
+
+        # Facebook (/watch/?v=..., /videos/..., fb.watch)
+        if "facebook.com" in netloc or "fb.watch" in netloc:
+            if "v" in params and params["v"]:
+                return True
+            if "/videos/" in path or "/reel/" in path or "fb.watch" in netloc:
+                return True
+
+        # Twitter/X (/status/<id>)
+        if ("twitter.com" in netloc or "x.com" in netloc) and "/status/" in path:
+            return True
+
+    except Exception:
+        pass
+
+    return False
+
+
+def is_pure_playlist_url(url: str) -> bool:
+    """
+    Check if a URL represents a dedicated playlist or collection without a specific video target.
+
+    Returns True for:
+    - https://www.youtube.com/playlist?list=...
+    - https://soundcloud.com/artist/sets/...
+    - https://music.youtube.com/playlist?list=...
+    - URLs with list= param that do NOT contain a video ID (has_video_id is False).
+    """
+    if not url:
+        return False
+
+    url_str = str(url).strip()
+    url_lower = url_str.lower()
+
+    # If it contains a specific video ID, it is NOT a pure playlist URL
+    if has_video_id(url_str):
+        return False
+
+    if "/playlist" in url_lower:
+        return True
+
+    if "/sets/" in url_lower or "/album/" in url_lower or "/series/" in url_lower:
+        return True
+
+    try:
+        parsed = urlparse(url_str)
+        params = parse_qs(parsed.query)
+        if "list" in params and params["list"] and params["list"][0].strip():
+            return True
+    except Exception:
+        pass
+
+    return False
+
+
+def is_video_in_playlist_url(url: str) -> bool:
+    """
+    Check if a URL represents a specific video embedded inside a playlist or mix.
+
+    Examples:
+    - https://www.youtube.com/watch?v=kQzf4SsFMxs&list=RDQp3GVg_rC_M&index=17 -> True
+    - https://youtu.be/kQzf4SsFMxs?list=PL1234567890 -> True
+    - https://www.youtube.com/playlist?list=PL1234567890 -> False (pure playlist)
+    - https://www.youtube.com/watch?v=kQzf4SsFMxs -> False (pure single video)
+    """
+    if not url:
+        return False
+
+    url_str = str(url).strip()
+    if not has_video_id(url_str):
+        return False
+
+    try:
+        parsed = urlparse(url_str)
+        params = parse_qs(parsed.query)
+        if "list" in params and params["list"] and params["list"][0].strip():
+            return True
+    except Exception:
+        pass
+
+    return False
+
+
+def strip_playlist_params(url: str) -> str:
+    """
+    Strip playlist/mix query parameters (list, index, start_radio, etc.) from a video URL,
+    returning the clean single-video URL.
+
+    Example:
+    'https://www.youtube.com/watch?v=kQzf4SsFMxs&list=RDQp3GVg_rC_M&index=17'
+    -> 'https://www.youtube.com/watch?v=kQzf4SsFMxs'
+    """
+    if not url:
+        return ""
+
+    url_str = str(url).strip()
+    try:
+        parsed = urlparse(url_str)
+        params = parse_qs(parsed.query, keep_blank_values=True)
+        strip_keys = {"list", "index", "start_radio", "pp", "si"}
+        cleaned_params = {k: v for k, v in params.items() if k.lower() not in strip_keys}
+        new_query = urlencode(cleaned_params, doseq=True)
+        return urlunparse((parsed.scheme, parsed.netloc, parsed.path, parsed.params, new_query, parsed.fragment))
+    except Exception:
+        return url_str
 
 
 def is_playlist_url(url: str) -> bool:
@@ -444,7 +595,8 @@ def get_yt_dlp_options(
 def get_media_info(
     url: str,
     extract_flat: Union[bool, str] = "in_playlist",
-    process: bool = True
+    process: bool = True,
+    noplaylist: Optional[bool] = None
 ) -> Optional[Dict[str, Any]]:
     """
     Extract video or playlist information from a media URL.
@@ -453,17 +605,31 @@ def get_media_info(
         url: Media video or playlist URL.
         extract_flat: 'in_playlist' (fast playlist entries), True, or False.
         process: Whether to fully process video info.
+        noplaylist: Suppress playlist extraction (defaults to True if URL has a video ID).
 
     Returns:
         Media information dictionary, or None if extraction failed.
     """
     logger = get_logger("downloader")
-    options = get_yt_dlp_options({
+
+    # Smart default for noplaylist: if URL contains a specific video ID (like /watch?v=...&list=...),
+    # default to single video extraction so users inspect the targeted video rather than the full playlist/mix.
+    if noplaylist is None:
+        if has_video_id(url):
+            noplaylist = True
+        elif is_pure_playlist_url(url):
+            noplaylist = False
+
+    extra_opts: Dict[str, Any] = {
         "extract_flat": extract_flat,
-    })
+    }
+    if noplaylist is not None:
+        extra_opts["noplaylist"] = noplaylist
+
+    options = get_yt_dlp_options(extra_opts)
 
     try:
-        logger.info(f"Extracting media info for URL: {url}")
+        logger.info(f"Extracting media info for URL: {url} (noplaylist={noplaylist})")
         with yt_dlp.YoutubeDL(options) as ydl:
             info = ydl.extract_info(url, download=False, process=process)
 
@@ -480,8 +646,10 @@ def get_media_info(
                     logger.warning(f"Error materializing playlist entries: {e}")
                     info["entries"] = []
 
-        # Tag playlist status
+        # Tag playlist and video-in-playlist status
         info["is_playlist"] = is_playlist(info)
+        info["is_video_in_playlist"] = is_video_in_playlist_url(url)
+        info["clean_url"] = strip_playlist_params(url) if is_video_in_playlist_url(url) else url
         return info
 
     except Exception as e:
@@ -792,13 +960,14 @@ def download_media(
     sub_langs: Optional[str] = None,
     sub_format: str = "srt",
     embed_subs: bool = False,
-    convert_subs: Optional[str] = None
+    convert_subs: Optional[str] = None,
+    is_playlist_mode: Optional[bool] = None
 ) -> DownloadResult:
     """
     Download media (single video, audio, or entire playlist) from a URL.
 
     Handles:
-    - Automatic detection and handling of playlists.
+    - Automatic detection and handling of playlists vs single video with playlist params.
     - Saving playlists in organized subfolders with indexed filenames.
     - Merging video and audio into MP4/MKV.
     - Converting audio to MP3 with chosen quality/bitrate.
@@ -820,6 +989,7 @@ def download_media(
         sub_format: Subtitle container format (e.g., "srt", "vtt", "ass").
         embed_subs: Whether to embed subtitles into the video file.
         convert_subs: Optional subtitle format conversion target (e.g., "srt").
+        is_playlist_mode: Explicit flag to force playlist batch download or single item.
 
     Returns:
         DownloadResult instance containing status and statistics.
@@ -860,10 +1030,21 @@ def download_media(
             download_directory=download_path
         )
 
+    # Determine if this operation targets a playlist batch or a single media item
+    if is_playlist_mode is not None:
+        is_pl = bool(is_playlist_mode)
+    elif is_pure_playlist_url(url):
+        is_pl = True
+    elif has_video_id(url):
+        # Specific video link (even with list= query parameter) defaults to single video
+        is_pl = False
+    else:
+        info_peek = get_media_info(url, extract_flat="in_playlist", noplaylist=None)
+        is_pl = is_playlist(info_peek)
+
     # Extract media metadata
-    logger.info(f"Checking media info for download: url={url}, type={media_type}")
-    info = get_media_info(url, extract_flat="in_playlist")
-    is_pl = is_playlist(info) or is_playlist_url(url)
+    logger.info(f"Checking media info for download: url={url}, type={media_type}, is_playlist={is_pl}")
+    info = get_media_info(url, extract_flat="in_playlist", noplaylist=not is_pl)
 
     # Determine destination folder and filename template
     if is_pl:
@@ -913,6 +1094,7 @@ def download_media(
         "outtmpl": outtmpl,
         "ignoreerrors": True,
         "progress_hooks": [hook],
+        "noplaylist": not is_pl,
     }
 
     # Configure partial download range if specified
@@ -1198,7 +1380,8 @@ def download_playlist(
         sub_langs=sub_langs,
         sub_format=sub_format,
         embed_subs=embed_subs,
-        convert_subs=convert_subs
+        convert_subs=convert_subs,
+        is_playlist_mode=True
     )
 
 
@@ -1220,10 +1403,11 @@ def download_playlist_video(
     """
     Download an entire playlist as video files.
     """
-    return download_video(
+    return download_playlist(
         url=url,
         download_path=download_path,
-        height=height,
+        media_type="video",
+        quality=height,
         progress_callback=progress_callback,
         output_format=output_format,
         start_time=start_time,
@@ -1254,9 +1438,10 @@ def download_playlist_audio(
     """
     Download an entire playlist as audio MP3 files.
     """
-    return download_audio(
+    return download_playlist(
         url=url,
         download_path=download_path,
+        media_type="audio",
         quality=quality,
         progress_callback=progress_callback,
         start_time=start_time,

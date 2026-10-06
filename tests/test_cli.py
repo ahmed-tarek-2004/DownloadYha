@@ -252,7 +252,7 @@ class TestCLIInteractiveWorkflows(unittest.TestCase):
     @patch("downloadyha.cli.prompt_input", return_value="https://youtube.com/watch?v=123")
     @patch("downloadyha.cli.choose_download_folder", return_value="/tmp/downloads")
     @patch("downloadyha.cli.get_media_info", return_value={"title": "Song", "formats": []})
-    @patch("downloadyha.cli.prompt_choice", side_effect=["audio", "320"])
+    @patch("downloadyha.cli.prompt_choice", side_effect=["audio", "no", "320"])
     @patch("downloadyha.cli.download_audio", return_value=True)
     def test_run_download_interactive_single_audio_success(
         self, mock_dl, mock_choice, mock_info, mock_folder, mock_prompt, mock_deps, mock_update, mock_banner, mock_init
@@ -280,7 +280,7 @@ class TestCLIInteractiveWorkflows(unittest.TestCase):
     @patch("downloadyha.cli.prompt_input", return_value="https://youtube.com/watch?v=123")
     @patch("downloadyha.cli.choose_download_folder", return_value="/tmp/downloads")
     @patch("downloadyha.cli.get_media_info", return_value={"title": "Video", "formats": [{"height": 1080}]})
-    @patch("downloadyha.cli.prompt_choice", side_effect=["video", "1080"])
+    @patch("downloadyha.cli.prompt_choice", side_effect=["video", "no", "1080"])
     @patch("downloadyha.cli.download_video", return_value=True)
     def test_run_download_interactive_single_video_success(
         self, mock_dl, mock_choice, mock_info, mock_folder, mock_prompt, mock_deps, mock_update, mock_banner, mock_init
@@ -342,7 +342,7 @@ class TestCLIInteractiveWorkflows(unittest.TestCase):
     @patch("downloadyha.cli.prompt_input", return_value="https://youtube.com/playlist?list=PL123")
     @patch("downloadyha.cli.choose_download_folder", return_value="/tmp/downloads")
     @patch("downloadyha.cli.get_media_info", return_value={"_type": "playlist", "title": "My Playlist", "entries": [{"id": "1"}]})
-    @patch("downloadyha.cli.prompt_choice", side_effect=["video", "1080"])
+    @patch("downloadyha.cli.prompt_choice", side_effect=["no", "video", "1080"])
     @patch("downloadyha.cli.download_playlist", return_value={"success": True, "output_dir": "/tmp/downloads/My Playlist"})
     def test_run_download_interactive_playlist_video_success(
         self, mock_dl, mock_choice, mock_info, mock_folder, mock_prompt, mock_deps, mock_update, mock_banner, mock_init
@@ -371,7 +371,7 @@ class TestCLIInteractiveWorkflows(unittest.TestCase):
     @patch("downloadyha.cli.prompt_input", return_value="https://youtube.com/playlist?list=PL123")
     @patch("downloadyha.cli.choose_download_folder", return_value="/tmp/downloads")
     @patch("downloadyha.cli.get_media_info", return_value={"_type": "playlist", "title": "My Playlist", "entries": [{"id": "1"}]})
-    @patch("downloadyha.cli.prompt_choice", side_effect=["audio", "320"])
+    @patch("downloadyha.cli.prompt_choice", side_effect=["no", "audio", "320"])
     @patch("downloadyha.cli.download_playlist", return_value={"success": False, "error": "Some items failed"})
     def test_run_download_interactive_playlist_audio_failure(
         self, mock_dl, mock_choice, mock_info, mock_folder, mock_prompt, mock_deps, mock_update, mock_banner, mock_init

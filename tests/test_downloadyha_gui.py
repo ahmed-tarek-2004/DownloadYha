@@ -219,6 +219,55 @@ class TestDownloadyhaGUILogic(unittest.TestCase):
         mock_error.assert_called_once()
         self.assertIn("End time (01:00) must be greater than start time (03:00)", mock_error.call_args[0][1])
 
+    @patch("downloadyha_gui.app.save_config")
+    @patch("downloadyha_gui.app.ctk.set_appearance_mode")
+    def test_set_theme_mode(self, mock_set_mode, mock_save):
+        """Test setting theme mode updates config, appearance mode, and UI widgets."""
+        self.gui.config = {"appearance_mode": "light", "theme": "light"}
+        self.gui.theme_segmented = MagicMock()
+        self.gui.theme_segmented.get.return_value = "☀️ Light"
+        self.gui.settings_theme_segmented = MagicMock()
+        self.gui.settings_theme_segmented.get.return_value = "☀️ Light Mode"
+
+        # Switch to dark mode
+        self.gui.set_theme_mode("dark")
+        mock_set_mode.assert_called_with("dark")
+        self.assertEqual(self.gui.config["appearance_mode"], "dark")
+        self.assertEqual(self.gui.config["theme"], "dark")
+        mock_save.assert_called_with(self.gui.config)
+        self.gui.theme_segmented.set.assert_called_with("🌙 Dark")
+        self.gui.settings_theme_segmented.set.assert_called_with("🌙 Dark Mode")
+
+        # Switch to system mode
+        self.gui.set_theme_mode("system")
+        mock_set_mode.assert_called_with("system")
+        self.assertEqual(self.gui.config["appearance_mode"], "system")
+        self.gui.theme_segmented.set.assert_called_with("💻 Auto")
+        self.gui.settings_theme_segmented.set.assert_called_with("💻 System Default")
+
+    @patch.object(DownloadyhaGUI, "set_theme_mode")
+    def test_theme_event_callbacks(self, mock_set_theme):
+        """Test segmented button event handlers map correctly to theme modes."""
+        # Sidebar callback
+        self.gui._on_theme_segmented_change("🌙 Dark")
+        mock_set_theme.assert_called_with("dark")
+
+        self.gui._on_theme_segmented_change("💻 Auto")
+        mock_set_theme.assert_called_with("system")
+
+        self.gui._on_theme_segmented_change("☀️ Light")
+        mock_set_theme.assert_called_with("light")
+
+        # Settings panel callback
+        self.gui._on_settings_theme_change("🌙 Dark Mode")
+        mock_set_theme.assert_called_with("dark")
+
+        self.gui._on_settings_theme_change("💻 System Default")
+        mock_set_theme.assert_called_with("system")
+
+        self.gui._on_settings_theme_change("☀️ Light Mode")
+        mock_set_theme.assert_called_with("light")
+
 
 if __name__ == "__main__":
     unittest.main()
