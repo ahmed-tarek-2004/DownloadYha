@@ -17,7 +17,7 @@ from unittest.mock import MagicMock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
-from downloadyha import config, updater
+from downloadyha import config, dependencies, updater
 
 
 class TestConfig(unittest.TestCase):
@@ -172,12 +172,57 @@ class TestUpdater(unittest.TestCase):
             self.assertIsNone(err)
             self.assertEqual(target_exe.read_bytes(), b"linux_v2")
 
+    def test_build_artifact_name(self):
+        cli_win = updater._build_artifact_name("v2.0.0", "windows-x86_64", is_gui=False)
+        self.assertEqual(cli_win, "downloadyha-v2.0.0-windows-x86_64.zip")
+
+        gui_win = updater._build_artifact_name("v2.0.0", "windows-x86_64", is_gui=True)
+        self.assertEqual(gui_win, "downloadyha-gui-v2.0.0-windows-x86_64.zip")
+
+        cli_linux = updater._build_artifact_name("v2.0.0", "linux-x86_64", is_gui=False)
+        self.assertEqual(cli_linux, "downloadyha-v2.0.0-linux-x86_64.tar.gz")
+
+        gui_linux = updater._build_artifact_name("v2.0.0", "linux-x86_64", is_gui=True)
+        self.assertEqual(gui_linux, "downloadyha-gui-v2.0.0-linux-x86_64.tar.gz")
+
+    def test_is_gui_app(self):
+        gui_exe = Path("/path/to/downloadyha-gui.exe")
+        cli_exe = Path("/path/to/downloadyha.exe")
+        self.assertTrue(updater._is_gui_app(gui_exe))
+        self.assertFalse(updater._is_gui_app(cli_exe))
+
+    def test_safe_install_binary_success(self):
+        bin_dir = Path(self.test_dir) / "bin"
+        bin_dir.mkdir(parents=True, exist_ok=True)
+        target = bin_dir / "ffmpeg.exe"
+        target.write_bytes(b"old_ffmpeg")
+
+        src = Path(self.test_dir) / "new_ffmpeg.exe"
+        src.write_bytes(b"new_ffmpeg")
+
+        ok = dependencies._safe_install_binary(src, target)
+        self.assertTrue(ok)
+        self.assertEqual(target.read_bytes(), b"new_ffmpeg")
+
+    def test_cleanup_stale_dependency_backups(self):
+        bin_dir = Path(self.test_dir) / "bin"
+        bin_dir.mkdir(parents=True, exist_ok=True)
+        target = bin_dir / "ffmpeg.exe"
+        target.write_bytes(b"ffmpeg")
+        old_file = bin_dir / "ffmpeg.old.123_456.exe"
+        old_file.write_bytes(b"old_ffmpeg")
+
+        dependencies.cleanup_stale_dependency_backups(bin_dir)
+        self.assertTrue(target.exists())
+        self.assertFalse(old_file.exists())
+
     def test_perform_update_dev_mode_skips_binary_replacement(self):
         with patch.object(sys, "frozen", False, create=True), \
              patch("downloadyha.updater.init_terminal"), \
              patch("downloadyha.updater.info") as mock_info:
-            res = updater.perform_update("v2.0.0")
-            self.assertTrue(res)
+            ok, msg = updater.perform_update("v2.0.0")
+            self.assertTrue(ok)
+            self.assertIn("source code", msg)
             mock_info.assert_any_call("Downloadyha is running from source code (development mode).")
 
 

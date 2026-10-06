@@ -268,6 +268,46 @@ class TestDownloadyhaGUILogic(unittest.TestCase):
         self.gui._on_settings_theme_change("☀️ Light Mode")
         mock_set_theme.assert_called_with("light")
 
+    def test_on_update_installed_success(self):
+        """Test on_update_installed handles success correctly."""
+        self.gui.btn_check_updates = MagicMock()
+        self.gui.health_feedback_label = MagicMock()
+
+        self.gui._on_update_installed(True, "Successfully updated to v2.0.1.")
+        self.gui.health_feedback_label.configure.assert_called_with(
+            text="✓ Successfully updated to v2.0.1.",
+            text_color=Theme.SUCCESS_GREEN,
+        )
+
+    def test_on_update_installed_failure(self):
+        """Test on_update_installed displays descriptive error message on failure."""
+        self.gui.btn_check_updates = MagicMock()
+        self.gui.health_feedback_label = MagicMock()
+
+        self.gui._on_update_installed(False, "Integrity check failed: Checksum mismatch.")
+        self.gui.health_feedback_label.configure.assert_called_with(
+            text="❌ Update failed: Integrity check failed: Checksum mismatch.",
+            text_color=Theme.ERROR_RED,
+        )
+
+    def test_on_repair_result(self):
+        """Test on_repair_result handles success and failure."""
+        self.gui.btn_verify_repair = MagicMock()
+        self.gui.health_status_dot = MagicMock()
+        self.gui.health_feedback_label = MagicMock()
+
+        self.gui._on_repair_result(True)
+        self.gui.health_feedback_label.configure.assert_called_with(
+            text="✓ All helper binaries verified and ready!",
+            text_color=Theme.SUCCESS_GREEN,
+        )
+
+        self.gui._on_repair_result(False)
+        self.gui.health_feedback_label.configure.assert_called_with(
+            text="⚠️ Some dependencies could not be repaired.",
+            text_color=Theme.ERROR_RED,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

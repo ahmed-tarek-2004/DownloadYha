@@ -251,6 +251,20 @@ class TestUI(unittest.TestCase):
             self.assertTrue(ui.prompt_confirm("Continue?", default=True))
             self.assertFalse(ui.prompt_confirm("Continue?", default=False))
 
+    def test_ui_functions_with_stdout_none(self):
+        """Ensure UI functions do not crash when sys.stdout is None (e.g. in GUI windowed mode)."""
+        ui.set_color_enabled(None)
+        try:
+            with patch("sys.stdout", None), patch("sys.stderr", None):
+                # Should safely no-op without AttributeError
+                ui.print_progress(50.0, speed="5 MB/s", eta="00:10")
+                ui.clear_progress_line()
+                ui.print_interrupted("Interrupted message")
+                ui.enable_virtual_terminal()
+                self.assertFalse(ui.is_color_supported())
+        finally:
+            ui.set_color_enabled(True)
+
 
 class TestColorsAttributes(unittest.TestCase):
     """Comprehensive tests for all Colors class attributes."""

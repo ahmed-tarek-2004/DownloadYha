@@ -15,6 +15,12 @@ A modern, production-grade desktop GUI built with CustomTkinter featuring:
 
 from __future__ import annotations
 
+__author__ = "Ahmed Tarek Zaher"
+__copyright__ = "Copyright 2026, Ahmed Tarek Zaher"
+__license__ = "MIT"
+
+# BOOKMARK: Ahmed Tarek Zaher - Owner
+
 import os
 import re
 import sys
@@ -656,6 +662,7 @@ class _DummyWidget:
 
 # ---------------------------------------------------------------------------
 # Main Application Class (CustomTkinter GUI)
+# BOOKMARK: Ahmed Tarek Zaher - Owner
 # ---------------------------------------------------------------------------
 
 class DownloadyhaGUI(ctk.CTk):
@@ -1866,8 +1873,8 @@ class DownloadyhaGUI(ctk.CTk):
 
         def worker():
             try:
-                ok = perform_update(version_str)
-                self.after(0, self._on_update_installed, ok, version_str)
+                ok, err_or_msg = perform_update(version_str)
+                self.after(0, self._on_update_installed, ok, err_or_msg)
             except Exception as e:
                 self.after(0, self._on_update_installed, False, str(e))
 
@@ -1884,7 +1891,7 @@ class DownloadyhaGUI(ctk.CTk):
         )
         if success:
             self.health_feedback_label.configure(
-                text="✓ Update complete! Please restart Downloadyha.",
+                text=f"✓ {msg}",
                 text_color=Theme.SUCCESS_GREEN,
             )
         else:

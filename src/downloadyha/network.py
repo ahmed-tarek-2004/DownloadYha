@@ -8,6 +8,12 @@ environments with missing or broken local issuer certificates.
 
 from __future__ import annotations
 
+__author__ = "Ahmed Tarek Zaher"
+__copyright__ = "Copyright 2026, Ahmed Tarek Zaher"
+__license__ = "MIT"
+
+# BOOKMARK: Ahmed Tarek Zaher - Owner
+
 import contextlib
 import os
 import shutil
@@ -235,8 +241,9 @@ def download_url_to_file(
             except (ValueError, TypeError):
                 pass
 
-            # Show progress if requested and we have a size
-            if show_progress and file_size > 0:
+            # Show progress if requested, we have a size, and console stdout is available
+            has_console = sys.stdout is not None and hasattr(sys.stdout, "write")
+            if show_progress and file_size > 0 and has_console:
                 downloaded = 0
                 start_time = time.time()
                 last_update = start_time
@@ -280,17 +287,20 @@ def download_url_to_file(
                     f"100% ({format_bytes(file_size)} / {format_bytes(file_size)})"
                 )
             else:
-                # Original behavior for small files or when progress is disabled
+                # Original behavior for small files or when progress/console is disabled
                 with open(temp_dest, "wb") as f:
                     shutil.copyfileobj(response, f)
 
         if temp_dest.exists():
-            if dest_path.exists():
-                try:
-                    dest_path.unlink()
-                except OSError:
-                    pass
-            temp_dest.rename(dest_path)
+            try:
+                os.replace(temp_dest, dest_path)
+            except OSError:
+                if dest_path.exists():
+                    try:
+                        dest_path.unlink()
+                    except OSError:
+                        pass
+                temp_dest.rename(dest_path)
     finally:
         if temp_dest.exists():
             try:

@@ -60,6 +60,8 @@ def _resolve_version() -> str:
 
 __version__ = _resolve_version()
 __author__ = "Ahmed Tarek Zaher"
+__copyright__ = "Copyright 2026, Ahmed Tarek Zaher"
+__license__ = "MIT"
 __app_name__ = "Downloadyha"
 
 # Initialize network & SSL environment settings

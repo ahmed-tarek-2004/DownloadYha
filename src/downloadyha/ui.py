@@ -8,6 +8,10 @@ status alerts, and user input helpers.
 
 from __future__ import annotations
 
+__author__ = "Ahmed Tarek Zaher"
+__copyright__ = "Copyright 2026, Ahmed Tarek Zaher"
+__license__ = "MIT"
+
 import ctypes
 import math
 import os
@@ -17,6 +21,7 @@ import sys
 import time
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
+# BOOKMARK: Ahmed Tarek Zaher - Owner
 
 # ---------------------------------------------------------------------------
 # Virtual Terminal & ANSI Support Detection
@@ -38,9 +43,9 @@ def enable_virtual_terminal() -> bool:
     # Reconfigure streams to UTF-8 if supported to prevent UnicodeEncodeError
     if sys.platform == "win32":
         try:
-            if hasattr(sys.stdout, "reconfigure"):
+            if sys.stdout is not None and hasattr(sys.stdout, "reconfigure"):
                 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-            if hasattr(sys.stderr, "reconfigure"):
+            if sys.stderr is not None and hasattr(sys.stderr, "reconfigure"):
                 sys.stderr.reconfigure(encoding="utf-8", errors="replace")
         except Exception:
             pass
@@ -111,7 +116,7 @@ def is_color_supported() -> bool:
 
     # Check if standard output is a TTY
     try:
-        return hasattr(sys.stdout, "isatty") and sys.stdout.isatty()
+        return sys.stdout is not None and hasattr(sys.stdout, "isatty") and sys.stdout.isatty()
     except Exception:
         return False
 
@@ -1295,6 +1300,9 @@ def print_progress(
     """
     Print an in-place updating progress bar to standard output.
     """
+    if sys.stdout is None or not hasattr(sys.stdout, "write"):
+        return
+
     bar_str = render_progress_bar(
         percent=percent,
         width=width,
@@ -1305,15 +1313,24 @@ def print_progress(
         prefix=prefix,
         status=status
     )
-    # Carriage return without newline for smooth progress updates
-    sys.stdout.write(f"\r{bar_str}\033[K")
-    sys.stdout.flush()
+    try:
+        # Carriage return without newline for smooth progress updates
+        sys.stdout.write(f"\r{bar_str}\033[K")
+        if hasattr(sys.stdout, "flush"):
+            sys.stdout.flush()
+    except Exception:
+        pass
 
 
 def clear_progress_line() -> None:
     """Clear the current interactive progress line."""
-    sys.stdout.write("\r\033[K")
-    sys.stdout.flush()
+    if sys.stdout is not None and hasattr(sys.stdout, "write"):
+        try:
+            sys.stdout.write("\r\033[K")
+            if hasattr(sys.stdout, "flush"):
+                sys.stdout.flush()
+        except Exception:
+            pass
 
 
 class DownloadProgressBar:
@@ -1569,11 +1586,13 @@ def print_interrupted(
         details: Optional helpful tip or friendly exit remark.
         width: Optional custom box width.
     """
-    try:
-        sys.stdout.write("\r\033[K")
-        sys.stdout.flush()
-    except Exception:
-        pass
+    if sys.stdout is not None and hasattr(sys.stdout, "write"):
+        try:
+            sys.stdout.write("\r\033[K")
+            if hasattr(sys.stdout, "flush"):
+                sys.stdout.flush()
+        except Exception:
+            pass
 
     c = Colors
     b = BOX_STYLES["rounded"]

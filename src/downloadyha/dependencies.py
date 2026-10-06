@@ -8,6 +8,12 @@ and provides yt-dlp configuration.
 
 from __future__ import annotations
 
+__author__ = "Ahmed Tarek Zaher"
+__copyright__ = "Copyright 2026, Ahmed Tarek Zaher"
+__license__ = "MIT"
+
+# BOOKMARK: Ahmed Tarek Zaher - Owner
+
 import hashlib
 import json
 import os
@@ -16,6 +22,7 @@ import stat
 import sys
 import tarfile
 import tempfile
+import time
 import urllib.error
 import urllib.request
 import zipfile
@@ -192,6 +199,80 @@ def _extract_archive(archive_path: Path, extract_dir: Path, archive_type: str) -
         raise ExtractionError(f"Failed to extract {archive_path}: {e}") from e
 
 
+def cleanup_stale_dependency_backups(bin_dir: Optional[Path] = None) -> None:
+    """
+    Remove leftover .old or .old.* executable files in bin_dir from previous repairs.
+    """
+    if bin_dir is None:
+        bin_dir = get_bin_dir()
+
+    if not bin_dir.exists():
+        return
+
+    patterns = ["*.old*", "*.new.*.tmp*"]
+    for pattern in patterns:
+        try:
+            for item in bin_dir.glob(pattern):
+                if item.is_file():
+                    try:
+                        item.unlink()
+                    except OSError:
+                        pass
+        except OSError:
+            pass
+
+
+def _safe_install_binary(src_bin: Path, target_bin_path: Path) -> bool:
+    """
+    Safely install src_bin into target_bin_path using staged replacement.
+    On Windows, if target_bin_path is currently executing or open, direct overwriting
+    or deletion raises PermissionError [Errno 13]. Renaming to .old.<pid>_<timestamp>
+    succeeds on NTFS and allows placing the new binary immediately.
+    """
+    target_dir = target_bin_path.parent
+    try:
+        target_dir.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        pass
+
+    if not src_bin.exists():
+        return False
+
+    pid = os.getpid()
+    timestamp = int(time.time())
+
+    # If target exists, rename it to .old before copying new binary
+    backup_file = None
+    if target_bin_path.exists():
+        backup_file = target_dir / f"{target_bin_path.stem}.old.{pid}_{timestamp}{target_bin_path.suffix}"
+        try:
+            target_bin_path.rename(backup_file)
+        except OSError:
+            # Fallback: try direct replace if rename fails
+            pass
+
+    try:
+        shutil.copy2(src_bin, target_bin_path)
+        _make_executable(target_bin_path)
+    except Exception:
+        # If copy fails and we moved backup_file, try to restore it
+        if backup_file and backup_file.exists() and not target_bin_path.exists():
+            try:
+                backup_file.rename(target_bin_path)
+            except OSError:
+                pass
+        return False
+
+    # Attempt cleanup of backup file if it was created
+    if backup_file and backup_file.exists():
+        try:
+            backup_file.unlink()
+        except OSError:
+            pass
+
+    return True
+
+
 def download_and_install_dependency(dep_name: str) -> bool:
     """
     Download and install a dependency (ffmpeg or deno) according to versions.json.
@@ -226,6 +307,7 @@ def download_and_install_dependency(dep_name: str) -> bool:
 
     ensure_directories()
     bin_dir = get_bin_dir()
+    cleanup_stale_dependency_backups(bin_dir)
 
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_dir_path = Path(temp_dir)
@@ -274,14 +356,9 @@ def download_and_install_dependency(dep_name: str) -> bool:
             final_bin_name = Path(bin_path_in_archive).name
 
         target_bin_path = bin_dir / final_bin_name
-        if target_bin_path.exists():
-            try:
-                target_bin_path.unlink()
-            except Exception:
-                pass
-
-        shutil.copy2(src_bin, target_bin_path)
-        _make_executable(target_bin_path)
+        if not _safe_install_binary(src_bin, target_bin_path):
+            print(f"Failed to safely install {final_bin_name} into {bin_dir}.")
+            return False
 
         # Handle secondary binary (e.g. ffprobe in ffmpeg archive)
         if probe_path_in_archive:
@@ -294,13 +371,7 @@ def download_and_install_dependency(dep_name: str) -> bool:
             if src_probe.exists():
                 target_probe_name = get_ffprobe_executable_name()
                 target_probe_path = bin_dir / target_probe_name
-                if target_probe_path.exists():
-                    try:
-                        target_probe_path.unlink()
-                    except Exception:
-                        pass
-                shutil.copy2(src_probe, target_probe_path)
-                _make_executable(target_probe_path)
+                _safe_install_binary(src_probe, target_probe_path)
 
         print(f"Installed {dep_name} successfully.")
         return True
