@@ -82,7 +82,7 @@ class TestDownloadyhaGUIHelpers(unittest.TestCase):
             root.destroy()
         except Exception as e:
             # If running in headless environment without display, skip GUI creation error
-            if "no display name" not in str(e).lower():
+            if "no display name" not in str(e).lower() and "display" not in str(e).lower():
                 raise e
 
 
@@ -383,5 +383,25 @@ class TestDownloadyhaGUILogic(unittest.TestCase):
         self.gui.settings_path_entry.insert.assert_called_with(0, "/custom/settings/path" if sys.platform != "win32" else "\\custom\\settings\\path")
 
 
+class TestDownloadyhaGUILauncher(unittest.TestCase):
+    """Test launcher dependency checking."""
+
+    def test_check_dependencies_success(self):
+        with patch.dict("sys.modules", {"tkinter": MagicMock(), "customtkinter": MagicMock(), "yt_dlp": MagicMock()}):
+            from downloadyha_gui import launcher
+            self.assertTrue(launcher.check_dependencies())
+
+    def test_check_dependencies_missing_tkinter(self):
+        with patch.dict("sys.modules", {"tkinter": None}):
+            from downloadyha_gui import launcher
+            self.assertFalse(launcher.check_dependencies())
+
+    def test_check_dependencies_missing_customtkinter(self):
+        with patch.dict("sys.modules", {"tkinter": MagicMock(), "customtkinter": None, "yt_dlp": MagicMock()}):
+            from downloadyha_gui import launcher
+            self.assertFalse(launcher.check_dependencies())
+
+
 if __name__ == "__main__":
     unittest.main()
+

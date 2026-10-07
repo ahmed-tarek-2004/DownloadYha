@@ -34,7 +34,7 @@ Download the pre-built standalone app for your operating system:
 | Platform | Download | Instructions |
 |---|---|---|
 | **Windows 10/11 (64-bit)** | **[⬇️ Download Windows GUI (ZIP)](https://github.com/ahmed-tarek-2004/DownloadYha/releases/latest/download/downloadyha-gui-windows.zip)** | Extract the ZIP and double-click `downloadyha-gui.exe` |
-| **Linux (x86_64)** | **[⬇️ Download Linux GUI (tar.gz)](https://github.com/ahmed-tarek-2004/DownloadYha/releases/latest/download/downloadyha-gui-linux-x86_64.tar.gz)** | Extract archive and run `./downloadyha-gui` |
+| **Linux (x86_64)** | **[⬇️ Download Linux GUI (tar.gz)](https://github.com/ahmed-tarek-2004/DownloadYha/releases/latest/download/downloadyha-gui-linux-x86_64.tar.gz)** | Extract archive and run `./downloadyha-gui`<br>*(or install via script: `curl -fsSL https://raw.githubusercontent.com/ahmed-tarek-2004/DownloadYha/master/install.sh | bash -s -- --gui`)* |
 
 #### 3-Step Windows Quick Start:
 1. **Download & Extract** `downloadyha-gui-windows.zip` to a folder of your choice (e.g. `Downloads` or `C:\Program Files\DownloadyhaGUI`).
@@ -48,7 +48,11 @@ Download the pre-built standalone app for your operating system:
 If you have Python 3.10+ installed, you can install the GUI package with:
 
 ```bash
+# From PyPI:
 pip install "downloadyha[gui]"
+
+# Or directly from GitHub:
+pip install "downloadyha[gui] @ git+https://github.com/ahmed-tarek-2004/DownloadYha.git"
 ```
 
 Then launch the GUI anytime with:
@@ -57,7 +61,7 @@ Then launch the GUI anytime with:
 downloadyha-gui
 ```
 
-*(On Linux systems without Tkinter: `sudo apt install python3-tk`)*
+*(On Linux systems without Tkinter: `sudo apt install python3-tk` or `sudo dnf install python3-tkinter`)*
 
 📖 **[Complete GUI User Guide →](GUI_USER_GUIDE.md)** | **[GUI Download Documentation →](GUI_DOWNLOAD.md)**
 
