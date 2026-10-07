@@ -34,6 +34,13 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import customtkinter as ctk
 
+try:
+    from yt_dlp.utils import DownloadCancelled
+except Exception:
+    class DownloadCancelled(Exception):
+        """Fallback exception if yt_dlp.utils.DownloadCancelled is unavailable."""
+        pass
+
 # Import downloadyha core engine
 try:
     from downloadyha import __version__
@@ -2493,15 +2500,22 @@ class DownloadyhaGUI(ctk.CTk):
     def _download_worker(self, task: DownloadTask):
         """
         Background worker executing the download.
-        Guarantees STRICT success/failure separation so that failed downloads
-        NEVER invoke the completion callback.
+        Guarantees STRICT success/failure separation and robust, immediate cancellation handling.
         """
         try:
+            if self.cancel_requested:
+                self.after(0, self._on_download_cancelled, task)
+                return
+
             # 1. Dependency check
             ffmpeg_ok, _ = check_ffmpeg()
             if not ffmpeg_ok:
                 self.after(0, self._set_active_status_text, "Setting up FFmpeg stream merging components...")
                 check_dependencies(auto_download=True)
+
+            if self.cancel_requested:
+                self.after(0, self._on_download_cancelled, task)
+                return
 
             # 2. Extract metadata if needed
             if not self.media_info or self.last_fetched_url != task.url:
@@ -2513,6 +2527,10 @@ class DownloadyhaGUI(ctk.CTk):
                     self.after(0, self._on_media_info_fetched, info, task.url)
             else:
                 info = self.media_info
+
+            if self.cancel_requested:
+                self.after(0, self._on_download_cancelled, task)
+                return
 
             if task.is_playlist is not None:
                 is_pl = task.is_playlist
@@ -2526,7 +2544,7 @@ class DownloadyhaGUI(ctk.CTk):
             # Progress Hook
             def progress_callback(data: Dict[str, Any]):
                 if self.cancel_requested:
-                    raise KeyboardInterrupt("Download cancelled by user.")
+                    raise DownloadCancelled("Download cancelled by user.")
 
                 status = data.get("status", "")
                 if status == "downloading":
@@ -2586,6 +2604,10 @@ class DownloadyhaGUI(ctk.CTk):
                     )
 
             # 4. Strict Result Dispatch (No false successes!)
+            if self.cancel_requested or (result and "cancelled" in (result.message or "").lower()):
+                self.after(0, self._on_download_cancelled, task)
+                return
+
             if result is not None and getattr(result, "success", False):
                 task.saved_directory = result.download_directory
                 task.completed_files = result.files
@@ -2599,12 +2621,15 @@ class DownloadyhaGUI(ctk.CTk):
                 task.error_message = err_msg
                 self.after(0, self._on_download_failed, task, err_msg)
 
-        except KeyboardInterrupt:
+        except (KeyboardInterrupt, DownloadCancelled):
             self.after(0, self._on_download_cancelled, task)
         except Exception as e:
-            err_msg = str(e) or "An unexpected exception occurred during download."
-            task.error_message = err_msg
-            self.after(0, self._on_download_failed, task, err_msg)
+            if self.cancel_requested or "cancel" in str(e).lower():
+                self.after(0, self._on_download_cancelled, task)
+            else:
+                err_msg = str(e) or "An unexpected exception occurred during download."
+                task.error_message = err_msg
+                self.after(0, self._on_download_failed, task, err_msg)
 
     # -----------------------------------------------------------------------
     # Thread-Safe UI Update Handlers (Dispatched strictly via self.after)
@@ -2690,6 +2715,9 @@ class DownloadyhaGUI(ctk.CTk):
 
         self.active_status_badge.configure(text="Cancelled", text_color=Theme.WARNING_AMBER, fg_color=Theme.WARNING_LIGHT)
         self.active_item_label.configure(text="Download was cancelled by user.", text_color=Theme.WARNING_AMBER)
+        self.main_speed_label.configure(text="Speed: --")
+        self.main_eta_label.configure(text="ETA: --")
+        self.url_feedback_label.configure(text="⚠️ Download cancelled by user.", text_color=Theme.WARNING_AMBER)
 
         self._refresh_queue_view()
 
@@ -2697,8 +2725,10 @@ class DownloadyhaGUI(ctk.CTk):
         """Request immediate download cancellation."""
         if self.is_downloading:
             self.cancel_requested = True
-            self.active_status_badge.configure(text="Cancelling...", text_color=Theme.WARNING_AMBER)
-            self.active_item_label.configure(text="Cancelling current operation...")
+            self.cancel_download_btn.configure(state="disabled")
+            self.active_status_badge.configure(text="Cancelling...", text_color=Theme.WARNING_AMBER, fg_color=Theme.WARNING_LIGHT)
+            self.active_item_label.configure(text="Cancelling current operation...", text_color=Theme.WARNING_AMBER)
+            self.url_feedback_label.configure(text="⚠️ Cancelling download...", text_color=Theme.WARNING_AMBER)
 
     def _retry_active_download(self):
         """Retry from the main download view error banner."""

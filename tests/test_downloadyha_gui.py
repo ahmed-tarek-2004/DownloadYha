@@ -17,6 +17,7 @@ from downloadyha_gui.app import (
     DEFAULT_VIDEO_QUALITIES,
     SUBTITLE_QUALITIES,
     DownloadHistory,
+    DownloadTask,
     DownloadyhaGUI,
     ModernButton,
     Theme,
@@ -438,6 +439,91 @@ class TestDownloadyhaGUILogic(unittest.TestCase):
         ]
         self.gui.sub_langs_menu.configure.assert_called_once_with(values=expected_options)
         self.gui.sub_langs_var.set.assert_called_once_with("ar (Arabic)")
+
+    def test_cancel_download_requests_cancellation_and_updates_ui(self):
+        """Test _cancel_download flags cancellation and updates status labels."""
+        self.gui.is_downloading = True
+        self.gui.cancel_requested = False
+
+        self.gui._cancel_download()
+
+        self.assertTrue(self.gui.cancel_requested)
+        self.gui.cancel_download_btn.configure.assert_called_with(state="disabled")
+        self.gui.active_status_badge.configure.assert_called_with(
+            text="Cancelling...",
+            text_color=Theme.WARNING_AMBER,
+            fg_color=Theme.WARNING_LIGHT,
+        )
+        self.gui.active_item_label.configure.assert_called_with(
+            text="Cancelling current operation...",
+            text_color=Theme.WARNING_AMBER,
+        )
+        self.gui.url_feedback_label.configure.assert_called_with(
+            text="⚠️ Cancelling download...",
+            text_color=Theme.WARNING_AMBER,
+        )
+
+    def test_on_download_cancelled_resets_ui_state(self):
+        """Test _on_download_cancelled resets downloading state and re-enables start button."""
+        self.gui.is_downloading = True
+        self.gui.cancel_requested = True
+        self.gui._refresh_queue_view = MagicMock()
+
+        task = DownloadTask(
+            url="https://youtube.com/watch?v=cancel123",
+            dest_path="/tmp",
+            media_type="video",
+            quality=1080,
+            quality_label="1080p",
+            title="Test Video",
+            uploader="Creator",
+        )
+
+        self.gui._on_download_cancelled(task)
+
+        self.assertFalse(self.gui.is_downloading)
+        self.assertFalse(self.gui.cancel_requested)
+        self.assertEqual(task.status, "cancelled")
+        self.gui.start_download_btn.configure.assert_called_with(state="normal")
+        self.gui.cancel_download_btn.configure.assert_called_with(state="disabled")
+        self.gui.active_status_badge.configure.assert_called_with(
+            text="Cancelled",
+            text_color=Theme.WARNING_AMBER,
+            fg_color=Theme.WARNING_LIGHT,
+        )
+        self.gui.active_item_label.configure.assert_called_with(
+            text="Download was cancelled by user.",
+            text_color=Theme.WARNING_AMBER,
+        )
+        self.gui.url_feedback_label.configure.assert_called_with(
+            text="⚠️ Download cancelled by user.",
+            text_color=Theme.WARNING_AMBER,
+        )
+        self.gui._refresh_queue_view.assert_called_once()
+
+    @patch("downloadyha_gui.app.check_ffmpeg", return_value=(True, ""))
+    @patch("downloadyha_gui.app.download_video")
+    def test_download_worker_aborts_immediately_on_cancel_requested(self, mock_download, mock_ffmpeg):
+        """Test _download_worker exits early and dispatches cancellation callback if cancel_requested is True."""
+        self.gui.cancel_requested = True
+        self.gui.after = MagicMock()
+        self.gui.last_fetched_url = "https://youtube.com/watch?v=cancel123"
+        self.gui.media_info = {"title": "Test Video"}
+
+        task = DownloadTask(
+            url="https://youtube.com/watch?v=cancel123",
+            dest_path="/tmp",
+            media_type="video",
+            quality=1080,
+            quality_label="1080p",
+            title="Test Video",
+            uploader="Creator",
+        )
+
+        self.gui._download_worker(task)
+
+        mock_download.assert_not_called()
+        self.gui.after.assert_called_with(0, self.gui._on_download_cancelled, task)
 
 
 if __name__ == "__main__":
