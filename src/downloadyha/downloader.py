@@ -31,8 +31,12 @@ from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
 import yt_dlp
 try:
-    from yt_dlp.utils import download_range_func
+    from yt_dlp.utils import DownloadCancelled, download_range_func
 except ImportError:
+    class DownloadCancelled(Exception):
+        """Fallback exception if yt_dlp.utils.DownloadCancelled is unavailable."""
+        pass
+
     def download_range_func(chapters, ranges):
         def _range_func(info_dict, ydl=None):
             for start, end in ranges:
@@ -972,6 +976,8 @@ def create_progress_hook(
                     "raw_data": data,
                 }
                 custom_callback(event)
+            except (DownloadCancelled, KeyboardInterrupt):
+                raise
             except Exception:
                 pass
 
@@ -1161,6 +1167,7 @@ def download_media(
         "outtmpl": outtmpl,
         "ignoreerrors": True,
         "progress_hooks": [hook],
+        "postprocessor_hooks": [hook],
         "noplaylist": not is_pl,
     }
 
@@ -1339,6 +1346,21 @@ def download_media(
 
         return result
 
+    except (DownloadCancelled, KeyboardInterrupt) as e:
+        logger.info(f"Download was cancelled: {e}")
+        print("\nDownload cancelled by user.")
+        return DownloadResult(
+            success=False,
+            message="Download cancelled by user.",
+            download_type=media_type,
+            is_playlist=is_pl,
+            total_items=entries_count,
+            completed_items=stats_tracker.get("completed_items", 0),
+            failed_items=0,
+            errors=["Download cancelled by user."],
+            download_directory=target_dir,
+            playlist_title=pl_title
+        )
     except Exception as e:
         logger.error(f"Download exception occurred: {e}")
         print(f"\nDownload failed:")
