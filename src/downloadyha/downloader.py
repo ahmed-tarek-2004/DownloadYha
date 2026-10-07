@@ -1179,23 +1179,22 @@ def download_media(
 
     # Configure subtitle options if requested
     sub_desc = ""
-    if write_subtitles or write_auto_subs or embed_subs or convert_subs:
-        # Smart subtitle handling: if user requests any subtitle-related action,
-        # try to get both manual and automatic subtitles to maximize compatibility
-        # across different platforms (YouTube has manual, Facebook often has auto-generated)
-        effective_write_subs = write_subtitles or write_auto_subs or embed_subs or convert_subs
-        effective_write_auto_subs = write_subtitles or write_auto_subs or embed_subs or convert_subs
+    if media_type in ("subtitles", "subtitle", "subs"):
+        # Subtitle-only download mode (skips video/audio media download entirely)
+        effective_sub_langs = sub_langs or "all"
+        clean_langs = [part.strip().split()[0] for part in effective_sub_langs.split(",") if part.strip()]
+        if not clean_langs or "all" in [c.lower() for c in clean_langs]:
+            sub_langs_list = ["all"]
+        else:
+            sub_langs_list = clean_langs
 
-        if effective_write_subs:
-            extra_options["writesubtitles"] = True
-        if effective_write_auto_subs:
-            extra_options["writeautomaticsub"] = True
-        if sub_langs:
-            extra_options["subtitleslangs"] = [lang.strip() for lang in sub_langs.split(",") if lang.strip()]
-        if sub_format:
-            extra_options["subtitlesformat"] = sub_format
-        if embed_subs:
-            extra_options["embedsubs"] = True
+        extra_options.update({
+            "skip_download": True,
+            "writesubtitles": True,
+            "writeautomaticsub": write_auto_subs if write_auto_subs is not None else True,
+            "subtitleslangs": sub_langs_list,
+            "subtitlesformat": sub_format or "srt",
+        })
         if convert_subs:
             extra_options["postprocessors"] = extra_options.get("postprocessors", []) + [
                 {
@@ -1203,9 +1202,32 @@ def download_media(
                     "format": convert_subs,
                 }
             ]
-        sub_desc = " + subtitles" + (" (embedded)" if embed_subs else "")
+        desc_str = f"subtitles only (format: {sub_format or 'srt'}, languages: {','.join(sub_langs_list)})"
 
-    if media_type == "audio":
+    elif media_type == "audio":
+        if write_subtitles or write_auto_subs or embed_subs or convert_subs:
+            effective_write_subs = write_subtitles or write_auto_subs or embed_subs or convert_subs
+            effective_write_auto_subs = write_subtitles or write_auto_subs or embed_subs or convert_subs
+
+            if effective_write_subs:
+                extra_options["writesubtitles"] = True
+            if effective_write_auto_subs:
+                extra_options["writeautomaticsub"] = True
+            if sub_langs:
+                extra_options["subtitleslangs"] = [lang.strip() for lang in sub_langs.split(",") if lang.strip()]
+            if sub_format:
+                extra_options["subtitlesformat"] = sub_format
+            if embed_subs:
+                extra_options["embedsubs"] = True
+            if convert_subs:
+                extra_options["postprocessors"] = extra_options.get("postprocessors", []) + [
+                    {
+                        "key": "FFmpegSubtitlesConvertor",
+                        "format": convert_subs,
+                    }
+                ]
+            sub_desc = " + subtitles" + (" (embedded)" if embed_subs else "")
+
         audio_quality = resolve_audio_quality(quality)
         extra_options.update({
             "format": "bestaudio/best",
@@ -1220,6 +1242,29 @@ def download_media(
         desc_str = f"audio (MP3, quality: {audio_quality}){clip_desc}{sub_desc}"
     else:
         # Video download
+        if write_subtitles or write_auto_subs or embed_subs or convert_subs:
+            effective_write_subs = write_subtitles or write_auto_subs or embed_subs or convert_subs
+            effective_write_auto_subs = write_subtitles or write_auto_subs or embed_subs or convert_subs
+
+            if effective_write_subs:
+                extra_options["writesubtitles"] = True
+            if effective_write_auto_subs:
+                extra_options["writeautomaticsub"] = True
+            if sub_langs:
+                extra_options["subtitleslangs"] = [lang.strip() for lang in sub_langs.split(",") if lang.strip()]
+            if sub_format:
+                extra_options["subtitlesformat"] = sub_format
+            if embed_subs:
+                extra_options["embedsubs"] = True
+            if convert_subs:
+                extra_options["postprocessors"] = extra_options.get("postprocessors", []) + [
+                    {
+                        "key": "FFmpegSubtitlesConvertor",
+                        "format": convert_subs,
+                    }
+                ]
+            sub_desc = " + subtitles" + (" (embedded)" if embed_subs else "")
+
         height = parse_video_height(quality)
         is_ultra_hd = height > 1080
         video_format = resolve_video_format(height, has_ffmpeg=has_ffmpeg)
@@ -1536,3 +1581,44 @@ def download_playlist_audio(
         embed_subs=embed_subs,
         convert_subs=convert_subs
     )
+
+
+def download_subtitles(
+    url: str,
+    download_path: str,
+    sub_langs: Optional[str] = None,
+    sub_format: str = "srt",
+    write_auto_subs: bool = True,
+    progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
+    convert_subs: Optional[str] = None,
+    is_playlist_mode: Optional[bool] = None
+) -> DownloadResult:
+    """
+    Download subtitle/transcript files only without downloading video or audio media.
+
+    Args:
+        url: Video or playlist URL.
+        download_path: Directory to save the subtitle files.
+        sub_langs: Subtitle language code(s) (e.g. 'en', 'ar', 'all', or 'en,ar').
+        sub_format: Preferred subtitle format (default: 'srt').
+        write_auto_subs: Whether to fetch auto-generated subtitles if manual are absent.
+        progress_callback: Optional progress callback.
+        convert_subs: Optional target conversion format.
+        is_playlist_mode: Whether to process as a playlist batch.
+
+    Returns:
+        DownloadResult instance.
+    """
+    return download_media(
+        url=url,
+        download_path=download_path,
+        media_type="subtitles",
+        sub_langs=sub_langs,
+        sub_format=sub_format,
+        write_subtitles=True,
+        write_auto_subs=write_auto_subs,
+        progress_callback=progress_callback,
+        convert_subs=convert_subs,
+        is_playlist_mode=is_playlist_mode
+    )
+

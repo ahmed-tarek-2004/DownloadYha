@@ -15,11 +15,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 from downloadyha_gui.app import (
     AUDIO_QUALITIES,
     DEFAULT_VIDEO_QUALITIES,
+    SUBTITLE_QUALITIES,
     DownloadHistory,
     DownloadyhaGUI,
     ModernButton,
     Theme,
     format_height_label,
+    format_language_option,
+    get_language_name,
 )
 
 
@@ -36,6 +39,24 @@ class TestDownloadyhaGUIHelpers(unittest.TestCase):
         self.assertEqual(format_height_label(360), "360p (Low)")
         self.assertEqual(format_height_label(240), "240p")
         self.assertEqual(format_height_label(144), "144p")
+
+    def test_language_name_and_formatting(self):
+        """Test language code resolution and option formatting."""
+        self.assertEqual(get_language_name("en"), "English")
+        self.assertEqual(get_language_name("ar"), "Arabic")
+        self.assertEqual(get_language_name("es"), "Spanish")
+        self.assertEqual(get_language_name("fr"), "French")
+        self.assertEqual(get_language_name("de"), "German")
+        self.assertEqual(get_language_name("ja"), "Japanese")
+        self.assertEqual(get_language_name("zh-Hans"), "Chinese (Simplified)")
+        self.assertEqual(get_language_name("en-US"), "English")
+        self.assertEqual(get_language_name("all"), "All Available")
+        self.assertEqual(get_language_name("unknown_xyz"), "UNKNOWN_XYZ")
+
+        self.assertEqual(format_language_option("en"), "en (English)")
+        self.assertEqual(format_language_option("ar"), "ar (Arabic)")
+        self.assertEqual(format_language_option("es"), "es (Spanish)")
+        self.assertEqual(format_language_option("all"), "all (All Available)")
 
     def test_theme_color_conversions(self):
         """Test theme RGB to Hex conversions and color definitions."""
@@ -149,11 +170,25 @@ class TestDownloadyhaGUILogic(unittest.TestCase):
         self.assertEqual(self.gui._parse_audio_quality("192 kbps (Standard Quality)"), "192")
         self.assertEqual(self.gui._parse_audio_quality("128 kbps (Compact Size)"), "128")
 
+    def test_parse_subtitle_format(self):
+        """Test parsing subtitle quality/format string to format parameter."""
+        self.assertEqual(self.gui._parse_subtitle_format("SRT (.srt)"), "srt")
+        self.assertEqual(self.gui._parse_subtitle_format("VTT (.vtt)"), "vtt")
+        self.assertEqual(self.gui._parse_subtitle_format("ASS (.ass)"), "ass")
+        self.assertEqual(self.gui._parse_subtitle_format("LRC (.lrc)"), "lrc")
+        self.assertEqual(self.gui._parse_subtitle_format(""), "srt")
+
     def test_update_quality_options_audio(self):
         """Test dropdown population when audio mode is selected."""
         self.gui.media_type_var.get.return_value = "🎵 Audio"
         self.gui._update_quality_options()
         self.gui.quality_menu.configure.assert_called_with(values=AUDIO_QUALITIES)
+
+    def test_update_quality_options_subtitles(self):
+        """Test dropdown population when subtitles mode is selected."""
+        self.gui.media_type_var.get.return_value = "📝 Subtitles"
+        self.gui._update_quality_options()
+        self.gui.quality_menu.configure.assert_called_with(values=SUBTITLE_QUALITIES)
 
     def test_update_quality_options_video_with_extracted_qualities(self):
         """Test dropdown population when video mode is active with extracted available resolutions."""
@@ -381,6 +416,28 @@ class TestDownloadyhaGUILogic(unittest.TestCase):
 
         self.gui.settings_path_entry.delete.assert_called_with(0, unittest.mock.ANY)
         self.gui.settings_path_entry.insert.assert_called_with(0, "/custom/settings/path" if sys.platform != "win32" else "\\custom\\settings\\path")
+
+    def test_populate_subtitles_with_language_names(self):
+        """Test populating subtitle languages dropdown with language name beside description."""
+        self.gui.sub_langs_menu = MagicMock()
+        self.gui.sub_langs_var = MagicMock()
+
+        sample_subtitles = [
+            {"lang": "en", "is_auto": False, "formats": ["vtt"]},
+            {"lang": "ar", "is_auto": True, "formats": ["vtt"]},
+            {"lang": "es", "is_auto": False, "formats": ["srt"]},
+        ]
+
+        self.gui._populate_subtitles(sample_subtitles)
+
+        expected_options = [
+            "all (All Available)",
+            "ar (Arabic)",
+            "en (English)",
+            "es (Spanish)",
+        ]
+        self.gui.sub_langs_menu.configure.assert_called_once_with(values=expected_options)
+        self.gui.sub_langs_var.set.assert_called_once_with("ar (Arabic)")
 
 
 if __name__ == "__main__":

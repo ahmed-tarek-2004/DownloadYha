@@ -24,6 +24,7 @@ from downloadyha.downloader import (
     download_playlist,
     download_playlist_audio,
     download_playlist_video,
+    download_subtitles,
     download_video,
     format_bytes,
     format_eta,
@@ -564,6 +565,59 @@ class TestDownloaderMocked(unittest.TestCase):
         )
         self.assertFalse(res)
         self.assertIn("greater than start time", res.message)
+
+    @patch("downloadyha.downloader.yt_dlp.YoutubeDL")
+    def test_download_subtitles_success(self, mock_ydl_class):
+        """Test downloading subtitles only without downloading media."""
+        mock_ydl = MagicMock()
+        mock_ydl.__enter__.return_value = mock_ydl
+        mock_ydl.extract_info.return_value = {
+            "title": "Subtitle Test Video",
+            "formats": []
+        }
+        mock_ydl.download.return_value = 0
+        mock_ydl_class.return_value = mock_ydl
+
+        res = download_subtitles("https://www.youtube.com/watch?v=sub123", self.test_dir, sub_format="srt")
+        self.assertTrue(res)
+        self.assertEqual(res.download_type, "subtitles")
+        self.assertFalse(res.is_playlist)
+
+        ydl_opts = mock_ydl_class.call_args_list[-1][0][0]
+        self.assertTrue(ydl_opts.get("skip_download"))
+        self.assertTrue(ydl_opts.get("writesubtitles"))
+        self.assertTrue(ydl_opts.get("writeautomaticsub"))
+        self.assertEqual(ydl_opts.get("subtitlesformat"), "srt")
+        self.assertEqual(ydl_opts.get("subtitleslangs"), ["all"])
+
+    @patch("downloadyha.downloader.yt_dlp.YoutubeDL")
+    def test_download_subtitles_specific_languages(self, mock_ydl_class):
+        """Test downloading subtitles with specific language list and formatting."""
+        mock_ydl = MagicMock()
+        mock_ydl.__enter__.return_value = mock_ydl
+        mock_ydl.extract_info.return_value = {
+            "title": "Multi Subtitle Video",
+            "formats": []
+        }
+        mock_ydl.download.return_value = 0
+        mock_ydl_class.return_value = mock_ydl
+
+        res = download_subtitles(
+            "https://www.youtube.com/watch?v=sub456",
+            self.test_dir,
+            sub_langs="en (English), ar (Arabic)",
+            sub_format="vtt",
+            write_auto_subs=False
+        )
+        self.assertTrue(res)
+        self.assertEqual(res.download_type, "subtitles")
+
+        ydl_opts = mock_ydl_class.call_args_list[-1][0][0]
+        self.assertTrue(ydl_opts.get("skip_download"))
+        self.assertTrue(ydl_opts.get("writesubtitles"))
+        self.assertFalse(ydl_opts.get("writeautomaticsub"))
+        self.assertEqual(ydl_opts.get("subtitlesformat"), "vtt")
+        self.assertEqual(ydl_opts.get("subtitleslangs"), ["en", "ar"])
 
 
 if __name__ == "__main__":
