@@ -82,7 +82,7 @@ class TestDownloadyhaGUIHelpers(unittest.TestCase):
             root.destroy()
         except Exception as e:
             # If running in headless environment without display, skip GUI creation error
-            if "no display name" not in str(e).lower():
+            if "no display name" not in str(e).lower() and "display" not in str(e).lower():
                 raise e
 
 
@@ -381,6 +381,63 @@ class TestDownloadyhaGUILogic(unittest.TestCase):
 
         self.gui.settings_path_entry.delete.assert_called_with(0, unittest.mock.ANY)
         self.gui.settings_path_entry.insert.assert_called_with(0, "/custom/settings/path" if sys.platform != "win32" else "\\custom\\settings\\path")
+    @patch("downloadyha_gui.app.save_config")
+    @patch("customtkinter.set_widget_scaling")
+    def test_zoom_functionality(self, mock_set_scaling, mock_save_config):
+        """Test zoom in, zoom out, reset, and bounds clamping."""
+        self.gui.ui_scale = 1.0
+        self.gui.config = {}
+        self.gui._show_toast = MagicMock()
+        self.gui.scale_var = MagicMock()
+
+        # Test zoom in (+0.1)
+        res = self.gui._zoom_in()
+        self.assertEqual(res, "break")
+        self.assertEqual(self.gui.ui_scale, 1.1)
+        mock_set_scaling.assert_called_with(1.1)
+
+        # Test zoom out (-0.1)
+        res = self.gui._zoom_out()
+        self.assertEqual(res, "break")
+        self.assertEqual(self.gui.ui_scale, 1.0)
+
+        # Test zoom reset
+        self.gui.ui_scale = 1.5
+        res = self.gui._zoom_reset()
+        self.assertEqual(res, "break")
+        self.assertEqual(self.gui.ui_scale, 1.0)
+
+        # Test upper clamp at 2.0
+        self.gui.ui_scale = 1.95
+        self.gui._zoom_in()
+        self.assertEqual(self.gui.ui_scale, 2.0)
+        self.gui._zoom_in()
+        self.assertEqual(self.gui.ui_scale, 2.0)
+
+        # Test lower clamp at 0.8
+        self.gui.ui_scale = 0.85
+        self.gui._zoom_out()
+        self.assertEqual(self.gui.ui_scale, 0.8)
+        self.gui._zoom_out()
+        self.assertEqual(self.gui.ui_scale, 0.8)
+
+    @patch("downloadyha_gui.app.save_config")
+    @patch("customtkinter.set_widget_scaling")
+    def test_on_scale_changed_mapping(self, mock_set_scaling, mock_save_config):
+        """Test _on_scale_changed with dropdown options and custom percentage strings."""
+        self.gui.ui_scale = 1.0
+        self.gui.config = {}
+        self.gui._show_toast = MagicMock()
+        self.gui.scale_var = MagicMock()
+
+        self.gui._on_scale_changed("125%")
+        self.assertEqual(self.gui.ui_scale, 1.25)
+
+        self.gui._on_scale_changed("100% (Default)")
+        self.assertEqual(self.gui.ui_scale, 1.0)
+
+        self.gui._on_scale_changed("80%")
+        self.assertEqual(self.gui.ui_scale, 0.8)
 
 
 if __name__ == "__main__":
