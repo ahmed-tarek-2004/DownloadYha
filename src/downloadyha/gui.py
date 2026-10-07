@@ -985,7 +985,11 @@ class DownloadyhaGUI:
         # Get subtitle options
         write_subtitles = self.write_subs_var.get()
         write_auto_subs = self.write_auto_subs_var.get()
-        sub_langs = self.sub_langs_var.get().strip() if self.sub_langs_var.get().strip() else None
+        raw_sub_langs = self.sub_langs_var.get().strip()
+        if raw_sub_langs:
+            sub_langs = ",".join([part.strip().split()[0] for part in raw_sub_langs.split(",") if part.strip()])
+        else:
+            sub_langs = None
         sub_format = self.sub_format_var.get()
         embed_subs = self.embed_subs_var.get()
         convert_subs = self.convert_subs_format_var.get() if self.convert_subs_var.get() else None

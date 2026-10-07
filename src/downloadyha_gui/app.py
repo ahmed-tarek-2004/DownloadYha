@@ -62,7 +62,12 @@ try:
         parse_time_str,
         strip_playlist_params,
     )
-    from downloadyha.subtitle_utils import get_available_subtitles
+    from downloadyha.subtitle_utils import (
+        LANGUAGE_NAMES,
+        format_language_option,
+        get_available_subtitles,
+        get_language_name,
+    )
     from downloadyha.ui import format_duration, format_number
     from downloadyha.updater import check_for_updates, perform_update
 except ImportError:
@@ -94,7 +99,12 @@ except ImportError:
         parse_time_str,
         strip_playlist_params,
     )
-    from downloadyha.subtitle_utils import get_available_subtitles
+    from downloadyha.subtitle_utils import (
+        LANGUAGE_NAMES,
+        format_language_option,
+        get_available_subtitles,
+        get_language_name,
+    )
     from downloadyha.ui import format_duration, format_number
     from downloadyha.updater import check_for_updates, perform_update
 
@@ -2201,7 +2211,7 @@ class DownloadyhaGUI(ctk.CTk):
 
         lang_codes = sorted(list(set([sub.get("lang", "") for sub in subtitles if sub.get("lang")])))
         if lang_codes:
-            opts = [f"{c} ({c.upper()})" for c in lang_codes]
+            opts = [format_language_option(c) for c in lang_codes]
             opts.insert(0, "all (All Available)")
             self.sub_langs_menu.configure(values=opts)
             self.sub_langs_var.set(opts[1] if len(opts) > 1 else opts[0])
