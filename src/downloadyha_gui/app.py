@@ -50,6 +50,7 @@ try:
         DownloadResult,
         download_audio,
         download_playlist,
+        download_subtitles,
         download_video,
         get_media_info,
         get_playlist_entries,
@@ -87,6 +88,7 @@ except ImportError:
         DownloadResult,
         download_audio,
         download_playlist,
+        download_subtitles,
         download_video,
         get_media_info,
         get_playlist_entries,
@@ -206,6 +208,13 @@ AUDIO_QUALITIES: List[str] = [
     "320 kbps (High Quality)",
     "192 kbps (Standard Quality)",
     "128 kbps (Compact Size)",
+]
+
+SUBTITLE_QUALITIES: List[str] = [
+    "SRT (.srt)",
+    "VTT (.vtt)",
+    "ASS (.ass)",
+    "LRC (.lrc)",
 ]
 
 
@@ -417,9 +426,10 @@ class DownloadQueueCard(ctk.CTkFrame):
     def _build_ui(self):
         """Construct the card layout."""
         # Left icon badge
+        badge_icon = "🎬" if self.task.media_type == "video" else ("📝" if self.task.media_type in ("subtitles", "subtitle", "subs") else "🎵")
         self.icon_badge = ctk.CTkLabel(
             self,
-            text="🎬" if self.task.media_type == "video" else "🎵",
+            text=badge_icon,
             font=ctk.CTkFont(size=20),
             width=40,
             height=40,
@@ -444,7 +454,12 @@ class DownloadQueueCard(ctk.CTkFrame):
         self.title_label.grid(row=0, column=0, sticky="ew")
 
         # Metadata line
-        type_str = "Video" if self.task.media_type == "video" else "Audio"
+        if self.task.media_type == "video":
+            type_str = "Video"
+        elif self.task.media_type in ("subtitles", "subtitle", "subs"):
+            type_str = "Subtitles"
+        else:
+            type_str = "Audio"
         meta_info = f"{type_str} • {self.task.quality_label}"
         if self.task.uploader and self.task.uploader != "Unknown":
             meta_info += f" • {self.task.uploader}"
@@ -1231,7 +1246,7 @@ class DownloadyhaGUI(ctk.CTk):
         self.media_type_var = tk.StringVar(value="video")
         self.media_type_selector = ctk.CTkSegmentedButton(
             options_card,
-            values=["🎥 Video", "🎵 Audio"],
+            values=["🎥 Video", "🎵 Audio", "📝 Subtitles"],
             variable=self.media_type_var,
             font=ctk.CTkFont(size=11, weight="bold"),
             command=self._on_media_type_changed,
@@ -2145,12 +2160,22 @@ class DownloadyhaGUI(ctk.CTk):
 
     def _update_quality_options(self):
         """Update quality dropdown values dynamically based on format and media."""
-        media_type = self.media_type_var.get().lower().replace("🎥 ", "").replace("🎵 ", "")
+        raw_type = self.media_type_var.get().lower()
+        if "audio" in raw_type or "🎵" in raw_type:
+            media_type = "audio"
+        elif "sub" in raw_type or "📝" in raw_type:
+            media_type = "subtitles"
+        else:
+            media_type = "video"
 
         if media_type == "audio":
             self.quality_menu.configure(values=AUDIO_QUALITIES)
             if self.quality_var.get() not in AUDIO_QUALITIES:
                 self.quality_var.set(AUDIO_QUALITIES[0])
+        elif media_type == "subtitles":
+            self.quality_menu.configure(values=SUBTITLE_QUALITIES)
+            if self.quality_var.get() not in SUBTITLE_QUALITIES:
+                self.quality_var.set(SUBTITLE_QUALITIES[0])
         else:
             is_single = (
                 self.media_info
@@ -2171,7 +2196,11 @@ class DownloadyhaGUI(ctk.CTk):
                     self.quality_var.set(DEFAULT_VIDEO_QUALITIES[0])
 
     def _on_media_type_changed(self, value: str):
-        """Handle media format switch (Video vs Audio)."""
+        """Handle media format switch (Video vs Audio vs Subtitles)."""
+        if "sub" in value.lower() or "📝" in value:
+            if hasattr(self, "transcript_toggle_var") and not self.transcript_toggle_var.get():
+                self.transcript_toggle_var.set(True)
+                self._on_transcript_toggled()
         self._update_quality_options()
 
     def _on_section_toggled(self):
@@ -2366,16 +2395,35 @@ class DownloadyhaGUI(ctk.CTk):
                 return
 
         # Parse media type and quality
-        media_type = self.media_type_var.get().lower().replace("🎥 ", "").replace("🎵 ", "")
+        raw_type = self.media_type_var.get().lower()
+        if "audio" in raw_type or "🎵" in raw_type:
+            media_type = "audio"
+        elif "sub" in raw_type or "📝" in raw_type:
+            media_type = "subtitles"
+        else:
+            media_type = "video"
+
         quality_str = self.quality_var.get()
         if media_type == "video":
             quality = self._parse_video_quality(quality_str)
+        elif media_type == "subtitles":
+            quality = self._parse_subtitle_format(quality_str)
         else:
             quality = self._parse_audio_quality(quality_str)
 
         # Prepare subtitles config
         subs_kwargs: Dict[str, Any] = {}
-        if self.transcript_toggle_var.get():
+        if media_type == "subtitles":
+            lang_choice = self.sub_langs_var.get().strip() if hasattr(self, "sub_langs_var") and self.sub_langs_var.get() else "all"
+            lang_code = lang_choice.split()[0] if lang_choice else "all"
+            subs_kwargs = {
+                "write_subtitles": True,
+                "write_auto_subs": self.auto_subs_var.get() if hasattr(self, "auto_subs_var") else True,
+                "sub_langs": lang_code,
+                "sub_format": quality if isinstance(quality, str) else "srt",
+                "embed_subs": False,
+            }
+        elif self.transcript_toggle_var.get():
             lang_choice = self.sub_langs_var.get().strip()
             lang_code = lang_choice.split()[0] if lang_choice else "en"
             subs_kwargs = {
@@ -2513,6 +2561,18 @@ class DownloadyhaGUI(ctk.CTk):
                         end_time=task.end_time,
                         progress_callback=progress_callback,
                         **task.subs_kwargs,
+                    )
+                elif task.media_type in ("subtitles", "subtitle", "subs"):
+                    sub_fmt = task.subs_kwargs.get("sub_format") or (task.quality if isinstance(task.quality, str) else "srt")
+                    sub_langs = task.subs_kwargs.get("sub_langs") or "all"
+                    write_auto = task.subs_kwargs.get("write_auto_subs", True)
+                    result = download_subtitles(
+                        url=task.url,
+                        download_path=task.dest_path,
+                        sub_langs=sub_langs,
+                        sub_format=sub_fmt,
+                        write_auto_subs=write_auto,
+                        progress_callback=progress_callback,
                     )
                 else:
                     result = download_audio(
@@ -2735,6 +2795,19 @@ class DownloadyhaGUI(ctk.CTk):
         if "128" in quality_str:
             return "128"
         return "0"
+
+    def _parse_subtitle_format(self, quality_str: str) -> str:
+        """Parse subtitle format dropdown label into format extension string."""
+        if not quality_str:
+            return "srt"
+        low = quality_str.lower()
+        if "vtt" in low:
+            return "vtt"
+        if "ass" in low:
+            return "ass"
+        if "lrc" in low:
+            return "lrc"
+        return "srt"
 
 
 # ---------------------------------------------------------------------------

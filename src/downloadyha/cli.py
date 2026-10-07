@@ -27,6 +27,7 @@ from .dependencies import check_dependencies, repair_dependencies, verify_depend
 from .downloader import (
     download_audio,
     download_playlist,
+    download_subtitles,
     download_video,
     get_media_info,
     get_playlist_entries,
@@ -344,6 +345,7 @@ def run_download_interactive(
             options=[
                 ("video", "Video Playlist (MP4)", "Download all videos in playlist"),
                 ("audio", "Audio Playlist (MP3)", "Extract all songs/audio to MP3"),
+                ("subtitles", "Subtitles Playlist", "Download subtitle/transcript files for all items"),
             ],
             default_index=0
         )
@@ -358,7 +360,19 @@ def run_download_interactive(
             "convert_subs": convert_subs,
         }
 
-        if dl_type_choice == "video":
+        if dl_type_choice in ("subtitles", "subs", "subtitle"):
+            print()
+            info(f"Starting Subtitles Playlist Download: {Colors.BOLD}{pl_title}{Colors.RESET}")
+            res = download_subtitles(
+                url=url,
+                download_path=download_path,
+                sub_langs=sub_langs or "all",
+                sub_format=sub_format or "srt",
+                write_auto_subs=True,
+                is_playlist_mode=True
+            )
+
+        elif dl_type_choice == "video":
             quality_choice = quality or prompt_choice(
                 title="Select Maximum Video Quality for Playlist",
                 options=[
@@ -449,6 +463,7 @@ def run_download_interactive(
             options=[
                 ("video", "Video (MP4)", "High quality video with audio merged"),
                 ("audio", "Audio Only (MP3)", "Extract high quality MP3 audio"),
+                ("subtitles", "Subtitles Only", "Download subtitle/transcript files only (fast, no media)"),
             ],
             default_index=0
         )
@@ -457,8 +472,8 @@ def run_download_interactive(
         clip_start = start_time
         clip_end = end_time
 
-        # If not supplied on command line, prompt interactively if user wants a clip
-        if clip_start is None and clip_end is None:
+        # If not supplied on command line and downloading video/audio, prompt interactively if user wants a clip
+        if chosen_format not in ("subtitles", "subs", "subtitle") and clip_start is None and clip_end is None:
             want_clip = prompt_confirm("Download a specific section only (clip)?", default=False)
             if want_clip:
                 clip_start_raw = prompt_input("Start time [e.g. 01:30, 90, or 00:00]", default="00:00")
@@ -489,7 +504,53 @@ def run_download_interactive(
             "convert_subs": convert_subs,
         }
 
-        if chosen_format == "video":
+        if chosen_format in ("subtitles", "subs", "subtitle"):
+            # Subtitle only format
+            sub_choice_langs = sub_langs
+            sub_choice_fmt = sub_format or "srt"
+            if not sub_choice_langs and not (dl_type and quality):
+                print("Fetching available subtitles...")
+                available_subtitles = get_available_subtitles(url)
+                if available_subtitles:
+                    subtitle_choices = [
+                        ("all", "All Available Subtitles", "Download all available subtitle tracks"),
+                    ]
+                    subtitle_map = {}
+                    for index, sub in enumerate(available_subtitles):
+                        key = f"subtitle_{index}"
+                        lang_code = sub['lang']
+                        lang_name = LANGUAGE_NAMES.get(lang_code, get_language_name(lang_code))
+                        type_label = "auto" if sub['is_auto'] else "manual"
+                        formats_str = ', '.join(sorted(sub['formats']))
+                        display = f"{lang_code} ({lang_name}) [{type_label}] [{formats_str}]"
+                        subtitle_choices.append((key, display, ""))
+                        subtitle_map[key] = sub
+
+                    selected_key = prompt_choice(
+                        title="Select Subtitle Track to Download",
+                        options=subtitle_choices,
+                        default_index=1 if len(subtitle_choices) > 1 else 0
+                    )
+                    if selected_key == "all":
+                        sub_choice_langs = "all"
+                    elif selected_key in subtitle_map:
+                        sub_choice_langs = subtitle_map[selected_key]['lang']
+                        if subtitle_map[selected_key]['formats']:
+                            sub_choice_fmt = subtitle_map[selected_key]['formats'][0]
+                else:
+                    sub_choice_langs = "all"
+
+            print()
+            info(f"Downloading Subtitles: {Colors.BOLD}{title}{Colors.RESET} ({sub_choice_langs or 'all'})...")
+            success_status = download_subtitles(
+                url=url,
+                download_path=download_path,
+                sub_langs=sub_choice_langs,
+                sub_format=sub_choice_fmt,
+                write_auto_subs=True
+            )
+
+        elif chosen_format == "video":
             if quality:
                 selected_height = int(quality) if quality.isdigit() else 0
             else:
@@ -616,9 +677,9 @@ def create_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "-f", "--format",
         dest="format",
-        choices=["video", "audio"],
+        choices=["video", "audio", "subtitles", "subs", "subtitle"],
         default=None,
-        help="Download format ('video' or 'audio')"
+        help="Download format ('video', 'audio', or 'subtitles')"
     )
 
     parser.add_argument(

@@ -15,6 +15,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 from downloadyha_gui.app import (
     AUDIO_QUALITIES,
     DEFAULT_VIDEO_QUALITIES,
+    SUBTITLE_QUALITIES,
     DownloadHistory,
     DownloadyhaGUI,
     ModernButton,
@@ -169,11 +170,25 @@ class TestDownloadyhaGUILogic(unittest.TestCase):
         self.assertEqual(self.gui._parse_audio_quality("192 kbps (Standard Quality)"), "192")
         self.assertEqual(self.gui._parse_audio_quality("128 kbps (Compact Size)"), "128")
 
+    def test_parse_subtitle_format(self):
+        """Test parsing subtitle quality/format string to format parameter."""
+        self.assertEqual(self.gui._parse_subtitle_format("SRT (.srt)"), "srt")
+        self.assertEqual(self.gui._parse_subtitle_format("VTT (.vtt)"), "vtt")
+        self.assertEqual(self.gui._parse_subtitle_format("ASS (.ass)"), "ass")
+        self.assertEqual(self.gui._parse_subtitle_format("LRC (.lrc)"), "lrc")
+        self.assertEqual(self.gui._parse_subtitle_format(""), "srt")
+
     def test_update_quality_options_audio(self):
         """Test dropdown population when audio mode is selected."""
         self.gui.media_type_var.get.return_value = "🎵 Audio"
         self.gui._update_quality_options()
         self.gui.quality_menu.configure.assert_called_with(values=AUDIO_QUALITIES)
+
+    def test_update_quality_options_subtitles(self):
+        """Test dropdown population when subtitles mode is selected."""
+        self.gui.media_type_var.get.return_value = "📝 Subtitles"
+        self.gui._update_quality_options()
+        self.gui.quality_menu.configure.assert_called_with(values=SUBTITLE_QUALITIES)
 
     def test_update_quality_options_video_with_extracted_qualities(self):
         """Test dropdown population when video mode is active with extracted available resolutions."""
