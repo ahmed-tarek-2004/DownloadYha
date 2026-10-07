@@ -163,7 +163,7 @@ def prompt_transcript_options(url: str) -> dict:
         default_index=0
     )
 
-    if want_subtitles == "no":
+    if not want_subtitles or want_subtitles == "no":
         return {
             "write_subtitles": False,
             "write_auto_subs": False,
@@ -214,11 +214,11 @@ def prompt_transcript_options(url: str) -> dict:
     selected_key = prompt_choice(
         title="Select Subtitle Track",
         options=subtitle_choices,
-        default_index=0
+        default_index=1 if len(subtitle_choices) > 1 else 0
     )
 
-    # Handle no subtitles
-    if selected_key == "none":
+    # Handle no subtitles or invalid choice
+    if not selected_key or selected_key == "none" or selected_key not in subtitle_map:
         return {
             "write_subtitles": False,
             "write_auto_subs": False,
@@ -277,7 +277,7 @@ def prompt_transcript_options(url: str) -> dict:
         "write_subtitles": write_subtitles,
         "write_auto_subs": write_auto_subs,
         "sub_langs": sub_langs,
-        "sub_format": sub_format,
+        "sub_format": sub_format or "srt",
         "embed_subs": embed_subs,
         "convert_subs": None,
     }
@@ -403,18 +403,6 @@ def run_download_interactive(
             icon=Symbols.PLAYLIST
         )
 
-        # Transcript (subtitle) options - prompt unless provided via CLI args
-        transcripts = {
-            "write_subtitles": write_subtitles,
-            "write_auto_subs": write_auto_subs,
-            "sub_langs": sub_langs,
-            "sub_format": sub_format,
-            "embed_subs": embed_subs,
-            "convert_subs": convert_subs,
-        }
-        if not (write_subtitles or write_auto_subs or embed_subs or sub_langs) and not (dl_type and quality):
-            transcripts = prompt_transcript_options(url)
-
         dl_type_choice = dl_type or prompt_choice(
             title="Select Playlist Download Type",
             options=[
@@ -423,6 +411,16 @@ def run_download_interactive(
             ],
             default_index=0
         )
+
+        # Default transcript (subtitle) options
+        transcripts = {
+            "write_subtitles": write_subtitles,
+            "write_auto_subs": write_auto_subs,
+            "sub_langs": sub_langs,
+            "sub_format": sub_format,
+            "embed_subs": embed_subs,
+            "convert_subs": convert_subs,
+        }
 
         if dl_type_choice == "video":
             quality_choice = quality or prompt_choice(
@@ -436,6 +434,11 @@ def run_download_interactive(
                 ],
                 default_index=0
             )
+
+            # Transcript (subtitle) options - prompt for video playlist unless provided via CLI args
+            if not (write_subtitles or write_auto_subs or embed_subs or sub_langs) and not (dl_type and quality):
+                transcripts = prompt_transcript_options(url)
+
             print()
             info(f"Starting Video Playlist Download: {Colors.BOLD}{pl_title}{Colors.RESET}")
             res = download_playlist(
@@ -540,7 +543,7 @@ def run_download_interactive(
                     clip_start = None
                     clip_end = None
 
-        # Transcript (subtitle) options - prompt unless provided via CLI args
+        # Default transcript (subtitle) options
         transcripts = {
             "write_subtitles": write_subtitles,
             "write_auto_subs": write_auto_subs,
@@ -549,8 +552,6 @@ def run_download_interactive(
             "embed_subs": embed_subs,
             "convert_subs": convert_subs,
         }
-        if not (write_subtitles or write_auto_subs or embed_subs or sub_langs) and not (dl_type and quality):
-            transcripts = prompt_transcript_options(url)
 
         if chosen_format == "video":
             if quality:
@@ -572,6 +573,10 @@ def run_download_interactive(
                     default_index=0
                 )
                 selected_height = int(selected_height_str)
+
+            # Transcript (subtitle) options - prompt for video downloads unless provided via CLI args
+            if not (write_subtitles or write_auto_subs or embed_subs or sub_langs) and not (dl_type and quality):
+                transcripts = prompt_transcript_options(url)
 
             section_note = f" [section: {clip_start or '00:00'} - {clip_end or 'end'}]" if (clip_start or clip_end) else ""
             print()

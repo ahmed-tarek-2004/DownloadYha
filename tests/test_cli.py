@@ -252,7 +252,7 @@ class TestCLIInteractiveWorkflows(unittest.TestCase):
     @patch("downloadyha.cli.prompt_input", return_value="https://youtube.com/watch?v=123")
     @patch("downloadyha.cli.choose_download_folder", return_value="/tmp/downloads")
     @patch("downloadyha.cli.get_media_info", return_value={"title": "Song", "formats": []})
-    @patch("downloadyha.cli.prompt_choice", side_effect=["audio", "no", "320"])
+    @patch("downloadyha.cli.prompt_choice", side_effect=["audio", "320"])
     @patch("downloadyha.cli.download_audio", return_value=True)
     def test_run_download_interactive_single_audio_success(
         self, mock_dl, mock_choice, mock_info, mock_folder, mock_prompt, mock_deps, mock_update, mock_banner, mock_init
@@ -280,7 +280,7 @@ class TestCLIInteractiveWorkflows(unittest.TestCase):
     @patch("downloadyha.cli.prompt_input", return_value="https://youtube.com/watch?v=123")
     @patch("downloadyha.cli.choose_download_folder", return_value="/tmp/downloads")
     @patch("downloadyha.cli.get_media_info", return_value={"title": "Video", "formats": [{"height": 1080}]})
-    @patch("downloadyha.cli.prompt_choice", side_effect=["video", "no", "1080"])
+    @patch("downloadyha.cli.prompt_choice", side_effect=["video", "1080", "no"])
     @patch("downloadyha.cli.download_video", return_value=True)
     def test_run_download_interactive_single_video_success(
         self, mock_dl, mock_choice, mock_info, mock_folder, mock_prompt, mock_deps, mock_update, mock_banner, mock_init
@@ -342,7 +342,7 @@ class TestCLIInteractiveWorkflows(unittest.TestCase):
     @patch("downloadyha.cli.prompt_input", return_value="https://youtube.com/playlist?list=PL123")
     @patch("downloadyha.cli.choose_download_folder", return_value="/tmp/downloads")
     @patch("downloadyha.cli.get_media_info", return_value={"_type": "playlist", "title": "My Playlist", "entries": [{"id": "1"}]})
-    @patch("downloadyha.cli.prompt_choice", side_effect=["no", "video", "1080"])
+    @patch("downloadyha.cli.prompt_choice", side_effect=["video", "1080", "no"])
     @patch("downloadyha.cli.download_playlist", return_value={"success": True, "output_dir": "/tmp/downloads/My Playlist"})
     def test_run_download_interactive_playlist_video_success(
         self, mock_dl, mock_choice, mock_info, mock_folder, mock_prompt, mock_deps, mock_update, mock_banner, mock_init
@@ -371,7 +371,7 @@ class TestCLIInteractiveWorkflows(unittest.TestCase):
     @patch("downloadyha.cli.prompt_input", return_value="https://youtube.com/playlist?list=PL123")
     @patch("downloadyha.cli.choose_download_folder", return_value="/tmp/downloads")
     @patch("downloadyha.cli.get_media_info", return_value={"_type": "playlist", "title": "My Playlist", "entries": [{"id": "1"}]})
-    @patch("downloadyha.cli.prompt_choice", side_effect=["no", "audio", "320"])
+    @patch("downloadyha.cli.prompt_choice", side_effect=["audio", "320"])
     @patch("downloadyha.cli.download_playlist", return_value={"success": False, "error": "Some items failed"})
     def test_run_download_interactive_playlist_audio_failure(
         self, mock_dl, mock_choice, mock_info, mock_folder, mock_prompt, mock_deps, mock_update, mock_banner, mock_init
@@ -535,6 +535,54 @@ class TestCLISubtitleArguments(unittest.TestCase):
         self.assertEqual(args.sub_format, "srt")
         self.assertFalse(args.embed_subs)
         self.assertIsNone(args.convert_subs)
+
+
+class TestCLISubtitlePrompt(unittest.TestCase):
+    """Test interactive subtitle prompt options in CLI."""
+
+    @patch("downloadyha.cli.prompt_choice", return_value="no")
+    def test_prompt_transcript_options_user_declines(self, mock_choice):
+        """When user selects No Subtitles, no further subtitle prompts appear."""
+        result = cli.prompt_transcript_options("https://youtube.com/watch?v=test")
+        self.assertEqual(result, {
+            "write_subtitles": False,
+            "write_auto_subs": False,
+            "sub_langs": None,
+            "sub_format": "srt",
+            "embed_subs": False,
+            "convert_subs": None,
+        })
+        mock_choice.assert_called_once()
+
+    @patch("downloadyha.cli.get_available_subtitles", return_value=[])
+    @patch("downloadyha.cli.prompt_choice", return_value="yes")
+    def test_prompt_transcript_options_no_subtitles_found(self, mock_choice, mock_subs):
+        """When user wants subtitles but none exist, returns disabled subtitle config."""
+        result = cli.prompt_transcript_options("https://youtube.com/watch?v=test")
+        self.assertEqual(result["write_subtitles"], False)
+        self.assertEqual(result["write_auto_subs"], False)
+
+    @patch("downloadyha.cli.get_available_subtitles", return_value=[
+        {"lang": "en", "is_auto": False, "formats": ["srt", "vtt"]}
+    ])
+    @patch("downloadyha.cli.prompt_choice", side_effect=["yes", "none"])
+    def test_prompt_transcript_options_user_selects_none_track(self, mock_choice, mock_subs):
+        """When user says yes initially but chooses 'none' from track list, returns disabled subtitle config."""
+        result = cli.prompt_transcript_options("https://youtube.com/watch?v=test")
+        self.assertEqual(result["write_subtitles"], False)
+        self.assertEqual(result["write_auto_subs"], False)
+
+    @patch("downloadyha.cli.get_available_subtitles", return_value=[
+        {"lang": "en", "is_auto": False, "formats": ["srt", "vtt"]}
+    ])
+    @patch("downloadyha.cli.prompt_choice", side_effect=["yes", "subtitle_0", "both", "srt"])
+    def test_prompt_transcript_options_user_selects_subtitle(self, mock_choice, mock_subs):
+        """When user selects a subtitle, action, and format, returns proper config."""
+        result = cli.prompt_transcript_options("https://youtube.com/watch?v=test")
+        self.assertTrue(result["write_subtitles"])
+        self.assertTrue(result["embed_subs"])
+        self.assertEqual(result["sub_langs"], "en")
+        self.assertEqual(result["sub_format"], "srt")
 
 
 if __name__ == "__main__":
