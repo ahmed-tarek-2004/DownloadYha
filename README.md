@@ -1,91 +1,133 @@
-# Downloadyha
+# 🎬 Downloadyha
 
-A fast, modern, and beautiful YouTube downloader available in both **Desktop GUI** and **CLI** versions for **Videos (up to 8K/4K/1080p)**, **Audio (MP3)**, **Partial Video & Audio Clips (Highlights)**, and **Full Playlists**. No Python, FFmpeg, Deno, or yt-dlp setup required.
+A fast, modern, and beautiful media downloader ecosystem available in **Desktop GUI**, **Interactive Terminal CLI**, and **Serverless REST API & Web Dashboard** for **Videos (up to 8K/4K/1080p)**, **Audio (MP3)**, **Partial Clips (Highlights)**, **Subtitles & Transcripts**, and **Full Playlists**.
+
+Zero configuration required — includes automated self-repairing FFmpeg and Deno helper runtimes with SHA-256 verification.
 
 ---
 
 ## 🌟 Key Features
 
-- 🎬 **Smart Codec & Container Selection**: Intelligently prioritizes native H.264 (`avc`) video and AAC (`m4a`) audio merged into standard MP4 for ≤ 1080p for 100% universal player compatibility. For Ultra-HD (1440p, 4K, 8K), automatically fetches optimal VP9/AV1 streams in MKV/WebM containers without costly transcoding.
-- ⚡ **Zero-Transcoding Stream Copy**: Instant stream-copy muxing via FFmpeg (`-c copy`) without CPU-heavy video re-encoding.
-- ✂️ **Partial Video & Audio Clipping**: Download only the exact section you need by specifying Start and End times (`01:30`, `90`, `00:02:45`). Save bandwidth and disk space without downloading full multi-hour videos!
-- 🎨 **Modern Desktop GUI**: Sleek CustomTkinter interface with glassmorphism cards, light/dark themes, docked persistent action buttons, and scrollable controls.
-- 🔍 **Real-Time Metadata Fetching**: Automatically inspects video/playlist URLs to preview Title, Channel, Duration, and Type.
-- 🎯 **Dynamic Quality Detection**: Auto-detects and displays available resolutions (8K 4320p, 4K 2160p, 1440p, 1080p, 720p, 480p, 360p, etc.).
-- 🎵 **Audio MP3 Extractor**: One-click high-fidelity MP3 conversion with custom bitrates (320 kbps, 192 kbps, 128 kbps, or Best VBR).
-- 📑 **Full Playlist Downloads**: Batch download entire video or audio playlists with automated folder numbering and organization.
-- 📜 **Download History & Quick Open**: Track download history and open completed media files or destination folders directly with one click.
-- 📝 **Subtitle & Transcript Support**: Download, embed, and convert subtitles in multiple formats (SRT, VTT, ASS, LRC) with language selection and auto-generated caption support.
-- ⚡ **Interactive Terminal CLI**: Color-coded step-by-step wizard, live progress bars (speed, ETA, batch counter), and summary cards.
-- 📦 **Zero-Config Standalone**: Includes built-in self-repairing FFmpeg and Deno helper binaries with SHA-256 checksum verification.
-- ⚡ **Enhanced Download Experience**: Real-time progress indicators for all dependency downloads with percentage, size, speed, and ETA.
-- 💾 **Optimized Dependency Size**: Uses smaller FFmpeg builds (~40MB vs ~150MB) for faster installation.
+- 🎬 **Smart Codec & Container Prioritization**:
+  - **$\le$ 1080p (Full HD / Standard)**: Strictly prioritizes native H.264 (`avc`) video and AAC (`m4a`) audio directly from YouTube merged into universal `.mp4` containers for 100% compatibility across all media players, TVs, and mobile devices.
+  - **Ultra-HD (1440p, 4K, 8K)**: Automatically acquires optimal high-efficiency VP9/AV1 streams in `.mkv` or `.webm` containers without CPU-intensive transcoding.
+  - **Zero-Transcoding Stream Copy**: Instant lossless container muxing via FFmpeg (`-c copy`) with minimal CPU overhead.
+- ✂️ **Partial Video & Audio Clipping**: Download only the exact section you need by specifying Start and End times (`01:30`, `90`, `00:02:45`, `01:15.5`). Save bandwidth and disk space without downloading full multi-hour videos!
+- 📝 **Full Subtitle & Transcript Support + Subtitle-Only Mode**:
+  - Download official subtitle tracks or YouTube auto-generated captions.
+  - Multi-language support with human-readable language names (e.g. `en (English)`, `ar (Arabic)`).
+  - Embed subtitles directly into video containers (MP4, MKV, WebM).
+  - Format conversion between **SRT**, **VTT**, **ASS**, and **LRC**.
+  - **Subtitles-Only Mode**: Download transcripts and captions in seconds without downloading video or audio streams.
+- 🎵 **High-Fidelity Audio MP3 Extractor**: One-click audio extraction with custom bitrate presets (320 kbps CBR High, 192 kbps CBR Standard, 128 kbps CBR Compact, or Best VBR ~256–320 kbps).
+- 📑 **Full Playlist & Mix Batch Downloads**:
+  - Batch download entire video, audio, or subtitle playlists.
+  - Automatic creation of organized subfolders with clean indexed filenames (`01 - Title.mp4`, `02 - Title.mp4`).
+  - Intelligent detection of single videos embedded in playlists or mixes, offering a prompt to download only the single item or the entire batch.
+  - Per-item error resilience (`ignoreerrors`) so individual unavailable videos don't stop the batch.
+- 🎨 **Modern Desktop GUI (CustomTkinter)**:
+  - Sleek Light Grey & Crimson design aesthetic with support for **Light Mode**, **Dark Mode**, and **System Default**.
+  - Persistent sidebar navigation with 3 dedicated views: **Downloader**, **Download Queue & History**, and **Settings**.
+  - Real-time video/playlist metadata inspection (Title, Channel, Duration, View Count, available resolutions up to 4K).
+  - 100% Inline error feedback with one-click retry (no intrusive pop-up dialogs).
+  - Seamless download cancellation with immediate socket release and UI unlock.
+  - Integrated **System Health** dashboard (one-click updater and dependency repair).
+- ⚡ **Interactive Terminal CLI**: Color-coded step-by-step wizard, real-time progress indicators (percentage, size, speed, ETA), summary cards, and non-interactive scripting flags.
+- 🌐 **Serverless REST API & Web Dashboard**: FastAPI serverless backend (`api/`) deployable on Vercel, AWS Lambda, Render, or Docker with interactive Swagger docs (`/docs`), ReDoc (`/redoc`), direct CDN stream URL resolution, and a built-in single-page web dashboard.
+- 📦 **Zero-Config Standalone Runtimes**: Bundled and auto-managed essential FFmpeg (~40MB vs ~150MB) and Deno helper binaries with SHA-256 checksum verification.
+- 🌐 **Multi-Platform Compatibility**: Supports YouTube, YouTube Shorts, TikTok, Instagram Reels, Facebook Video, Twitter/X, SoundCloud, Reddit, and direct video links.
+- 🔒 **Privacy-First**: No telemetry, no analytics, no third-party tracking. All media streams directly from source CDNs to your local machine.
 
 ---
 
-## 🖥️ Desktop GUI - Installation & Quick Start
+## 🖥️ Desktop GUI — Installation & Overview
 
-The **Downloadyha Desktop GUI** provides a sleek graphical interface featuring real-time metadata inspection, dynamic quality selection (up to 4K), audio extraction, partial video clipping, download history, and dark/light themes.
+The **Downloadyha Desktop GUI** delivers a rich graphical experience with real-time metadata inspection, dynamic quality detection (up to 4K/8K), audio extraction, partial segment clipping, download history, and theme customization.
 
-### Option 1: Standalone Download (No Python Required — Recommended)
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 🎬 Downloadyha Desktop GUI                                  [—] [口] [X]    │
+├───────────────────┬─────────────────────────────────────────────────────────┤
+│ 🎬 Downloadyha    │ 🔗 Paste Video or Playlist URL                          │
+│ Zero-Config v1.0.0│ [ https://www.youtube.com/watch?v=...     ] [🔍 Fetch] │
+│                   ├─────────────────────────────────────────────────────────┤
+│ ⬇️  Downloader     │ 🎬 Video Information                                    │
+│ 📋  Download Queue│ Title: Rick Astley - Never Gonna Give You Up            │
+│ ⚙️  Settings       │ Channel: Rick Astley • ⏱ 03:33 • ⚡ Max Quality: 1080p   │
+│                   ├─────────────────────────────────────────────────────────┤
+│ THEME MODE        │ ⚡ Format: [🎥 Video] [🎵 Audio] [📝 Subtitles]         │
+│ [☀️ Light][🌙 Dark]│ 🎯 Quality: [1080p (Full HD)               ▼]           │
+│                   │ [✓] ✂️ Download specific section (clip)                  │
+│ SYSTEM HEALTH     │     Start: [00:30     ]     End: [02:00     ]           │
+│ ● Ready           │ [✓] 📝 Subtitles & Transcripts                           │
+│ [🔄 Check Updates]│     Language: [en (English) ▼]  Format: [srt ▼]         │
+│ [🛠️ Repair App   ]│     [✓] Auto-captions   [ ] Embed in video              │
+│                   ├─────────────────────────────────────────────────────────┤
+│ © 2026 Ahmed Tarek│ 💾 Save Location: [C:\Users\...\Downloads   ] [📁 Browse]│
+│                   ├─────────────────────────────────────────────────────────┤
+│                   │ [⬇ START DOWNLOAD]     [❌ Cancel]     [📁 Open Folder] │
+└───────────────────┴─────────────────────────────────────────────────────────┘
+```
 
-Download the pre-built standalone app for your operating system:
+### Option 1: Standalone App (No Python Required — Recommended)
+
+Download the pre-built standalone package for your operating system:
 
 | Platform | Download | Instructions |
 |---|---|---|
-| **Windows 10/11 (64-bit)** | **[⬇️ Download Windows GUI (ZIP)](https://github.com/ahmed-tarek-2004/DownloadYha/releases/latest/download/downloadyha-gui-windows.zip)** | Extract the ZIP and double-click `downloadyha-gui.exe` |
+| **Windows 10/11 (64-bit)** | **[⬇️ Download Windows GUI (ZIP)](https://github.com/ahmed-tarek-2004/DownloadYha/releases/latest/download/downloadyha-gui-windows.zip)** | Extract ZIP and double-click `downloadyha-gui.exe` |
 | **Linux (x86_64)** | **[⬇️ Download Linux GUI (tar.gz)](https://github.com/ahmed-tarek-2004/DownloadYha/releases/latest/download/downloadyha-gui-linux-x86_64.tar.gz)** | Extract archive and run `./downloadyha-gui` |
 
 #### 3-Step Windows Quick Start:
-1. **Download & Extract** `downloadyha-gui-windows.zip` to a folder of your choice (e.g. `Downloads` or `C:\Program Files\DownloadyhaGUI`).
+1. **Download & Extract** `downloadyha-gui-windows.zip` to a folder (e.g. `Downloads` or `C:\Program Files\DownloadyhaGUI`).
 2. **Double-click** `downloadyha-gui.exe` to launch.
-3. **Paste any YouTube URL** — the app automatically fetches video details (Title, Channel, Duration) and populates the available resolutions!
+3. **Paste any YouTube URL** — the app automatically fetches video details (Title, Channel, Duration) and populates available resolutions!
 
 ---
 
 ### Option 2: Install via Python & Pip
 
-If you have Python 3.10+ installed, you can install the GUI package with:
+If you have Python 3.10+ installed:
 
 ```bash
 pip install "downloadyha[gui]"
 ```
 
-Then launch the GUI anytime with:
+Launch the GUI anytime with:
 
 ```bash
 downloadyha-gui
 ```
+*(or run `downloadyha gui`)*
 
 *(On Linux systems without Tkinter: `sudo apt install python3-tk`)*
 
-📖 **[Complete GUI User Guide →](GUI_USER_GUIDE.md)** | **[GUI Download Documentation →](GUI_DOWNLOAD.md)**
+📖 **[Complete GUI User Guide →](GUI_USER_GUIDE.md)** | **[GUI Download Documentation →](GUI_DOWNLOAD.md)** | **[GUI Development Guide →](GUI_DEVELOPMENT.md)**
 
 ---
 
-## ⚡ CLI Version - Quick Install
+## ⚡ Interactive Terminal CLI — Installation & Quick Start
 
-For terminal power-users, Downloadyha offers a rich, interactive CLI experience with color-coded steps, live progress bars, partial clipping support, and batch playlist downloads.
+For terminal power-users and server workflows, Downloadyha offers an interactive CLI with color-coded steps, live progress bars, clipping support, and batch playlist handling.
 
-### Windows
+### One-Line Install
 
-#### PowerShell:
+#### Windows (PowerShell):
 ```powershell
 irm https://raw.githubusercontent.com/ahmed-tarek-2004/DownloadYha/master/install.ps1 | iex
 ```
 
-#### Command Prompt (CMD):
+#### Windows (Command Prompt / CMD):
 ```cmd
 powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.com/ahmed-tarek-2004/DownloadYha/master/install.ps1 | iex"
 ```
 
-### Linux
-
+#### Linux & macOS:
 ```bash
 curl -fsSL https://raw.githubusercontent.com/ahmed-tarek-2004/DownloadYha/master/install.sh | bash
 ```
 
-### Run CLI:
+### Launch CLI:
 
 ```bash
 downloadyha
@@ -95,143 +137,136 @@ downloadyha
 
 ## ✂️ Partial Video & Audio Clipping (Highlights)
 
-Downloadyha allows you to download only a specific portion or highlight clip of a video or audio track instead of the entire file.
+Download only the exact segment you need without downloading the whole video.
 
 ### Supported Timestamp Formats
-- `MM:SS` (e.g., `01:30` for 1 minute 30 seconds)
-- `HH:MM:SS` (e.g., `01:15:30` for 1 hour 15 minutes 30 seconds)
-- Total seconds (e.g., `90` or `90s`)
-- Decimals / fractions (e.g., `01:15.5` or `75.5`)
+- `MM:SS` (e.g. `01:30` for 1 min 30 sec)
+- `HH:MM:SS` (e.g. `01:15:30` for 1 hr 15 min 30 sec)
+- Total seconds (e.g. `90`, `90s`, `120.5`)
+- Fractional / decimal timestamps (e.g. `01:15.5`)
 
----
-
-### CLI Usage & Examples
-
-You can provide start and end timestamps directly via command-line arguments or follow the interactive wizard prompts.
-
-#### 1. Command-Line Arguments (Non-Interactive / Scripting):
+### CLI Clipping Examples
 
 ```bash
-# Download a 2-minute video clip (from 01:30 to 03:30) in 1080p Full HD
+# Download a 2-minute video clip (01:30 to 03:30) in 1080p Full HD
 downloadyha "https://www.youtube.com/watch?v=VIDEO_ID" -s 01:30 -e 03:30 -f video -q 1080
 
-# Extract a 45-second audio clip (from start to 00:45) as high-quality 320 kbps MP3
+# Extract a 45-second audio clip (start to 00:45) as 320 kbps MP3
 downloadyha "https://www.youtube.com/watch?v=VIDEO_ID" -s 00:00 -e 00:45 -f audio -q 320
 
 # Download from minute 10:00 to the end of the video
 downloadyha "https://www.youtube.com/watch?v=VIDEO_ID" -s 10:00 -f video -q 720
 
-# Specify a custom download folder for the clip
+# Save clip to a custom destination directory
 downloadyha "https://www.youtube.com/watch?v=VIDEO_ID" -s 00:30 -e 01:45 -d "C:\Users\User\Videos\Clips"
 ```
-
-#### 2. Interactive Wizard:
-When running `downloadyha` interactively:
-1. Paste the URL and select your download folder.
-2. When prompted: `Download a specific section only (clip)? [y/N]:`, enter `y`.
-3. Enter your desired **Start Time** (e.g., `01:30`) and **End Time** (e.g., `03:45`, or leave blank for end of video).
-4. Choose video resolution or audio quality. Downloadyha streams and trims only the requested segment!
-
----
-
-### Desktop GUI Usage
-
-1. Paste a video URL — video metadata will load automatically.
-2. Check the **"✂️ Download specific section (clip)"** box.
-3. Enter your **Start Time** (e.g. `00:30`) and **End Time** (e.g. `02:15`).
-4. Select your preferred format (🎥 Video or 🎵 Audio) and quality preset.
-5. Click **START DOWNLOAD**.
 
 ---
 
 ## 📝 Subtitle & Transcript Support
 
-Downloadyha provides comprehensive subtitle handling for videos and playlists:
+Downloadyha provides flexible subtitle downloading, format conversion, embedding, and subtitle-only extraction:
 
-### Subtitle Options
+### Subtitle Capabilities
 
-| Option | Description |
-|--------|-------------|
-| **Write Subtitles** | Download official subtitle tracks alongside the media |
-| **Write Auto-Generated Subtitles** | Download YouTube's auto-generated captions |
-| **Embed Subtitles** | Embed subtitles directly into the video file (MP4, MKV, WebM) |
-| **Subtitle Languages** | Specify comma-separated language codes (e.g., `en,ar,es`) or `all` for all available |
-| **Subtitle Format** | Choose output format: `srt` (default), `vtt`, `ass`, `lrc` |
-| **Convert Subtitles** | Convert downloaded subtitles to a different format |
+| Capability | Flag / Option | Description |
+|---|---|---|
+| **Write Subtitles** | `--write-subs` | Download official subtitle files |
+| **Write Auto-Captions** | `--write-auto-subs` | Download YouTube auto-generated captions |
+| **Subtitle-Only Mode** | `-f subtitles` | Download transcripts/subtitles only (skips heavy media downloads) |
+| **Embed Subtitles** | `--embed-subs` | Embed subtitles directly into MP4/MKV video container |
+| **Select Languages** | `--sub-langs "en,ar"` | Download specific languages or `all` |
+| **Format Selection** | `--sub-format srt` | Output container format: `srt`, `vtt`, `ass`, `lrc` |
+| **Format Conversion** | `--convert-subs vtt` | Automatically convert extracted subtitles to another format |
 
-### Supported Subtitle Formats
-
-- **SRT** — Most widely compatible subtitle format
-- **VTT** — WebVTT format for web playback
-- **ASS** — Advanced SubStation Alpha with styling support
-- **LRC** — Lyrics/synchronized text format
-
-### CLI Usage & Examples
+### CLI Subtitle Examples
 
 ```bash
-# Download video with official English subtitles (SRT)
+# 1. Download SUBTITLES ONLY (Fast transcript download, no video/audio bytes)
+downloadyha "https://www.youtube.com/watch?v=VIDEO_ID" -f subtitles --sub-langs en --sub-format srt
+
+# 2. Download video with official English subtitles (SRT)
 downloadyha "https://www.youtube.com/watch?v=VIDEO_ID" -f video -q 1080 --write-subs --sub-langs en
 
-# Download video with auto-generated subtitles in Arabic
+# 3. Download video with auto-generated Arabic captions
 downloadyha "https://www.youtube.com/watch?v=VIDEO_ID" -f video -q 720 --write-auto-subs --sub-langs ar
 
-# Download video with both official and auto-generated subtitles in multiple languages
-downloadyha "https://www.youtube.com/watch?v=VIDEO_ID" -f video -q 1080 --write-subs --write-auto-subs --sub-langs "en,ar,es"
-
-# Download video with subtitles embedded into the MP4 file
+# 4. Download video with subtitles embedded directly into the MP4 file
 downloadyha "https://www.youtube.com/watch?v=VIDEO_ID" -f video -q 1080 --write-subs --sub-langs en --embed-subs
 
-# Download audio with subtitle file (useful for podcasts with transcripts)
+# 5. Download audio along with subtitle transcripts (useful for podcasts and lectures)
 downloadyha "https://www.youtube.com/watch?v=VIDEO_ID" -f audio -q 320 --write-subs --sub-langs en
 
-# Convert subtitles to VTT format after download
-downloadyha "https://www.youtube.com/watch?v=VIDEO_ID" -f video -q 1080 --write-subs --sub-langs en --convert-subs vtt
-
-# Combine clipping with subtitles
-downloadyha "https://www.youtube.com/watch?v=VIDEO_ID" -s 01:30 -e 03:45 -f video -q 1080 --write-subs --sub-langs en --embed-subs
-```
-
-### Desktop GUI Usage
-
-1. Paste a video URL and click **Fetch Info** to load metadata.
-2. In the **Subtitle Options** section:
-   - Check **Write subtitle files** to download official subtitles
-   - Check **Write auto-generated subtitles** for YouTube's auto-captions
-   - Select **Languages** from the dropdown menu (shows language codes with names, e.g., `en (English)`, `ar (Arabic)`)
-   - Select **Format** (SRT, VTT, ASS, LRC)
-   - Check **Embed subtitles in video** to burn subtitles into the video file
-   - Check **Convert subtitles** and select target format if you want conversion
-3. Select Video/Audio format and quality
-4. Click **Download**
-
-### Playlist Subtitle Support
-
-Subtitle options work seamlessly with playlist downloads:
-
-```bash
-# Download entire playlist as video with English subtitles embedded
-downloadyha "https://www.youtube.com/playlist?list=PLAYLIST_ID" -f video -q 1080 --write-subs --sub-langs en --embed-subs
-
-# Download playlist as audio with subtitle files
-downloadyha "https://www.youtube.com/playlist?list=PLAYLIST_ID" -f audio -q 192 --write-subs --sub-langs "en,es"
+# 6. Download all available subtitles for an entire playlist
+downloadyha "https://www.youtube.com/playlist?list=PLAYLIST_ID" -f subtitles --sub-langs all
 ```
 
 ---
 
-## 🛠️ Available Commands & CLI Options
+## 📑 Full Playlists & Mix Handling
 
-### Commands
+Downloadyha effortlessly handles full playlists, albums, and mixes:
+
+- **Organized Output**: Creates a dedicated subfolder named after the playlist and numbers files automatically (`01 - Title.mp4`, `02 - Title.mp4`).
+- **Video in Playlist / Mix Detection**: If you paste a link like `https://www.youtube.com/watch?v=...&list=...`, Downloadyha automatically detects the context and asks whether you want to download only the **Single Video** or the **Entire Playlist Batch**.
+- **Resilient Batch Processing**: Single unavailable/private videos won't abort the remaining downloads.
+
+```bash
+# Download entire playlist as 1080p MP4 videos with embedded subtitles
+downloadyha "https://www.youtube.com/playlist?list=PLAYLIST_ID" -f video -q 1080 --write-subs --sub-langs en --embed-subs
+
+# Download entire playlist as 320 kbps MP3 audio tracks
+downloadyha "https://www.youtube.com/playlist?list=PLAYLIST_ID" -f audio -q 320
+```
+
+---
+
+## 🌐 Serverless REST API & Web Dashboard
+
+Downloadyha includes a high-performance **FastAPI serverless REST API** and interactive web dashboard in `api/`, optimized for deployment on **Vercel**, **AWS Lambda**, **Render**, or **Docker**.
+
+### API Highlights
+- ⚡ **Stateless Serverless Execution**: Resolves signed CDN direct streaming URLs without local disk writes or server-side bandwidth bottlenecks.
+- 🎨 **Built-In Web Dashboard**: Responsive single-page UI served from `/`.
+- 📖 **Interactive Documentation**: Auto-generated Swagger UI at `/docs` and ReDoc at `/redoc`.
+- 🛡️ **Production-Ready Security**: Preconfigured CORS (`*`) and security headers in `vercel.json`.
+
+### Key Endpoints
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/api/health` | Service health, runtime details, and yt-dlp core version |
+| `POST` / `GET` | `/api/info` | Extract full metadata (title, uploader, duration, resolutions, streams, subtitles) |
+| `POST` | `/api/formats` | Retrieve available video resolutions (4K, 1080p, etc.) and audio streams |
+| `POST` | `/api/subtitles` | Extract all manual and auto-generated subtitle tracks with available formats |
+| `POST` | `/api/resolve` | Resolve direct CDN streaming and download URLs for requested format, quality, clip, and subtitles |
+| `GET` | `/api/stream` | Direct media stream / browser playback proxy with inline Content-Disposition |
+| `GET` | `/api/download/file` | One-click attachment file download with clean sanitized filename header |
+| `GET` | `/api/subtitles/download` | Direct subtitle track download (`.srt`, `.vtt`, `.ass`, `.lrc`) |
+| `POST` / `GET` | `/api/playlist` | Inspect playlist items, count, and entry metadata |
+| `POST` | `/api/playlist/resolve` | Batch resolve direct stream URLs for all playlist entries with indexed naming |
+| `POST` | `/api/validate/url` | Validate media URL syntax and identify host platform |
+| `POST` | `/api/validate/clip` | Validate clipping start/end timestamps against duration boundaries |
+
+📖 **[Complete API Documentation & Deployment Guide →](api/README.md)**
+
+---
+
+## 🛠️ Complete Command & Option Reference
+
+### CLI Subcommands
 
 | Command | Type | Description |
 |---|---|---|
-| `downloadyha-gui` | Desktop App | Launch the standalone graphical user interface |
-| `downloadyha` | Terminal CLI | Start the interactive command-line downloader |
-| `downloadyha gui` | Terminal Helper | Launch the Desktop GUI from the CLI |
-| `downloadyha update` | Maintenance | Check for and install the latest updates from GitHub Releases |
+| `downloadyha` | Interactive CLI | Start interactive step-by-step terminal downloader |
+| `downloadyha-gui` | Desktop App | Launch standalone graphical user interface |
+| `downloadyha gui` | CLI Helper | Launch the Desktop GUI from terminal |
+| `downloadyha update` | Maintenance | Check for and install latest updates from GitHub Releases |
 | `downloadyha repair` | Maintenance | Verify and re-download missing helper binaries (FFmpeg, Deno) |
 | `downloadyha uninstall` | Maintenance | Completely remove Downloadyha, configuration, and cache |
-| `downloadyha --verify` | Diagnostic | Verify that dependencies and helper binaries are operational |
-| `downloadyha --version` | Info | Print version information |
+| `downloadyha --verify` | Diagnostic | Verify helper binary integrity and dependencies |
+| `downloadyha -v` / `--version` | Info | Print version information |
+| `downloadyha -h` / `--help` | Info | Print help message and flag reference |
 
 ### CLI Options & Flags
 
@@ -239,44 +274,44 @@ downloadyha "https://www.youtube.com/playlist?list=PLAYLIST_ID" -f audio -q 192 
 |---|---|---|---|
 | `--start-time` | `-s` | Clip start timestamp (`MM:SS`, `HH:MM:SS`, or seconds) | `-s 01:30` |
 | `--end-time` | `-e` | Clip end timestamp (`MM:SS`, `HH:MM:SS`, or seconds) | `-e 04:15` |
-| `--format` | `-f` | Media format: `video` or `audio` | `-f video` |
+| `--format` | `-f` | Download format: `video`, `audio`, or `subtitles` | `-f video` |
 | `--quality` | `-q` | Video height (`1080`, `720`, `0` for best) or Audio bitrate (`320`, `192`, `128`, `0`) | `-q 1080` |
 | `--output-dir` / `--dir` | `-o` / `-d` | Custom destination directory | `-d ~/Videos` |
-| `--write-subs` | | Write official subtitle files alongside the media | `--write-subs` |
+| `--write-subs` | | Write official subtitle files alongside media | `--write-subs` |
 | `--write-auto-subs` | | Write auto-generated subtitle files | `--write-auto-subs` |
 | `--sub-langs` | | Subtitle languages (comma-separated, e.g. `en,ar` or `all`) | `--sub-langs "en,es"` |
 | `--sub-format` | | Subtitle format: `srt`, `vtt`, `ass`, `lrc` (default: `srt`) | `--sub-format vtt` |
-| `--embed-subs` | | Embed subtitles into the video file (MP4, MKV, WebM) | `--embed-subs` |
+| `--embed-subs` | | Embed subtitles into video file (MP4, MKV, WebM) | `--embed-subs` |
 | `--convert-subs` | | Convert subtitles to another format after download | `--convert-subs srt` |
-| `--gui` | | Launch the graphical user interface | `downloadyha --gui` |
+| `--gui` | | Launch graphical user interface | `downloadyha --gui` |
 | `--update` | | Check for and install updates from GitHub Releases | `downloadyha --update` |
-| `--repair` | | Repair and reinstall bundled dependencies (FFmpeg, Deno) | `downloadyha --repair` |
-| `--uninstall` | | Completely uninstall Downloadyha and delete application data | `downloadyha --uninstall` |
+| `--repair` | | Repair and reinstall bundled dependencies | `downloadyha --repair` |
+| `--uninstall` | | Completely uninstall Downloadyha | `downloadyha --uninstall` |
 | `--verify` | | Verify helper binary integrity and exit | `downloadyha --verify` |
 | `--verbose` | | Enable verbose debug logging | `downloadyha --verbose` |
-| `--version` | `-v` | Display Downloadyha version | `downloadyha -v` |
-| `--help` | `-h` | Display full help and argument list | `downloadyha -h` |
+| `--version` | `-v` | Display version | `downloadyha -v` |
+| `--help` | `-h` | Display help information | `downloadyha -h` |
 
 ---
 
-## ⚙️ Configuration
+## ⚙️ Configuration & Storage
 
-Downloadyha stores user preferences (default download folder, background update checks) in a standard configuration file:
+Downloadyha saves user preferences (default download folder, appearance theme, update checks) in a standard configuration file:
 
 - **Windows**: `%LOCALAPPDATA%\Downloadyha\config.json`
-- **Linux**: `~/.local/share/downloadyha/config.json`
+- **Linux / macOS**: `~/.local/share/downloadyha/config.json` (or `~/.config/downloadyha/config.json`)
 
 ---
 
-## 🔄 Self-Updater & Repair
+## 🔄 Self-Updater & Dependency Repair
 
 Keep Downloadyha and all helper tools in top shape with built-in maintenance commands:
 
 ```bash
-# Update Downloadyha to the latest release
+# Update Downloadyha to the latest GitHub release
 downloadyha update
 
-# Repair or re-download missing/corrupted dependencies (FFmpeg, Deno)
+# Repair or re-download missing/corrupted FFmpeg and Deno binaries
 downloadyha repair
 
 # Verify system readiness and dependencies
@@ -287,7 +322,7 @@ downloadyha --verify
 
 ## 🗑️ Uninstallation
 
-Uninstall cleanly at any time using:
+Uninstall cleanly at any time:
 
 ```bash
 downloadyha uninstall
@@ -300,21 +335,28 @@ For the standalone GUI ZIP, simply delete the extracted folder.
 ## 🔒 Privacy & Security
 
 - 🚫 **Zero Telemetry**: No tracking, analytics, telemetry, or personal data collection.
-- 🔒 **Direct Connection**: Downloads stream directly from YouTube to your local disk.
+- 🔒 **Direct Connection**: All downloads stream directly between YouTube / media CDNs and your machine.
 - 🛡️ **Integrity Verification**: Released binaries, helper tools, and updates are verified against SHA-256 checksums over secure TLS connections.
 
 ---
 
-## 📚 Documentation
+## 📚 Documentation Index
 
-- **[GUI User Guide](GUI_USER_GUIDE.md)** - Desktop GUI usage, tips, and keyboard shortcuts
-- **[GUI Download Guide](GUI_DOWNLOAD.md)** - Standalone GUI download and setup instructions
-- **[GUI Development Guide](GUI_DEVELOPMENT.md)** - Architecture and developer documentation
-- **[Main Changelog](CHANGELOG.md)** - Complete release notes and version history
-- **[Contributing Guide](CONTRIBUTING.md)** - Guidelines for contributing to Downloadyha
+- **[GUI User Guide](GUI_USER_GUIDE.md)** — Comprehensive Desktop GUI guide, tips, and controls
+- **[GUI Download Documentation](GUI_DOWNLOAD.md)** — Standalone GUI installation instructions
+- **[GUI Development Guide](GUI_DEVELOPMENT.md)** — GUI architecture and styling specifications
+- **[REST API Guide](api/README.md)** — Serverless API documentation, endpoints, and deployment
+- **[Project Summary](PROJECT_SUMMARY.md)** — Complete architectural overview and feature summary
+- **[Main Changelog](CHANGELOG.md)** — Version release notes and history
+- **[GUI Changelog](CHANGELOG_GUI.md)** — Desktop GUI change history
+- **[Contributing Guide](CONTRIBUTING.md)** — Guidelines for contributing
 
 ---
 
+## 👤 Author & Code Ownership
+
+Crafted with care by **Ahmed Tarek Zaher** ([@ahmed-tarek-2004](https://github.com/ahmed-tarek-2004)).
+
 ## 📄 License
 
-Distributed under the MIT License. See [LICENSE](LICENSE) for details.
+Distributed under the **MIT License**. See [LICENSE](LICENSE) for details.
