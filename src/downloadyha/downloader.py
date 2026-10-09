@@ -23,6 +23,7 @@ __license__ = "MIT"
 import os
 import re
 import sys
+import threading
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -917,7 +918,8 @@ def resolve_audio_quality(quality: Optional[Union[str, int]] = None) -> str:
 
 def create_progress_hook(
     custom_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
-    stats_tracker: Optional[Dict[str, Any]] = None
+    stats_tracker: Optional[Dict[str, Any]] = None,
+    cancel_event: Optional[threading.Event] = None
 ) -> Callable[[Dict[str, Any]], None]:
     """
     Create a robust progress hook for yt-dlp downloads.
@@ -925,11 +927,15 @@ def create_progress_hook(
     Args:
         custom_callback: Optional user callback receiving parsed progress dict.
         stats_tracker: Optional dictionary tracking files and completion metrics.
+        cancel_event: Optional threading.Event to signal cancellation.
 
     Returns:
         Callable hook compatible with yt-dlp's progress_hooks.
     """
     def hook(data: Dict[str, Any]) -> None:
+        if cancel_event and cancel_event.is_set():
+            raise DownloadCancelled("Download cancelled by user.")
+
         status = data.get("status")
         info_dict = data.get("info_dict", {}) or {}
 
@@ -1034,7 +1040,8 @@ def download_media(
     sub_format: str = "srt",
     embed_subs: bool = False,
     convert_subs: Optional[str] = None,
-    is_playlist_mode: Optional[bool] = None
+    is_playlist_mode: Optional[bool] = None,
+    cancel_event: Optional[threading.Event] = None
 ) -> DownloadResult:
     """
     Download media (single video, audio, or entire playlist) from a URL.
@@ -1063,6 +1070,7 @@ def download_media(
         embed_subs: Whether to embed subtitles into the video file.
         convert_subs: Optional subtitle format conversion target (e.g., "srt").
         is_playlist_mode: Explicit flag to force playlist batch download or single item.
+        cancel_event: Optional threading.Event to signal cancellation.
 
     Returns:
         DownloadResult instance containing status and statistics.
@@ -1159,7 +1167,7 @@ def download_media(
         "completed_items": 0,
         "files": [],
     }
-    hook = create_progress_hook(progress_callback, stats_tracker)
+    hook = create_progress_hook(progress_callback, stats_tracker, cancel_event=cancel_event)
     collector = YtDlpMessageCollector("downloader")
 
     # Build yt-dlp options based on media type
@@ -1391,7 +1399,8 @@ def download_audio(
     sub_langs: Optional[str] = None,
     sub_format: str = "srt",
     embed_subs: bool = False,
-    convert_subs: Optional[str] = None
+    convert_subs: Optional[str] = None,
+    cancel_event: Optional[threading.Event] = None
 ) -> DownloadResult:
     """
     Download audio (single media or playlist) as MP3.
@@ -1403,6 +1412,7 @@ def download_audio(
         progress_callback: Optional UI progress callback.
         start_time: Optional start timestamp (e.g., "01:30", "90").
         end_time: Optional end timestamp (e.g., "04:15", "255").
+        cancel_event: Optional threading.Event to signal cancellation.
 
     Returns:
         DownloadResult instance (evaluates as True on success).
@@ -1420,7 +1430,8 @@ def download_audio(
         sub_langs=sub_langs,
         sub_format=sub_format,
         embed_subs=embed_subs,
-        convert_subs=convert_subs
+        convert_subs=convert_subs,
+        cancel_event=cancel_event
     )
 
 
@@ -1437,7 +1448,8 @@ def download_video(
     sub_langs: Optional[str] = None,
     sub_format: str = "srt",
     embed_subs: bool = False,
-    convert_subs: Optional[str] = None
+    convert_subs: Optional[str] = None,
+    cancel_event: Optional[threading.Event] = None
 ) -> DownloadResult:
     """
     Download video (single video or playlist) with FFmpeg muxing into MP4/MKV.
@@ -1456,6 +1468,7 @@ def download_video(
         sub_format: Subtitle container format (e.g., "srt", "vtt", "ass").
         embed_subs: Whether to embed subtitles into the video file.
         convert_subs: Optional subtitle format conversion target (e.g., "srt").
+        cancel_event: Optional threading.Event to signal cancellation.
 
     Returns:
         DownloadResult instance (evaluates as True on success).
@@ -1474,7 +1487,8 @@ def download_video(
         sub_langs=sub_langs,
         sub_format=sub_format,
         embed_subs=embed_subs,
-        convert_subs=convert_subs
+        convert_subs=convert_subs,
+        cancel_event=cancel_event
     )
 
 

@@ -23,6 +23,7 @@ import sys
 import tarfile
 import tempfile
 import time
+import threading
 import urllib.error
 import urllib.request
 import zipfile
@@ -40,6 +41,8 @@ from .paths import (
 )
 from .platform import get_architecture, get_platform, is_linux, is_windows
 
+
+dep_lock = threading.Lock()
 
 class DependencyError(Exception):
     """Base exception for dependency-related errors."""
@@ -541,38 +544,39 @@ def check_dependencies(auto_download: bool = True) -> bool:
     Returns:
         True if all dependencies are ready, False otherwise.
     """
-    ensure_directories()
-    missing: List[str] = []
+    with dep_lock:
+        ensure_directories()
+        missing: List[str] = []
 
-    ffmpeg_path = get_ffmpeg_path(auto_download=auto_download)
-    if not ffmpeg_path:
-        missing.append("FFmpeg")
+        ffmpeg_path = get_ffmpeg_path(auto_download=auto_download)
+        if not ffmpeg_path:
+            missing.append("FFmpeg")
 
-    ffprobe_path = get_ffprobe_path(auto_download=auto_download)
-    if not ffprobe_path:
-        missing.append("FFprobe")
+        ffprobe_path = get_ffprobe_path(auto_download=auto_download)
+        if not ffprobe_path:
+            missing.append("FFprobe")
 
-    deno_path = get_deno_path(auto_download=auto_download)
-    if not deno_path:
-        missing.append("Deno")
+        deno_path = get_deno_path(auto_download=auto_download)
+        if not deno_path:
+            missing.append("Deno")
 
-    try:
-        get_yt_dlp()
-    except DependencyError:
-        missing.append("yt-dlp")
+        try:
+            get_yt_dlp()
+        except DependencyError:
+            missing.append("yt-dlp")
 
-    if not missing:
-        return True
+        if not missing:
+            return True
 
-    print("\nMissing dependencies:")
-    for dependency in missing:
-        print(f"  - {dependency}")
+        print("\nMissing dependencies:")
+        for dependency in missing:
+            print(f"  - {dependency}")
 
-    print(
-        "\nPlease run 'downloadyha repair' or install the missing dependencies "
-        "before using Downloadyha."
-    )
-    return False
+        print(
+            "\nPlease run 'downloadyha repair' or install the missing dependencies "
+            "before using Downloadyha."
+        )
+        return False
 
 
 def verify_dependencies() -> bool:
