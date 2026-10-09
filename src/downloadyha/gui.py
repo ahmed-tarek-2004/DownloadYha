@@ -300,6 +300,7 @@ class DownloadyhaGUI:
         self._current_theme = self.settings.get("theme", "light")
         self._download_thread: Optional[threading.Thread] = None
         self._progress_callback = ProgressCallback()
+        self._cancel_event = threading.Event()
         self._is_downloading = False
         self._media_info: Optional[Dict[str, Any]] = None
 
@@ -996,6 +997,7 @@ class DownloadyhaGUI:
 
         # Reset progress callback
         self._progress_callback.reset()
+        self._cancel_event.clear()
 
         # Update UI state
         self._is_downloading = True
@@ -1023,10 +1025,24 @@ class DownloadyhaGUI:
                         sub_format=sub_format,
                         embed_subs=embed_subs,
                         convert_subs=convert_subs,
+                        cancel_event=self._cancel_event,
                     )
                 else:
                     result = download_audio(
                         url=url,
+                        download_path=download_dir,
+                        quality=quality,
+                        start_time=start_time,
+                        end_time=end_time,
+                        progress_callback=self._progress_callback,
+                        write_subtitles=write_subtitles,
+                        write_auto_subs=write_auto_subs,
+                        sub_langs=sub_langs,
+                        sub_format=sub_format,
+                        embed_subs=embed_subs,
+                        convert_subs=convert_subs,
+                        cancel_event=self._cancel_event,
+                    )
                         download_path=download_dir,
                         quality=quality,
                         start_time=start_time,
@@ -1124,7 +1140,14 @@ class DownloadyhaGUI:
     def _cancel_download(self) -> None:
         """Cancel the current download."""
         if self._is_downloading:
+            self._cancel_event.set()
             self._progress_callback.cancel()
+
+            # Update UI for cancellation
+            self.cancel_btn.configure(state=tk.DISABLED)
+            self.progress_label.configure(text="Cancelling...")
+            self.status_bar.configure(text="Cancelling download...")
+
             self._is_downloading = False
             self._set_ui_state(downloading=False)
             self.progress_label.configure(text="Download cancelled")
